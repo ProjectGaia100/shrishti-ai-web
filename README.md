@@ -1,73 +1,62 @@
-# Welcome to your Lovable project
+# Shrishti AI — Web Frontend
 
-## Project info
+Shrishti AI is an intelligent geospatial analytics and disaster-management web platform that integrates satellite imagery, real-time weather data, and AI-powered hazard prediction into a unified dashboard.
 
-**URL**: https://lovable.dev/projects/bcb05ce5-10a7-4aea-acff-a259e7f10e5b
+## Features
 
-## How can I edit this code?
+- **GeoVision** — Satellite image analysis and geospatial layer exploration
+- **HazardGuard** — AI-driven natural disaster risk prediction
+- **WeatherWise** — Real-time weather forecasting and alerts
+- **Satellite Timelapse** — Animated satellite imagery over time
+- **Interactive Map** — Multi-layer geospatial map with search and filtering
+- **Landing Page** — Animated hero, features, and how-it-works sections
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **React** + **TypeScript**
+- **Vite** — fast dev server and build tool
+- **Tailwind CSS** — utility-first styling
+- **shadcn/ui** — accessible component library
+- **Supabase** — authentication and database
+- **Vercel** — deployment
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/bcb05ce5-10a7-4aea-acff-a259e7f10e5b) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Requires **Node.js ≥ 18** and **npm**.
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# 1. Clone the repo
+git clone https://github.com/ProjectGaia100/shrishti-ai-web.git
+cd shrishti-ai-web
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# 2. Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
+# 3. Copy env template and fill in your keys
+cp .env.example .env
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 4. Start the dev server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will be available at `http://localhost:5173`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Environment Variables
 
-**Use GitHub Codespaces**
+See `.env.example` for the full list of required keys (Supabase URL, anon key, API endpoints, etc.).
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Deployment
 
-## What technologies are used for this project?
+Deploy to Vercel by importing the repo — the included `vercel.json` handles SPA routing automatically.
 
-This project is built with:
+## Project Structure
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/bcb05ce5-10a7-4aea-acff-a259e7f10e5b) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+```
+src/
+  components/      # Reusable UI components
+  components/landing/  # Landing-page sections
+  context/         # React context providers (Auth, Theme)
+  pages/           # Route-level page components
+  services/        # API service helpers
+public/            # Static assets and icons
+```
