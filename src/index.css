@@ -2,108 +2,199 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* =================================================================
+   SHRISHTI AI — Design System
+   Dark Mode Only: Satellite operations control center
+   ================================================================= */
 
 @layer base {
+  /* ---------------------------------------------------------------
+     DARK THEME (Only theme)
+     Deep charcoal, subtle glow accents, satellite control-room vibe
+     --------------------------------------------------------------- */
   :root {
-    /* Deep navy/dark blue primary colors */
-    --background: 222 47% 11%;
-    --foreground: 0 0% 100%;
+    --background: 224 30% 9%;
+    --foreground: 210 20% 95%;
 
-    /* Glassmorphism card backgrounds */
-    --card: 222 47% 14%;
-    --card-foreground: 0 0% 100%;
-    --card-glass: 222 30% 20%;
+    --card: 224 25% 12%;
+    --card-foreground: 210 20% 95%;
+    --card-glass: 224 20% 15%;
 
-    --popover: 222 47% 14%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 224 25% 12%;
+    --popover-foreground: 210 20% 95%;
 
-    /* Electric blue primary */
+    /* Bright blue primary */
     --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
     --primary-glow: 217 91% 70%;
 
-    /* Purple accent */
-    --secondary: 258 90% 66%;
-    --secondary-foreground: 0 0% 100%;
+    /* Dark secondary */
+    --secondary: 224 20% 16%;
+    --secondary-foreground: 210 20% 95%;
 
-    --muted: 222 30% 20%;
-    --muted-foreground: 215 16% 65%;
+    --muted: 224 20% 16%;
+    --muted-foreground: 215 16% 57%;
 
-    /* Purple/violet highlights */
-    --accent: 258 90% 66%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 224 20% 16%;
+    --accent-foreground: 210 20% 95%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders with transparency */
-    --border: 217 32% 25%;
-    --input: 222 30% 20%;
+    --border: 224 15% 20%;
+    --input: 224 20% 16%;
     --ring: 217 91% 60%;
 
-    --radius: 1rem;
+    --radius: 0.625rem;
 
     /* Dataset theme colors */
-    --dataset-vegetation: 142 76% 36%;
+    --dataset-vegetation: 142 76% 42%;
     --dataset-terrain: 25 95% 53%;
     --dataset-lights: 48 96% 53%;
     --dataset-landcover: 199 89% 48%;
     --dataset-temperature: 0 84% 60%;
 
     /* Status colors */
-    --success: 142 76% 36%;
+    --success: 142 76% 42%;
     --warning: 48 96% 53%;
     --error: 0 84% 60%;
-
-    /* Glass effect opacity */
-    --glass-opacity: 0.8;
-    --glass-blur: 12px;
   }
 }
 
 @layer utilities {
-  /* Glassmorphism utilities */
-  .glass {
-    background: rgba(30, 41, 59, var(--glass-opacity));
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
+  /* Surface utilities — proper panel elevation */
+  .surface {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.35);
+  }
+  .surface-raised {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.35);
+  }
+  .surface-inset {
+    background-color: hsl(var(--muted));
+    border: 1px solid hsl(var(--border));
   }
 
+  /* Glass — dark mode aesthetics */
+  .glass {
+    background: rgba(15, 20, 35, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
   .glass-strong {
-    background: rgba(30, 41, 59, 0.95);
+    background: rgba(15, 20, 35, 0.95);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+  }
+  .glass-subtle {
+    background: rgba(15, 20, 35, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
   /* Gradient backgrounds */
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--background)), hsl(var(--primary)), hsl(var(--accent)));
-  }
-
-  .gradient-card {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+    background: linear-gradient(135deg, hsl(224, 30%, 9%), hsl(224, 25%, 12%));
   }
 
   /* Smooth transitions */
   .transition-smooth {
-    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Hover scale effect */
+  /* Hover elevation — subtle, professional */
+  .hover-lift {
+    transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
   .hover-lift:hover {
-    transform: translateY(-4px) scale(1.02);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -5px rgba(0,0,0,0.4);
   }
 
-  /* Shadow effects */
+  /* Text accent gradient */
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(217, 91%, 60%), hsl(199, 89%, 48%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Shadow utilities */
   .shadow-glow {
-    box-shadow: 0 0 40px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.25);
+  }
+  .shadow-glow-purple {
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.25);
   }
 
-  .shadow-glow-purple {
-    box-shadow: 0 0 40px rgba(139, 92, 246, 0.3);
+  /* Separator */
+  .separator-gradient {
+    height: 1px;
+    background: linear-gradient(to right, transparent, hsl(var(--border)), transparent);
+  }
+
+  /* Gradient mesh — dark mode only */
+  .gradient-mesh {
+    background:
+      radial-gradient(at 40% 20%, rgba(59,130,246,0.06) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, rgba(59,130,246,0.04) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, rgba(6,182,212,0.04) 0px, transparent 50%);
+  }
+
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+  .animate-slide-in-from-right {
+    animation: slide-in-from-right 0.35s ease-out;
+  }
+  .animate-scale-in {
+    animation: scale-in 0.4s ease-out;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slide-in-from-right {
+    from { opacity: 0; transform: translateX(100%); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* Landing page animations */
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+  .animate-float-delayed {
+    animation: float 4s ease-in-out infinite;
+    animation-delay: 1.3s;
+  }
+  .animate-float-slow {
+    animation: float 5s ease-in-out infinite;
+    animation-delay: 0.7s;
+  }
+  .animate-bounce-slow {
+    animation: bounce-slow 2.5s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+  @keyframes bounce-slow {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+  }
+
+  .duration-2000 {
+    transition-duration: 2000ms;
   }
 }
 
@@ -117,22 +208,20 @@ All colors MUST be HSL.
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 
-  /* Custom scrollbar */
+  /* Scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
-
   ::-webkit-scrollbar-track {
     background: hsl(var(--background));
+    border-radius: 3px;
   }
-
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--primary) / 0.5);
-    border-radius: 4px;
+    background: hsl(var(--primary) / 0.3);
+    border-radius: 3px;
   }
-
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary));
+    background: hsl(var(--primary) / 0.5);
   }
 }

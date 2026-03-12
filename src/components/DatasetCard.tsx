@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Eye, EyeOff, ChevronDown, ChevronUp, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { fetchDataset } from "@/services/api";
 
 interface Legend {
   color: string;
@@ -19,7 +20,7 @@ interface DatasetCardProps {
   legend: Legend[];
 }
 
-export const DatasetCard = ({ name, title, description, icon: Icon, theme, legend }: DatasetCardProps) => {
+export const DatasetCard = ({ id, name, title, description, icon: Icon, theme, legend }: DatasetCardProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [opacity, setOpacity] = useState([70]);
@@ -41,16 +42,53 @@ export const DatasetCard = ({ name, title, description, icon: Icon, theme, legen
     temperature: "text-dataset-temperature",
   };
 
+  const handleLoad = async () => {
+    try {
+      // fetch tile url from backend using id
+      const data = await fetchDataset(id);
+      // backend returns tile_url in data.tile_url
+      const tileUrl = data?.tile_url || data?.tile_url;
+
+      if (tileUrl) {
+        // dispatch event for the map to add layer
+        window.dispatchEvent(new CustomEvent('geo:add-layer', {
+          detail: {
+            id: id,
+            name,
+            url: tileUrl,
+            metadata: data.metadata || data,
+            opacity: (opacity[0] || 70) / 100,
+          }
+        }));
+
+        setIsLoaded(true);
+      } else {
+        console.error('No tile_url returned from server for', name, data);
+      }
+    } catch (err) {
+      console.error('Failed to load dataset', err);
+    }
+  };
+
+  const handleToggleVisibility = () => {
+    setIsVisible(!isVisible);
+    window.dispatchEvent(new CustomEvent('geo:toggle-layer', { detail: { id: id, visible: !isVisible } }));
+  };
+
+  const handleOpacityChange = (val: number[]) => {
+    setOpacity(val);
+    window.dispatchEvent(new CustomEvent('geo:update-opacity', { detail: { id: id, opacity: (val[0] || 70) / 100 } }));
+  };
+
   return (
     <div
       className={cn(
-        "glass rounded-2xl p-4 transition-smooth hover-lift border border-border/50",
-        "bg-gradient-to-br",
-        themeColors[theme]
+        "rounded-xl p-4 transition-all duration-200 border mx-3",
+        "border-border bg-background hover:bg-muted/50"
       )}
     >
       <div className="flex items-start gap-3 mb-3">
-        <div className={cn("p-2.5 rounded-xl glass-strong", iconColors[theme])}>
+        <div className={cn("p-2.5 rounded-lg bg-muted/50 dark:bg-muted/30", iconColors[theme])}>
           <Icon className="w-5 h-5" />
         </div>
         <div className="flex-1">
@@ -63,7 +101,7 @@ export const DatasetCard = ({ name, title, description, icon: Icon, theme, legen
 
       <div className="space-y-2">
         <Button
-          onClick={() => setIsLoaded(!isLoaded)}
+          onClick={() => { if (!isLoaded) { handleLoad(); } else { /* unload: remove layer */ window.dispatchEvent(new CustomEvent('geo:remove-layer', { detail: { id } })); setIsLoaded(false); } }}
           className={cn(
             "w-full transition-smooth font-semibold",
             isLoaded
@@ -81,7 +119,7 @@ export const DatasetCard = ({ name, title, description, icon: Icon, theme, legen
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => setIsVisible(!isVisible)}
+                onClick={handleToggleVisibility}
                 className="p-2 hover:bg-primary/10"
               >
                 {isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -92,7 +130,7 @@ export const DatasetCard = ({ name, title, description, icon: Icon, theme, legen
                 </label>
                 <Slider
                   value={opacity}
-                  onValueChange={setOpacity}
+                  onValueChange={handleOpacityChange}
                   max={100}
                   step={1}
                   className="w-full"
@@ -111,7 +149,7 @@ export const DatasetCard = ({ name, title, description, icon: Icon, theme, legen
             </Button>
 
             {showLegend && (
-              <div className="space-y-1.5 animate-fade-in glass-strong rounded-lg p-2">
+              <div className="space-y-1.5 animate-fade-in rounded-lg p-2 bg-muted/50 dark:bg-muted/30 border border-border">
                 {legend.map((item, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs">
                     <div

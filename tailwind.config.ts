@@ -62,12 +62,6 @@ export default {
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-primary': 'linear-gradient(135deg, hsl(var(--background)), hsl(var(--primary)), hsl(var(--accent)))',
-        'gradient-blue-purple': 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)))',
-        'gradient-card': 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1))',
-      },
-      backdropBlur: {
-        xs: '2px',
       },
       borderRadius: {
         lg: "var(--radius)",

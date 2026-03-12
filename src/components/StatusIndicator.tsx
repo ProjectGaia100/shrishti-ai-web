@@ -18,7 +18,7 @@ export const StatusIndicator = () => {
   }, []);
 
   return (
-    <div className="absolute top-4 left-4 z-[1000] glass rounded-xl px-4 py-2 flex items-center gap-2 shadow-lg">
+    <div className="absolute top-4 left-4 z-[1000] bg-background/95 backdrop-blur-sm border border-border rounded-xl px-4 py-2 flex items-center gap-2 shadow-sm">
       {isConnected ? (
         <>
           <div className="w-2 h-2 rounded-full bg-success animate-pulse-glow" />

@@ -1,14 +1,21 @@
 import { Satellite } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export const InfoOverlay = () => {
+interface InfoOverlayProps {
+  isVisible?: boolean;
+}
+
+export const InfoOverlay = ({ isVisible = true }: InfoOverlayProps) => {
+  if (!isVisible) return null;
+  
   return (
-    <div className="absolute top-4 right-4 z-[1000] glass-strong rounded-xl p-4 shadow-glow max-w-xs">
+    <div className="absolute top-16 right-4 z-[1000] bg-background/95 backdrop-blur-sm border border-border rounded-xl p-4 shadow-lg max-w-xs">
       <div className="flex items-center gap-3 mb-2">
-        <div className="p-2 bg-gradient-blue-purple rounded-lg">
-          <Satellite className="w-5 h-5 text-primary-glow" />
+        <div className="p-2 bg-primary/10 rounded-lg">
+          <Satellite className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h3 className="font-bold text-lg">SatView</h3>
+          <h3 className="font-bold text-lg">GeoVision</h3>
           <p className="text-xs text-muted-foreground">Real-time Earth Observation</p>
         </div>
       </div>

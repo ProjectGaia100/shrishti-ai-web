@@ -1,0 +1,86 @@
+import React, { useState, useEffect } from 'react';
+
+interface NavbarProps {
+  isAuthenticated?: boolean;
+  onSignIn: () => void;
+  onDashboard?: () => void;
+  onLogout?: () => void;
+}
+
+export function Navbar({ isAuthenticated, onSignIn, onDashboard, onLogout }: NavbarProps) {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  return (
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        scrolled
+          ? 'bg-background/95 backdrop-blur-md border-b border-border shadow-sm'
+          : 'bg-transparent'
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        {/* Logo */}
+        <div className="flex items-center gap-3">
+          <img src="/shrishti-icon-small.png" alt="Shrishti AI Icon" className="h-10 w-10 object-contain" />
+          <img src="/shrishti-text-long.png" alt="Shrishti AI" className="h-8 object-contain" />
+        </div>
+
+        {/* Nav Links */}
+        <div className="hidden md:flex items-center gap-8">
+          {[
+            { label: 'Features', id: 'features' },
+            { label: 'How It Works', id: 'how-it-works' },
+            { label: 'About', id: 'about' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => scrollTo(item.id)}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 relative group font-medium"
+            >
+              {item.label}
+              <span className="absolute -bottom-1 left-0 w-0 h-[2px] bg-primary group-hover:w-full transition-all duration-300 rounded-full" />
+            </button>
+          ))}
+        </div>
+
+        {/* Right side: CTA */}
+        <div className="flex items-center gap-3">
+          
+          {isAuthenticated ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onDashboard}
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-border text-foreground hover:bg-muted transition-colors duration-200"
+              >
+                Dashboard
+              </button>
+              <button
+                onClick={onLogout}
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors duration-200"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onSignIn}
+              className="px-5 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 shadow-sm hover:shadow-md"
+            >
+              Sign In
+            </button>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+}
