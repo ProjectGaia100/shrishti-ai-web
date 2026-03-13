@@ -3,6 +3,9 @@
 -- Run this in Supabase SQL Editor (Dashboard → SQL Editor → New query)
 -- ============================================================================
 
+-- Ensure UUID helper exists for gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- 1. USER PROFILES TABLE
 -- Extends Supabase auth.users with additional profile data
 CREATE TABLE IF NOT EXISTS public.user_profiles (
@@ -29,6 +32,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS on_user_profiles_updated ON public.user_profiles;
 CREATE TRIGGER on_user_profiles_updated
   BEFORE UPDATE ON public.user_profiles
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
@@ -67,24 +71,29 @@ ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 
 -- USER PROFILES policies
+DROP POLICY IF EXISTS "Users can view their own profile" ON public.user_profiles;
 CREATE POLICY "Users can view their own profile"
   ON public.user_profiles FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.user_profiles;
 CREATE POLICY "Users can insert their own profile"
   ON public.user_profiles FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.user_profiles;
 CREATE POLICY "Users can update their own profile"
   ON public.user_profiles FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
 -- ACTIVITY LOGS policies
+DROP POLICY IF EXISTS "Users can view their own activity logs" ON public.activity_logs;
 CREATE POLICY "Users can view their own activity logs"
   ON public.activity_logs FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert their own activity logs" ON public.activity_logs;
 CREATE POLICY "Users can insert their own activity logs"
   ON public.activity_logs FOR INSERT
   WITH CHECK (auth.uid() = user_id);
@@ -112,6 +121,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
