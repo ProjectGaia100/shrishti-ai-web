@@ -57,6 +57,20 @@ function clearStored() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
+function isJwtExpired(token: string): boolean {
+  try {
+    const payloadBase64 = token.split('.')[1];
+    if (!payloadBase64) return true;
+    const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(base64));
+    const exp = Number(payload?.exp);
+    if (!Number.isFinite(exp)) return true;
+    return Date.now() >= exp * 1000;
+  } catch {
+    return true;
+  }
+}
+
 // ── Provider ───────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -177,7 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ── Logout ─────────────────────────────────────────────────────────────
 
   const logout = useCallback(async () => {
-    if (accessToken) {
+    if (accessToken && !isJwtExpired(accessToken)) {
       try {
         await fetch(`${API_URL}/api/auth/logout`, {
           method: 'POST',

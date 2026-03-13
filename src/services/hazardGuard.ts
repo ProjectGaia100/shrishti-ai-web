@@ -60,8 +60,15 @@ class HazardGuardService {
       console.log('[HAZARDGUARD_CLIENT] Response status:', response.status);
 
       if (!response.ok) {
-        console.error('[HAZARDGUARD_CLIENT] Response not OK:', response.status, response.statusText);
-        throw new Error(`Prediction service error ${response.status}`);
+        let backendError = '';
+        try {
+          const errJson = await response.json();
+          backendError = errJson?.error || errJson?.message || '';
+        } catch {
+          backendError = '';
+        }
+        console.error('[HAZARDGUARD_CLIENT] Response not OK:', response.status, response.statusText, backendError);
+        throw new Error(backendError ? `Prediction service error ${response.status}: ${backendError}` : `Prediction service error ${response.status}`);
       }
 
       const data = await response.json();

@@ -56,6 +56,10 @@ export const MapView = ({ hazardGuardActive = false, hazardGuardMode = 'point', 
   // --- Stable refs for values used inside the one-time map init effect ---
   const latestOnMapClick = useLatest(onMapClick);
   const latestOnPolygonDrawn = useLatest(onPolygonDrawn);
+    const normalizeLongitude = (lng: number) => {
+      // Leaflet can return wrapped world longitudes outside [-180, 180].
+      return ((lng + 180) % 360 + 360) % 360 - 180;
+    };
   const latestHazardGuardActive = useLatest(hazardGuardActive);
   const latestHazardGuardMode = useLatest(hazardGuardMode);
   const latestWeatherWiseActive = useLatest(weatherWiseActive);
@@ -95,7 +99,7 @@ export const MapView = ({ hazardGuardActive = false, hazardGuardMode = 'point', 
       if (latestHazardGuardActive.current && latestHazardGuardMode.current === 'region') return;
       if ((latestHazardGuardActive.current || latestWeatherWiseActive.current || latestGeoVisionActive.current) && latestOnMapClick.current) {
         const { lat, lng } = e.latlng;
-        latestOnMapClick.current(lat, lng);
+        latestOnMapClick.current(lat, normalizeLongitude(lng));
       }
     };
 
@@ -120,7 +124,7 @@ export const MapView = ({ hazardGuardActive = false, hazardGuardMode = 'point', 
       
       // Extract polygon coordinates
       const latlngs = layer.getLatLngs()[0] as L.LatLng[];
-      const coords: Array<[number, number]> = latlngs.map((ll: L.LatLng) => [ll.lat, ll.lng]);
+      const coords: Array<[number, number]> = latlngs.map((ll: L.LatLng) => [ll.lat, normalizeLongitude(ll.lng)]);
       
       if (latestOnPolygonDrawn.current) {
         latestOnPolygonDrawn.current(coords);
