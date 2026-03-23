@@ -1,6 +1,9 @@
 // WeatherWise API service for LSTM weather forecasting
 // Integrated with the backend MVC architecture at /api/weatherwise/
 
+import { getAuthHeaders } from "./authToken";
+import { creditsService } from "./credits";
+
 export interface WeatherForecast {
   forecast: {
     temperature_C: number[];
@@ -33,6 +36,44 @@ export interface WeatherWiseResponse {
 
 class WeatherWiseService {
   private baseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+  private readonly predictionCost = 10;
+
+  private async ensureCreditsForPrediction(): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const balance = await creditsService.getBalance();
+      if (balance < this.predictionCost) {
+        window.dispatchEvent(new CustomEvent('credits:insufficient', {
+          detail: {
+            required_credits: this.predictionCost,
+            remaining_credits: balance,
+            model: 'weatherwise',
+          }
+        }));
+        return {
+          ok: false,
+          error: 'Out of credits. Please buy more credits to run WeatherWise forecasts.',
+        };
+      }
+      return { ok: true };
+    } catch {
+      // If balance check fails, let backend be authoritative.
+      return { ok: true };
+    }
+  }
+
+  private async syncCreditBalanceOrConsumeFallback(consumeAmount: number): Promise<void> {
+    try {
+      const balance = await creditsService.consume(consumeAmount);
+      window.dispatchEvent(new CustomEvent('credits:updated', {
+        detail: { remaining_credits: balance }
+      }));
+    } catch {
+      // Fallback keeps UI responsive when balance endpoint is unavailable.
+      window.dispatchEvent(new CustomEvent('credits:consume', {
+        detail: { amount: consumeAmount }
+      }));
+    }
+  }
 
   async generateForecast(
     latitude: number,
@@ -41,6 +82,11 @@ class WeatherWiseService {
     disasterType: string = 'Normal',
     forecastDays: number = 60
   ): Promise<WeatherWiseResponse> {
+    const creditGate = await this.ensureCreditsForPrediction();
+    if (!creditGate.ok) {
+      return { success: false, error: creditGate.error };
+    }
+
     try {
       console.log('[WEATHERWISE_CLIENT] Starting forecast request...');
       console.log('[WEATHERWISE_CLIENT] Using baseUrl:', this.baseUrl);
@@ -68,6 +114,7 @@ class WeatherWiseService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders(),
         },
         body: JSON.stringify(requestBody),
       });
@@ -75,6 +122,15 @@ class WeatherWiseService {
       console.log('[WEATHERWISE_CLIENT] Response status:', response.status);
 
       if (!response.ok) {
+        if (response.status === 402) {
+          const insufficient = await response.json().catch(() => ({}));
+          const info = insufficient?.credit_info || {};
+          window.dispatchEvent(new CustomEvent('credits:insufficient', { detail: info }));
+          return {
+            success: false,
+            error: insufficient?.message || 'Insufficient credits for WeatherWise forecast'
+          };
+        }
         const errorText = await response.text();
         console.error('[WEATHERWISE_CLIENT] Response not OK:', response.status, response.statusText);
         console.error('[WEATHERWISE_CLIENT] Error response body:', errorText);
@@ -83,6 +139,12 @@ class WeatherWiseService {
 
       const data = await response.json();
       console.log('[WEATHERWISE_CLIENT] Response data:', JSON.stringify(data, null, 2));
+
+      if (data.credit_info?.remaining_credits !== undefined) {
+        window.dispatchEvent(new CustomEvent('credits:updated', {
+          detail: { remaining_credits: data.credit_info.remaining_credits }
+        }));
+      }
       
       if (!data.success) {
         console.error('[WEATHERWISE_CLIENT] Forecast failed:', data.error || data.message);
@@ -107,6 +169,8 @@ class WeatherWiseService {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to connect to WeatherWise service'
       };
+    } finally {
+      await this.syncCreditBalanceOrConsumeFallback(this.predictionCost);
     }
   }
 

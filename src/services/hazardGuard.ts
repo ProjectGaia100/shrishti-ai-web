@@ -1,6 +1,9 @@
 // HazardGuard API service for disaster prediction
 // Integrated with the backend MVC architecture at /api/hazardguard/predict
 
+import { getAuthHeaders } from "./authToken";
+import { creditsService } from "./credits";
+
 export interface PredictionResult {
   prediction: string;
   confidence: number;
@@ -25,9 +28,52 @@ export interface HazardGuardResponse {
 }
 
 class HazardGuardService {
-  private baseUrl = import.meta.env.VITE_HAZARDGUARD_URL || 'http://127.0.0.1:5000';
+  private baseUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_HAZARDGUARD_URL || 'http://127.0.0.1:5000';
+  private readonly predictionCost = 10;
+
+  private async ensureCreditsForPrediction(): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const balance = await creditsService.getBalance();
+      if (balance < this.predictionCost) {
+        window.dispatchEvent(new CustomEvent('credits:insufficient', {
+          detail: {
+            required_credits: this.predictionCost,
+            remaining_credits: balance,
+            model: 'hazardguard',
+          }
+        }));
+        return {
+          ok: false,
+          error: 'Out of credits. Please buy more credits to run HazardGuard predictions.',
+        };
+      }
+      return { ok: true };
+    } catch {
+      // If balance check fails, let backend be authoritative.
+      return { ok: true };
+    }
+  }
+
+  private async syncCreditBalanceOrConsumeFallback(consumeAmount: number): Promise<void> {
+    try {
+      const balance = await creditsService.consume(consumeAmount);
+      window.dispatchEvent(new CustomEvent('credits:updated', {
+        detail: { remaining_credits: balance }
+      }));
+    } catch {
+      // Fallback keeps UI responsive when balance endpoint is unavailable.
+      window.dispatchEvent(new CustomEvent('credits:consume', {
+        detail: { amount: consumeAmount }
+      }));
+    }
+  }
 
   async predictDisaster(latitude: number, longitude: number): Promise<HazardGuardResponse> {
+    const creditGate = await this.ensureCreditsForPrediction();
+    if (!creditGate.ok) {
+      return { success: false, error: creditGate.error };
+    }
+
     try {
       console.log('[HAZARDGUARD_CLIENT] Starting prediction request...');
       console.log('[HAZARDGUARD_CLIENT] Using baseUrl:', this.baseUrl);
@@ -49,6 +95,7 @@ class HazardGuardService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           latitude,
@@ -60,6 +107,15 @@ class HazardGuardService {
       console.log('[HAZARDGUARD_CLIENT] Response status:', response.status);
 
       if (!response.ok) {
+        if (response.status === 402) {
+          const insufficient = await response.json().catch(() => ({}));
+          const info = insufficient?.credit_info || {};
+          window.dispatchEvent(new CustomEvent('credits:insufficient', { detail: info }));
+          return {
+            success: false,
+            error: insufficient?.message || 'Insufficient credits for HazardGuard prediction'
+          };
+        }
         let backendError = '';
         try {
           const errJson = await response.json();
@@ -73,6 +129,12 @@ class HazardGuardService {
 
       const data = await response.json();
       console.log('[HAZARDGUARD_CLIENT] Response data:', JSON.stringify(data, null, 2));
+
+      if (data.credit_info?.remaining_credits !== undefined) {
+        window.dispatchEvent(new CustomEvent('credits:updated', {
+          detail: { remaining_credits: data.credit_info.remaining_credits }
+        }));
+      }
       
       if (!data.success) {
         console.error('[HAZARDGUARD_CLIENT] Prediction failed:', data.error);
@@ -123,6 +185,8 @@ class HazardGuardService {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to connect to HazardGuard service'
       };
+    } finally {
+      await this.syncCreditBalanceOrConsumeFallback(this.predictionCost);
     }
   }
 
@@ -172,6 +236,11 @@ class HazardGuardService {
     };
     error?: string;
   }> {
+    const creditGate = await this.ensureCreditsForPrediction();
+    if (!creditGate.ok) {
+      return { success: false, error: creditGate.error };
+    }
+
     try {
       console.log('[HAZARDGUARD_CLIENT] Starting region prediction...');
       console.log('[HAZARDGUARD_CLIENT] Polygon vertices:', polygon.length, 'Sample points:', sampleCount);
@@ -201,16 +270,31 @@ class HazardGuardService {
 
       const response = await fetch(requestUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify({ locations }),
       });
 
       if (!response.ok) {
+        if (response.status === 402) {
+          const insufficient = await response.json().catch(() => ({}));
+          const info = insufficient?.credit_info || {};
+          window.dispatchEvent(new CustomEvent('credits:insufficient', { detail: info }));
+          return { success: false, error: insufficient?.message || 'Insufficient credits' };
+        }
         throw new Error(`Batch prediction service error ${response.status}`);
       }
 
       const data = await response.json();
       console.log('[HAZARDGUARD_CLIENT] Batch response:', JSON.stringify(data, null, 2).slice(0, 500));
+
+      if (data.credit_info?.remaining_credits !== undefined) {
+        window.dispatchEvent(new CustomEvent('credits:updated', {
+          detail: { remaining_credits: data.credit_info.remaining_credits }
+        }));
+      }
 
       if (!data.success && (!data.data?.results || data.data.results.length === 0)) {
         return { success: false, error: data.error || 'Batch prediction failed' };
@@ -276,6 +360,8 @@ class HazardGuardService {
         success: false,
         error: error instanceof Error ? error.message : 'Region prediction failed'
       };
+    } finally {
+      await this.syncCreditBalanceOrConsumeFallback(this.predictionCost);
     }
   }
 

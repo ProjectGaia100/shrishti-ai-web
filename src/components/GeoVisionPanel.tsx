@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   X, Brain, MapPin, Loader2, AlertCircle, CheckCircle,
-  Sparkles, Shield, CloudRain, Activity, BarChart3, Layers
+  Sparkles, Shield, CloudRain
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { geoVisionService, GeoVisionPrediction } from "@/services/geoVision";
@@ -15,6 +15,7 @@ interface GeoVisionPanelProps {
   isVisible: boolean;
   onClose: () => void;
   mapCoords?: { lat: number; lon: number } | null;
+  availableCredits?: number;
 }
 
 // Color map for disaster classes
@@ -35,7 +36,8 @@ const WEATHER_COLORS: Record<string, string> = {
   Stormy: "#8b5cf6",
 };
 
-export const GeoVisionPanel = ({ isVisible, onClose, mapCoords }: GeoVisionPanelProps) => {
+export const GeoVisionPanel = ({ isVisible, onClose, mapCoords, availableCredits = 0 }: GeoVisionPanelProps) => {
+  const GEOVISION_COST = 15;
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -53,6 +55,20 @@ export const GeoVisionPanel = ({ isVisible, onClose, mapCoords }: GeoVisionPanel
   const handlePredict = async () => {
     setError(null);
     setPrediction(null);
+
+    if (availableCredits < GEOVISION_COST) {
+      window.dispatchEvent(new CustomEvent('credits:insufficient', {
+        detail: {
+          required_credits: GEOVISION_COST,
+          remaining_credits: availableCredits,
+          model: 'geovision',
+        }
+      }));
+      const errorMsg = 'Out of credits. Buy more credits to run GeoVision predictions.';
+      setError(errorMsg);
+      toast({ title: 'Out of credits', description: errorMsg, variant: 'destructive' });
+      return;
+    }
 
     if (!latitude || !longitude) {
       setError("Please enter latitude and longitude (or click the map)");
@@ -236,68 +252,6 @@ export const GeoVisionPanel = ({ isVisible, onClose, mapCoords }: GeoVisionPanel
                       <ProbBar key={cls} label={cls} value={prob} color={WEATHER_COLORS[cls] || "#6366f1"} />
                     ))}
                 </div>
-              </div>
-
-              {/* --- Intermediate Model Outputs --- */}
-              <div className="rounded-lg p-4 space-y-3 bg-muted/30 border border-border">
-                <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                  <Layers className="w-4 h-4" />
-                  <span>Component Models</span>
-                </div>
-
-                {/* Models used */}
-                <div className="flex flex-wrap gap-1.5">
-                  {prediction.intermediate.models_used.map(m => (
-                    <span key={m} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                      {m}
-                    </span>
-                  ))}
-                </div>
-
-                {/* LSTM disaster probs */}
-                {prediction.intermediate.lstm_disaster_probs && Object.keys(prediction.intermediate.lstm_disaster_probs).length > 0 && (
-                  <div className="pt-2 space-y-2">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                      <Activity className="w-3 h-3" />
-                      LSTM Disaster Probabilities
-                    </div>
-                    {Object.entries(prediction.intermediate.lstm_disaster_probs)
-                      .sort(([, a], [, b]) => b - a)
-                      .map(([cls, prob]) => (
-                        <ProbBar key={`lstm-d-${cls}`} label={cls} value={prob} color={DISASTER_COLORS[cls] || "#555"} />
-                      ))}
-                  </div>
-                )}
-
-                {/* LSTM weather probs */}
-                {prediction.intermediate.lstm_weather_probs && Object.keys(prediction.intermediate.lstm_weather_probs).length > 0 && (
-                  <div className="pt-2 space-y-2">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                      <BarChart3 className="w-3 h-3" />
-                      LSTM Weather Probabilities
-                    </div>
-                    {Object.entries(prediction.intermediate.lstm_weather_probs)
-                      .sort(([, a], [, b]) => b - a)
-                      .map(([cls, prob]) => (
-                        <ProbBar key={`lstm-w-${cls}`} label={cls} value={prob} color={WEATHER_COLORS[cls] || "#555"} />
-                      ))}
-                  </div>
-                )}
-
-                {/* Ensemble disaster probs */}
-                {prediction.intermediate.ensemble_disaster_probs && Object.keys(prediction.intermediate.ensemble_disaster_probs).length > 0 && (
-                  <div className="pt-2 space-y-2">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                      <BarChart3 className="w-3 h-3" />
-                      Ensemble Disaster Probabilities
-                    </div>
-                    {Object.entries(prediction.intermediate.ensemble_disaster_probs)
-                      .sort(([, a], [, b]) => b - a)
-                      .map(([cls, prob]) => (
-                        <ProbBar key={`ens-d-${cls}`} label={cls} value={prob} color={DISASTER_COLORS[cls] || "#555"} />
-                      ))}
-                  </div>
-                )}
               </div>
 
               {/* --- Metadata --- */}

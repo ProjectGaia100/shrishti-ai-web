@@ -2,6 +2,9 @@
 // Cross-stacked ensemble fusion: LSTM MIMO + Tree Ensemble + CNN ResNet50 + Meta-Learner
 // Integrated with the backend MVC architecture at /api/geovision/
 
+import { getAuthHeaders } from "./authToken";
+import { creditsService } from "./credits";
+
 export interface GeoVisionPrediction {
   disaster_prediction: {
     predicted_class: string;
@@ -44,11 +47,54 @@ export interface GeoVisionHealthResponse {
 
 class GeoVisionService {
   private baseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+  private readonly predictionCost = 15;
+
+  private async ensureCreditsForPrediction(): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const balance = await creditsService.getBalance();
+      if (balance < this.predictionCost) {
+        window.dispatchEvent(new CustomEvent('credits:insufficient', {
+          detail: {
+            required_credits: this.predictionCost,
+            remaining_credits: balance,
+            model: 'geovision',
+          }
+        }));
+        return {
+          ok: false,
+          error: 'Out of credits. Please buy more credits to run GeoVision predictions.',
+        };
+      }
+      return { ok: true };
+    } catch {
+      // If balance check fails, let backend be authoritative.
+      return { ok: true };
+    }
+  }
+
+  private async syncCreditBalanceOrConsumeFallback(consumeAmount: number): Promise<void> {
+    try {
+      const balance = await creditsService.consume(consumeAmount);
+      window.dispatchEvent(new CustomEvent('credits:updated', {
+        detail: { remaining_credits: balance }
+      }));
+    } catch {
+      // Fallback keeps UI responsive when balance endpoint is unavailable.
+      window.dispatchEvent(new CustomEvent('credits:consume', {
+        detail: { amount: consumeAmount }
+      }));
+    }
+  }
 
   async predictFusion(
     latitude: number,
     longitude: number
   ): Promise<GeoVisionResponse> {
+    const creditGate = await this.ensureCreditsForPrediction();
+    if (!creditGate.ok) {
+      return { success: false, error: creditGate.error };
+    }
+
     try {
       console.log('[GEOVISION_CLIENT] Starting fusion prediction...');
       console.log('[GEOVISION_CLIENT] Parameters:', { latitude, longitude });
@@ -63,19 +109,37 @@ class GeoVisionService {
 
       const response = await fetch(requestUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify(requestBody),
       });
 
       console.log('[GEOVISION_CLIENT] Response status:', response.status);
 
       if (!response.ok) {
+        if (response.status === 402) {
+          const insufficient = await response.json().catch(() => ({}));
+          const info = insufficient?.credit_info || {};
+          window.dispatchEvent(new CustomEvent('credits:insufficient', { detail: info }));
+          return {
+            success: false,
+            error: insufficient?.message || 'Insufficient credits for GeoVision prediction',
+          };
+        }
         const errorText = await response.text();
         console.error('[GEOVISION_CLIENT] Error:', response.status, errorText);
         throw new Error(`GeoVision service error ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
+
+      if (data.credit_info?.remaining_credits !== undefined) {
+        window.dispatchEvent(new CustomEvent('credits:updated', {
+          detail: { remaining_credits: data.credit_info.remaining_credits }
+        }));
+      }
 
       if (!data.success) {
         console.error('[GEOVISION_CLIENT] Prediction failed:', data.error || data.message);
@@ -120,6 +184,8 @@ class GeoVisionService {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to connect to GeoVision service',
       };
+    } finally {
+      await this.syncCreditBalanceOrConsumeFallback(this.predictionCost);
     }
   }
 

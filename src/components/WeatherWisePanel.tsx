@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X, CloudRain, TrendingUp, MapPin, Calendar, Sparkles, Loader2, AlertCircle, CheckCircle, Droplets, Wind, Gauge, Sun, Thermometer, CloudDrizzle, Activity } from "lucide-react";
+import { X, CloudRain, TrendingUp, MapPin, Calendar, Sparkles, Loader2, AlertCircle, Droplets, Wind, Gauge, Sun, Thermometer, CloudDrizzle, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { weatherWiseService } from "@/services/weatherWise";
 import { useToast } from "@/components/ui/use-toast";
@@ -14,9 +14,11 @@ interface WeatherWisePanelProps {
   isVisible: boolean;
   onClose: () => void;
   mapCoords?: { lat: number; lon: number } | null;
+  availableCredits?: number;
 }
 
-export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWisePanelProps) => {
+export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredits = 0 }: WeatherWisePanelProps) => {
+  const WEATHERWISE_COST = 10;
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const [date, setDate] = useState("");
@@ -24,43 +26,42 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
   const [isLoading, setIsLoading] = useState(false);
   const [forecastData, setForecastData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string[]>([]);
   const { toast } = useToast();
 
   const disasterTypes = ["Normal", "Flood", "Drought", "Storm", "Landslide"];
-
-  const addDebugLog = (message: string) => {
-    console.log(`[WEATHERWISE_PANEL] ${message}`);
-    setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
-  };
-
-  useEffect(() => {
-    if (isVisible) {
-      addDebugLog("Panel opened - click on the map to select coordinates");
-    }
-  }, [isVisible]);
 
   // Auto-fill coordinates from map click
   useEffect(() => {
     if (mapCoords) {
       setLatitude(mapCoords.lat.toFixed(6));
       setLongitude(mapCoords.lon.toFixed(6));
-      addDebugLog(`Coordinates set from map click: ${mapCoords.lat.toFixed(6)}, ${mapCoords.lon.toFixed(6)}`);
     }
   }, [mapCoords]);
 
   const handlePredict = async () => {
-    addDebugLog("Generate Forecast button clicked");
+    if (availableCredits < WEATHERWISE_COST) {
+      window.dispatchEvent(new CustomEvent('credits:insufficient', {
+        detail: {
+          required_credits: WEATHERWISE_COST,
+          remaining_credits: availableCredits,
+          model: 'weatherwise',
+        }
+      }));
+      const errorMsg = 'Out of credits. Buy more credits to run WeatherWise forecasts.';
+      setError(errorMsg);
+      toast({
+        title: 'Out of credits',
+        description: errorMsg,
+        variant: 'destructive'
+      });
+      return;
+    }
     
     setError(null);
     setForecastData(null);
-    setDebugInfo([]);
-    
-    addDebugLog("Validating inputs...");
     
     if (!latitude || !longitude || !date) {
       const errorMsg = "Please fill in all required fields";
-      addDebugLog(`Validation failed: ${errorMsg}`);
       setError(errorMsg);
       toast({
         title: "Validation Error",
@@ -73,11 +74,8 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
     const lat = parseFloat(latitude);
     const lon = parseFloat(longitude);
 
-    addDebugLog(`Parsed coordinates: lat=${lat}, lon=${lon}`);
-
     if (isNaN(lat) || lat < -90 || lat > 90) {
       const errorMsg = "Latitude must be between -90 and 90";
-      addDebugLog(`Validation failed: ${errorMsg}`);
       setError(errorMsg);
       toast({
         title: "Validation Error",
@@ -89,7 +87,6 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
 
     if (isNaN(lon) || lon < -180 || lon > 180) {
       const errorMsg = "Longitude must be between -180 and 180";
-      addDebugLog(`Validation failed: ${errorMsg}`);
       setError(errorMsg);
       toast({
         title: "Validation Error",
@@ -98,9 +95,6 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
       });
       return;
     }
-
-    addDebugLog("Validation passed");
-    addDebugLog(`Request params: lat=${lat}, lon=${lon}, date=${date}, disasterType=${disasterType}`);
     
     setIsLoading(true);
     
@@ -110,8 +104,6 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
     });
 
     try {
-      addDebugLog("Calling WeatherWise API...");
-      
       const result = await weatherWiseService.generateForecast(
         lat,
         lon,
@@ -120,13 +112,7 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
         60
       );
 
-      addDebugLog(`API call completed. Success: ${result.success}`);
-
       if (result.success && result.data) {
-        addDebugLog("Forecast generated successfully");
-        addDebugLog(`Model used: ${result.data.model_context}`);
-        addDebugLog(`Forecast days: ${result.data.forecast_summary?.horizon_days}`);
-        
         setForecastData(result.data);
         setError(null);
         
@@ -136,7 +122,6 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
         });
       } else {
         const errorMsg = result.error || "Failed to generate forecast";
-        addDebugLog(`Forecast failed: ${errorMsg}`);
         setError(errorMsg);
         
         toast({
@@ -147,7 +132,6 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
       }
     } catch (err: any) {
       const errorMsg = err.message || "Failed to generate forecast";
-      addDebugLog(`Exception occurred: ${errorMsg}`);
       console.error("[WEATHERWISE_PANEL] Exception:", err);
       
       setError(errorMsg);
@@ -159,19 +143,16 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
       });
     } finally {
       setIsLoading(false);
-      addDebugLog("Request completed");
     }
   };
 
   const handleReset = () => {
-    addDebugLog("Reset button clicked");
     setLatitude("");
     setLongitude("");
     setDate("");
     setDisasterType("Normal");
     setForecastData(null);
     setError(null);
-    setDebugInfo([]);
   };
 
   // Prepare chart data from forecast response
@@ -203,6 +184,39 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
     const chartData = prepareChartData(forecastData);
     if (chartData.length === 0) return null;
 
+    const formatYAxisTick = (value: number) => {
+      if (!Number.isFinite(value)) return '';
+      const abs = Math.abs(value);
+
+      if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}B`;
+      if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+      if (abs >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
+      if (abs >= 100) return value.toFixed(0);
+      if (abs >= 10) return value.toFixed(1);
+      if (abs >= 1) return value.toFixed(2);
+      return value.toFixed(3);
+    };
+
+    const values = chartData
+      .map((d: any) => Number(d?.[dataKey]))
+      .filter((v: number) => Number.isFinite(v));
+
+    let yDomain: [number, number] | undefined;
+    if (values.length > 0) {
+      const minVal = Math.min(...values);
+      const maxVal = Math.max(...values);
+
+      if (minVal === maxVal) {
+        const base = Math.abs(minVal) || 1;
+        const pad = Math.max(base * 0.1, 0.1);
+        yDomain = [minVal - pad, maxVal + pad];
+      } else {
+        const range = maxVal - minVal;
+        const pad = Math.max(range * 0.12, 0.05);
+        yDomain = [minVal - pad, maxVal + pad];
+      }
+    }
+
     return (
       <div className="rounded-lg p-4 border border-border bg-muted/30">
         <div className="flex items-center gap-2 mb-3">
@@ -213,7 +227,14 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
             <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-            <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+            <YAxis
+              domain={yDomain}
+              width={72}
+              tick={{ fontSize: 10 }}
+              tickCount={6}
+              tickFormatter={formatYAxisTick}
+              stroke="hsl(var(--muted-foreground))"
+            />
             <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} />
             <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={false} connectNulls={true} />
           </LineChart>
@@ -302,7 +323,7 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="bg-background border border-input text-sm"
+                className="weatherwise-date-input bg-background border border-input text-sm"
               />
             </div>
 
@@ -340,23 +361,6 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
             </div>
           )}
 
-          {/* Debug Info Display */}
-          {debugInfo.length > 0 && (
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 max-h-40 overflow-y-auto">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="w-4 h-4 text-blue-500" />
-                <p className="text-xs font-medium text-blue-600 dark:text-blue-400">Debug Log</p>
-              </div>
-              <div className="space-y-1">
-                {debugInfo.map((log, idx) => (
-                  <p key={idx} className="text-xs font-mono text-blue-600 dark:text-blue-400">
-                    {log}
-                  </p>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Action Buttons */}
           <div className="flex gap-2">
             <Button
@@ -390,16 +394,16 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
             <div className="space-y-4 animate-fade-in">
               <div className="flex items-center gap-2 text-sm font-semibold text-purple-600 dark:text-purple-400 pt-2 border-t border-border/50">
                 <TrendingUp className="w-4 h-4" />
-                <span>60-Day Weather Forecast (36 Variables)</span>
+                <span>60-Day Weather Forecast (NASA POWER Variables)</span>
               </div>
 
-              {/* Tabbed Charts for All 36 Variables */}
+              {/* Tabbed Charts (NASA POWER-related variables only) */}
               <Tabs defaultValue="core" className="w-full">
                 <TabsList className="grid grid-cols-4 w-full bg-purple-500/10">
                   <TabsTrigger value="core" className="text-xs">Core (6)</TabsTrigger>
-                  <TabsTrigger value="temp" className="text-xs">Temp (7)</TabsTrigger>
-                  <TabsTrigger value="moisture" className="text-xs">Moisture (9)</TabsTrigger>
-                  <TabsTrigger value="risk" className="text-xs">Risk (13)</TabsTrigger>
+                  <TabsTrigger value="temp" className="text-xs">Temp (2)</TabsTrigger>
+                  <TabsTrigger value="moisture" className="text-xs">Moisture (6)</TabsTrigger>
+                  <TabsTrigger value="risk" className="text-xs">Atmos (3)</TabsTrigger>
                 </TabsList>
 
                 {/* Core Weather Variables */}
@@ -416,11 +420,13 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
                 <TabsContent value="temp" className="space-y-3 mt-3">
                   {renderChart("Max Temperature (°C)", "temperature_max_C", "#dc2626", <Thermometer className="w-4 h-4 text-red-600" />)}
                   {renderChart("Min Temperature (°C)", "temperature_min_C", "#0ea5e9", <Thermometer className="w-4 h-4 text-sky-500" />)}
+                  {/* Engineered variables hidden for now:
                   {renderChart("Temperature Range (°C)", "temp_range", "#f59e0b", <Activity className="w-4 h-4 text-amber-500" />)}
                   {renderChart("Normalized Temperature", "temp_normalized", "#8b5cf6", <Activity className="w-4 h-4 text-violet-500" />)}
                   {renderChart("Heat Index", "heat_index", "#ef4444", <Activity className="w-4 h-4 text-red-500" />)}
                   {renderChart("Wind Chill", "wind_chill", "#06b6d4", <Activity className="w-4 h-4 text-cyan-500" />)}
                   {renderChart("Discomfort Index", "discomfort_index", "#f97316", <Activity className="w-4 h-4 text-orange-500" />)}
+                  */}
                 </TabsContent>
 
                 {/* Moisture & Water */}
@@ -431,17 +437,20 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
                   {renderChart("Surface Soil Wetness (%)", "surface_soil_wetness_%", "#854d0e", <Activity className="w-4 h-4 text-yellow-900" />)}
                   {renderChart("Root Zone Soil Moisture (%)", "root_zone_soil_moisture_%", "#78350f", <Activity className="w-4 h-4 text-amber-900" />)}
                   {renderChart("Evapotranspiration (W/m²)", "evapotranspiration_wm2", "#14b8a6", <Activity className="w-4 h-4 text-teal-500" />)}
+                  {/* Engineered variables hidden for now:
                   {renderChart("Evaporation Deficit", "evaporation_deficit", "#f59e0b", <Activity className="w-4 h-4 text-amber-500" />)}
                   {renderChart("Soil Saturation Index", "soil_saturation_index", "#0891b2", <Activity className="w-4 h-4 text-cyan-600" />)}
                   {renderChart("Moisture Stress Index", "moisture_stress_index", "#dc2626", <Activity className="w-4 h-4 text-red-600" />)}
+                  */}
                 </TabsContent>
 
                 {/* Atmospheric & Risk */}
                 <TabsContent value="risk" className="space-y-3 mt-3">
                   {renderChart("Wind Speed 10m (m/s)", "wind_speed_10m_mps", "#10b981", <Wind className="w-4 h-4 text-emerald-500" />)}
                   {renderChart("Wind Direction 10m (°)", "wind_direction_10m_degrees", "#22c55e", <Wind className="w-4 h-4 text-green-500" />)}
-                  {renderChart("Wind-Precip Interaction", "wind_precip_interaction", "#0891b2", <Activity className="w-4 h-4 text-cyan-600" />)}
                   {renderChart("Sea Level Pressure (hPa)", "sea_level_pressure_hPa", "#3b82f6", <Gauge className="w-4 h-4 text-blue-500" />)}
+                  {/* Engineered variables hidden for now:
+                  {renderChart("Wind-Precip Interaction", "wind_precip_interaction", "#0891b2", <Activity className="w-4 h-4 text-cyan-600" />)}
                   {renderChart("Pressure Anomaly", "pressure_anomaly", "#6366f1", <Activity className="w-4 h-4 text-indigo-500" />)}
                   {renderChart("Atmospheric Instability", "atmospheric_instability", "#8b5cf6", <Activity className="w-4 h-4 text-violet-500" />)}
                   {renderChart("Solar-Temp Ratio", "solar_temp_ratio", "#fb923c", <Activity className="w-4 h-4 text-orange-400" />)}
@@ -452,6 +461,7 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords }: WeatherWiseP
                   {renderChart("Drought Indicator", "drought_indicator", "#f59e0b", <Activity className="w-4 h-4 text-amber-500" />)}
                   {renderChart("Flood Risk Score", "flood_risk_score", "#0284c7", <Activity className="w-4 h-4 text-sky-600" />)}
                   {renderChart("Storm Intensity Index", "storm_intensity_index", "#7c3aed", <Activity className="w-4 h-4 text-violet-600" />)}
+                  */}
                 </TabsContent>
               </Tabs>
 

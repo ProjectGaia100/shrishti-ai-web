@@ -484,7 +484,7 @@ export const MapView = ({ hazardGuardActive = false, hazardGuardMode = 'point', 
 
   return (
     <div className="relative w-full h-full">
-      <div ref={mapRef} className="w-full h-full z-0" />
+      <div ref={mapRef} className="hazard-map w-full h-full z-0" />
       
       {/* Heatmap loading overlay */}
       {heatmapLoading && (

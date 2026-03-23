@@ -196,6 +196,11 @@
   .duration-2000 {
     transition-duration: 2000ms;
   }
+
+  /* Keep draw-polygon controls clear of top overlays. */
+  .hazard-map .leaflet-top.leaflet-left .leaflet-draw {
+    margin-top: 64px;
+  }
 }
 
 @layer base {
@@ -223,5 +228,12 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--primary) / 0.5);
+  }
+
+  /* Improve visibility of native calendar button in dark WeatherWise input. */
+  .weatherwise-date-input::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 1;
+    cursor: pointer;
   }
 }
