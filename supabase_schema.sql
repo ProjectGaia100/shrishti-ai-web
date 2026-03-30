@@ -145,6 +145,7 @@ CREATE INDEX IF NOT EXISTS idx_disaster_alerts_alert_read ON public.disaster_ale
 -- Tracks scheduled disaster prediction batch runs 
 CREATE TABLE IF NOT EXISTS public.prediction_runs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   run_timestamp TIMESTAMPTZ DEFAULT now() NOT NULL,
   total_locations INTEGER NOT NULL,
   predictions_made INTEGER NOT NULL,
@@ -155,9 +156,14 @@ CREATE TABLE IF NOT EXISTS public.prediction_runs (
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
+-- Migration-safe: ensure user_id exists on already-created tables
+ALTER TABLE public.prediction_runs
+  ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+
 -- Indexes for efficient querying
 CREATE INDEX IF NOT EXISTS idx_prediction_runs_run_timestamp ON public.prediction_runs(run_timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_prediction_runs_status ON public.prediction_runs(status);
+CREATE INDEX IF NOT EXISTS idx_prediction_runs_user_id_run_timestamp ON public.prediction_runs(user_id, run_timestamp DESC);
 
 
 -- ============================================================================
@@ -261,11 +267,12 @@ CREATE POLICY "Users can delete their own disaster alerts"
   ON public.disaster_alerts FOR DELETE
   USING (auth.uid() = user_id);
 
--- PREDICTION RUNS policies (read-only for anyone)
+-- PREDICTION RUNS policies (users read only their own run history)
 DROP POLICY IF EXISTS "Anyone can view prediction runs" ON public.prediction_runs;
-CREATE POLICY "Anyone can view prediction runs"
+DROP POLICY IF EXISTS "Users can view their own prediction runs" ON public.prediction_runs;
+CREATE POLICY "Users can view their own prediction runs"
   ON public.prediction_runs FOR SELECT
-  USING (TRUE);
+  USING (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Backend can insert prediction runs" ON public.prediction_runs;
 CREATE POLICY "Backend can insert prediction runs"
