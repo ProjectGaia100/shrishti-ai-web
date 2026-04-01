@@ -1,20 +1,23 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Brain, Sparkles } from "lucide-react";
+import { Brain, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GeoVisionCardProps {
-  onOpenPanel: () => void;
+  onTogglePanel: () => void;
+  isActive?: boolean;
 }
 
-export const GeoVisionCard = ({ onOpenPanel }: GeoVisionCardProps) => {
+export const GeoVisionCard = ({ onTogglePanel, isActive = false }: GeoVisionCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
     <div
       className={cn(
         "rounded-xl p-4 transition-all duration-200 border mx-3",
-        "border-border bg-background hover:bg-muted/50"
+        isActive
+          ? "border-emerald-300 dark:border-emerald-500/50 bg-emerald-50 dark:bg-emerald-500/10"
+          : "border-border bg-background hover:bg-muted/50"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -22,7 +25,7 @@ export const GeoVisionCard = ({ onOpenPanel }: GeoVisionCardProps) => {
       <div className="flex items-start gap-3 mb-3">
         <div className={cn(
           "p-2.5 rounded-lg transition-all duration-200",
-          isHovered ? "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/20" : "text-emerald-600 dark:text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10"
+          isActive || isHovered ? "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/20" : "text-emerald-600 dark:text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10"
         )}>
           <Brain className="w-5 h-5" />
         </div>
@@ -37,15 +40,26 @@ export const GeoVisionCard = ({ onOpenPanel }: GeoVisionCardProps) => {
       </p>
 
       <Button
-        onClick={onOpenPanel}
+        onClick={onTogglePanel}
         className={cn(
-          "w-full transition-smooth font-semibold flex items-center gap-2",
-          "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-600 dark:text-emerald-400 border border-emerald-500/50"
+          "w-full transition-all duration-300 font-semibold flex items-center gap-2 hover:scale-[1.02]",
+          isActive
+            ? "bg-emerald-500/30 hover:bg-emerald-500/40 text-emerald-500 dark:text-emerald-300 border border-emerald-500/60 shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:shadow-[0_0_20px_rgba(16,185,129,0.35)]"
+            : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-500 dark:text-emerald-400 border border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.15)] hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:border-emerald-400/70"
         )}
         variant="outline"
       >
-        <Sparkles className="w-4 h-4" />
-        Open Fusion Prediction
+        {isActive ? (
+          <>
+            <X className="w-4 h-4" />
+            Close Fusion Prediction
+          </>
+        ) : (
+          <>
+            <Sparkles className="w-4 h-4" />
+            Open Fusion Prediction
+          </>
+        )}
       </Button>
     </div>
   );

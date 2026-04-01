@@ -26,6 +26,10 @@ export const ActiveLayers = () => {
     window.dispatchEvent(new CustomEvent('geo:remove-layer', { 
       detail: { id: layerId } 
     }));
+    // Also emit layer-removed event so sidebar cards can sync their state
+    window.dispatchEvent(new CustomEvent('geo:layer-removed', { 
+      detail: { id: layerId } 
+    }));
   };
 
   const handleToggleVisibility = (layerId: string, currentVisible: boolean) => {
@@ -41,7 +45,7 @@ export const ActiveLayers = () => {
   };
 
   return (
-    <div className="absolute bottom-4 left-4 z-[1000] bg-background/95 backdrop-blur-sm border border-border rounded-xl p-3 shadow-lg max-w-sm">
+    <div className="absolute bottom-4 left-4 z-[1000] bg-background/95 backdrop-blur-sm border border-border rounded-xl p-3 shadow-lg w-72">
       <div className="flex items-center gap-2 mb-3">
         <Layers className="w-4 h-4 text-primary" />
         <span className="text-sm font-bold">Active Layers ({layerArray.length})</span>
@@ -92,15 +96,15 @@ export const ActiveLayers = () => {
                   <div className="flex items-center gap-1">
                     <span className="text-xs text-muted-foreground">Opacity</span>
                     <span className="text-xs font-medium">
-                      {Math.round((layer.opacity || 0.8) * 100)}%
+                      {Math.round((layer.opacity !== undefined ? layer.opacity : 0.8) * 100)}%
                     </span>
                   </div>
                   <Slider
-                    value={[Math.round((layer.opacity || 0.8) * 100)]}
+                    value={[Math.round((layer.opacity !== undefined ? layer.opacity : 0.8) * 100)]}
                     onValueChange={(value) => handleOpacityChange(layer.id, value)}
                     max={100}
                     min={0}
-                    step={5}
+                    step={1}
                     className="mt-1"
                   />
                 </div>

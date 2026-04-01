@@ -15,7 +15,7 @@ interface GeoVisionPanelProps {
   isVisible: boolean;
   onClose: () => void;
   mapCoords?: { lat: number; lon: number } | null;
-  availableCredits?: number;
+  availableCredits?: number | null;
 }
 
 // Color map for disaster classes
@@ -56,11 +56,12 @@ export const GeoVisionPanel = ({ isVisible, onClose, mapCoords, availableCredits
     setError(null);
     setPrediction(null);
 
-    if (availableCredits < GEOVISION_COST) {
+    const credits = availableCredits ?? 0;
+    if (credits < GEOVISION_COST) {
       window.dispatchEvent(new CustomEvent('credits:insufficient', {
         detail: {
           required_credits: GEOVISION_COST,
-          remaining_credits: availableCredits,
+          remaining_credits: credits,
           model: 'geovision',
         }
       }));

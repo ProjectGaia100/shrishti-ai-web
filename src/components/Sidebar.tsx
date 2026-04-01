@@ -1,35 +1,111 @@
+import { useState } from "react";
 import { DatasetCard } from "./DatasetCard";
 import { HazardGuardCard } from "./HazardGuardCard";
 import type { HazardGuardMode } from "./HazardGuardCard";
 import { WeatherWiseCard } from "./WeatherWiseCard";
 import { GeoVisionCard } from "./GeoVisionCard";
 import { SatelliteTimelapseCard } from "./SatelliteTimelapseCard";
+import { UrbanPlanningCards } from "./UrbanPlanningCards";
+import { ForestDeptCards } from "./ForestDeptCards";
+import { GoaCards } from "./GoaCards";
+import { StateCards } from "./StateCards";
+import { CollapsibleSection } from "./CollapsibleSection";
 import type { TimelapseFrame } from "@/services/api";
-import { Layers, Mountain, Lightbulb, Map, Thermometer, Leaf } from "lucide-react";
+import type { UrbanPlanningFeature } from "@/services/urbanPlanning";
+import type { ForestDeptFeature } from "@/services/forestDepartment";
+import {
+  indiaService,
+  karnatakaService,
+  keralaService,
+  maharashtraService,
+  tamilnaduService,
+  andhrapradeshService
+} from "@/services/stateData";
+import { 
+  Layers, 
+  Mountain, 
+  Lightbulb, 
+  Map, 
+  Thermometer, 
+  Brain, 
+  Clock, 
+  Building2, 
+  Trees, 
+  MapPin,
+  ChevronsUpDown,
+  Globe,
+  Landmark
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-export const Sidebar = ({ onHazardGuardModeChange, onWeatherWiseOpen, onGeoVisionOpen, onTimelapseLoaded, onTimelapseClose, isTimelapseActive }: {
+export const Sidebar = ({ 
+  onHazardGuardModeChange, 
+  onWeatherWiseToggle,
+  isWeatherWiseActive,
+  onGeoVisionToggle,
+  isGeoVisionActive,
+  onTimelapseLoaded, 
+  onTimelapseClose, 
+  isTimelapseActive,
+  activeUrbanPlanningFeature,
+  onUrbanPlanningFeatureChange,
+  activeForestDeptFeature,
+  onForestDeptFeatureChange
+}: {
   onHazardGuardModeChange: (isActive: boolean, mode: HazardGuardMode, samplePoints: number) => void;
-  onWeatherWiseOpen?: () => void;
-  onGeoVisionOpen?: () => void;
+  onWeatherWiseToggle?: () => void;
+  isWeatherWiseActive?: boolean;
+  onGeoVisionToggle?: () => void;
+  isGeoVisionActive?: boolean;
   onTimelapseLoaded?: (frames: TimelapseFrame[], title: string, dataset: string) => void;
   onTimelapseClose?: () => void;
   isTimelapseActive?: boolean;
+  activeUrbanPlanningFeature?: UrbanPlanningFeature | null;
+  onUrbanPlanningFeatureChange?: (feature: UrbanPlanningFeature | null) => void;
+  activeForestDeptFeature?: ForestDeptFeature | null;
+  onForestDeptFeatureChange?: (feature: ForestDeptFeature | null) => void;
 }) => {
+  // Track expanded state for all sections
+  const [sectionsExpanded, setSectionsExpanded] = useState<Record<string, boolean>>({
+    models: true,
+    timelapse: true,
+    dataLayers: true,
+    urbanPlanning: true,
+    forestDept: true,
+    india: true,
+    goa: true,
+    karnataka: true,
+    kerala: true,
+    maharashtra: true,
+    tamilnadu: true,
+    andhrapradesh: true,
+  });
+
+  const allExpanded = Object.values(sectionsExpanded).every(Boolean);
+
+  const toggleAllSections = () => {
+    const newState = !allExpanded;
+    setSectionsExpanded({
+      models: newState,
+      timelapse: newState,
+      dataLayers: newState,
+      urbanPlanning: newState,
+      forestDept: newState,
+      india: newState,
+      goa: newState,
+      karnataka: newState,
+      kerala: newState,
+      maharashtra: newState,
+      tamilnadu: newState,
+      andhrapradesh: newState,
+    });
+  };
+
+  const toggleSection = (section: string) => (expanded: boolean) => {
+    setSectionsExpanded(prev => ({ ...prev, [section]: expanded }));
+  };
+
   const datasets = [
-    {
-      id: "ndvi",
-      name: "NDVI",
-      title: "Vegetation Index",
-      description: "Normalized Difference Vegetation Index",
-      icon: Leaf,
-      theme: "vegetation" as const,
-      legend: [
-        { color: "#A52A2A", label: "No vegetation (0.0–0.3)" },
-        { color: "#FFFF00", label: "Sparse vegetation (0.3–0.6)" },
-        { color: "#008000", label: "Healthy vegetation (0.6–1.0)" },
-      ],
-    },
     {
       id: "elevation",
       name: "Elevation",
@@ -116,37 +192,201 @@ export const Sidebar = ({ onHazardGuardModeChange, onWeatherWiseOpen, onGeoVisio
         </div>
       </div>
 
-      <div className="space-y-3 py-2">
-        {/* HazardGuard Card */}
-        <HazardGuardCard onModeChange={onHazardGuardModeChange} />
-        
-        {/* WeatherWise Card */}
-        {onWeatherWiseOpen && <WeatherWiseCard onOpenPanel={onWeatherWiseOpen} />}
+      {/* Collapse/Expand All Toggle */}
+      <div className="flex items-center justify-end px-4 py-1.5 border-b border-border/50">
+        <button
+          type="button"
+          onClick={toggleAllSections}
+          className="flex items-center gap-1 text-[10px] text-muted-foreground/70 transition-colors hover:text-foreground"
+          title={allExpanded ? 'Collapse all sections' : 'Expand all sections'}
+        >
+          <ChevronsUpDown className="h-3 w-3" />
+          <span>{allExpanded ? 'Collapse all' : 'Expand all'}</span>
+        </button>
+      </div>
 
-        {/* GeoVision Fusion Card */}
-        {onGeoVisionOpen && <GeoVisionCard onOpenPanel={onGeoVisionOpen} />}
+      <div className="py-1">
+        {/* Models Section */}
+        <CollapsibleSection
+          title="Models"
+          icon={Brain}
+          badge="3"
+          expanded={sectionsExpanded.models}
+          onToggle={toggleSection('models')}
+        >
+          <HazardGuardCard onModeChange={onHazardGuardModeChange} />
+          {onWeatherWiseToggle && <WeatherWiseCard onTogglePanel={onWeatherWiseToggle} isActive={isWeatherWiseActive} />}
+          {onGeoVisionToggle && <GeoVisionCard onTogglePanel={onGeoVisionToggle} isActive={isGeoVisionActive} />}
+        </CollapsibleSection>
 
-        {/* Satellite Timelapse Card */}
-        {onTimelapseLoaded && onTimelapseClose && (
-          <SatelliteTimelapseCard
-            onTimelapseLoaded={onTimelapseLoaded}
-            onTimelapseClose={onTimelapseClose}
-            isActive={isTimelapseActive ?? false}
+        {/* Timelapse Section */}
+        <CollapsibleSection
+          title="Timelapse"
+          icon={Clock}
+          expanded={sectionsExpanded.timelapse}
+          onToggle={toggleSection('timelapse')}
+        >
+          {onTimelapseLoaded && onTimelapseClose && (
+            <SatelliteTimelapseCard
+              onTimelapseLoaded={onTimelapseLoaded}
+              onTimelapseClose={onTimelapseClose}
+              isActive={isTimelapseActive ?? false}
+            />
+          )}
+        </CollapsibleSection>
+
+        {/* Data Layers Section */}
+        <CollapsibleSection
+          title="Data Layers"
+          icon={Layers}
+          badge={String(datasets.length)}
+          expanded={sectionsExpanded.dataLayers}
+          onToggle={toggleSection('dataLayers')}
+        >
+          {datasets.map((dataset) => (
+            <DatasetCard key={dataset.id} {...dataset} />
+          ))}
+        </CollapsibleSection>
+
+        {/* Urban Planning Section */}
+        <CollapsibleSection
+          title="Urban Planning"
+          icon={Building2}
+          badge="4"
+          expanded={sectionsExpanded.urbanPlanning}
+          onToggle={toggleSection('urbanPlanning')}
+        >
+          <UrbanPlanningCards
+            activeFeature={activeUrbanPlanningFeature ?? null}
+            onSelectFeature={onUrbanPlanningFeatureChange ?? (() => {})}
           />
-        )}
+        </CollapsibleSection>
 
-        {/* Data Layers divider */}
-        <div className="px-4 pt-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Data Layers</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-        </div>
+        {/* Forest Department Section */}
+        <CollapsibleSection
+          title="Forest Dept"
+          icon={Trees}
+          badge="8"
+          expanded={sectionsExpanded.forestDept}
+          onToggle={toggleSection('forestDept')}
+        >
+          <ForestDeptCards
+            activeFeature={activeForestDeptFeature ?? null}
+            onSelectFeature={onForestDeptFeatureChange ?? (() => {})}
+          />
+        </CollapsibleSection>
 
-        {/* Dataset Cards */}
-        {datasets.map((dataset) => (
-          <DatasetCard key={dataset.id} {...dataset} />
-        ))}
+        {/* ============================================ */}
+        {/* GEOGRAPHIC DATA SECTIONS - State-wise */}
+        {/* Order: India, Goa, Karnataka, Kerala, Maharashtra, Tamil Nadu, Andhra Pradesh */}
+        {/* ============================================ */}
+
+        {/* India Section */}
+        <CollapsibleSection
+          title="India"
+          icon={Globe}
+          badge="2"
+          expanded={sectionsExpanded.india}
+          onToggle={toggleSection('india')}
+        >
+          <StateCards
+            stateName="India"
+            stateSlug="india"
+            service={indiaService}
+            attribution="Data from LGD & Aviation Authority"
+          />
+        </CollapsibleSection>
+
+        {/* Goa Section */}
+        <CollapsibleSection
+          title="Goa"
+          icon={MapPin}
+          badge="7"
+          expanded={sectionsExpanded.goa}
+          onToggle={toggleSection('goa')}
+        >
+          <GoaCards />
+        </CollapsibleSection>
+
+        {/* Karnataka Section */}
+        <CollapsibleSection
+          title="Karnataka"
+          icon={Landmark}
+          badge="1"
+          expanded={sectionsExpanded.karnataka}
+          onToggle={toggleSection('karnataka')}
+        >
+          <StateCards
+            stateName="Karnataka"
+            stateSlug="karnataka"
+            service={karnatakaService}
+            attribution="Data from KGISMAPS"
+          />
+        </CollapsibleSection>
+
+        {/* Kerala Section */}
+        <CollapsibleSection
+          title="Kerala"
+          icon={Landmark}
+          badge="1"
+          expanded={sectionsExpanded.kerala}
+          onToggle={toggleSection('kerala')}
+        >
+          <StateCards
+            stateName="Kerala"
+            stateSlug="kerala"
+            service={keralaService}
+            attribution="Data from NCSCM"
+          />
+        </CollapsibleSection>
+
+        {/* Maharashtra Section */}
+        <CollapsibleSection
+          title="Maharashtra"
+          icon={Landmark}
+          badge="1"
+          expanded={sectionsExpanded.maharashtra}
+          onToggle={toggleSection('maharashtra')}
+        >
+          <StateCards
+            stateName="Maharashtra"
+            stateSlug="maharashtra"
+            service={maharashtraService}
+            attribution="Data from NCSCM"
+          />
+        </CollapsibleSection>
+
+        {/* Tamil Nadu Section */}
+        <CollapsibleSection
+          title="Tamil Nadu"
+          icon={Landmark}
+          badge="1"
+          expanded={sectionsExpanded.tamilnadu}
+          onToggle={toggleSection('tamilnadu')}
+        >
+          <StateCards
+            stateName="Tamil Nadu"
+            stateSlug="tamilnadu"
+            service={tamilnaduService}
+            attribution="Data from TNGIS"
+          />
+        </CollapsibleSection>
+
+        {/* Andhra Pradesh Section */}
+        <CollapsibleSection
+          title="Andhra Pradesh"
+          icon={Landmark}
+          badge="1"
+          expanded={sectionsExpanded.andhrapradesh}
+          onToggle={toggleSection('andhrapradesh')}
+        >
+          <StateCards
+            stateName="Andhra Pradesh"
+            stateSlug="andhrapradesh"
+            service={andhrapradeshService}
+            attribution="Data from APSAC"
+          />
+        </CollapsibleSection>
       </div>
     </aside>
   );

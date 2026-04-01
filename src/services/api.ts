@@ -10,6 +10,7 @@ export async function fetchDataset(id: string) {
   // map local ids to backend endpoints
   const mapping: Record<string, string> = {
     ndvi: '/api/gee/ndvi',
+    ndbi: '/api/gee/ndbi',
     elevation: '/api/gee/elevation',
     nightlights: '/api/gee/lights',
     landcover: '/api/gee/landcover',

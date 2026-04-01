@@ -7,11 +7,15 @@ import { ChatButton } from "@/components/ChatButton";
 import { HazardGuardPanel } from "@/components/HazardGuardPanel";
 import { WeatherWisePanel } from "@/components/WeatherWisePanel";
 import { GeoVisionPanel } from "@/components/GeoVisionPanel";
+import { UrbanPlanningPanel } from "@/components/UrbanPlanningPanel";
+import { ForestDeptPanel } from "@/components/ForestDeptPanel";
 import { TimelinePlayer } from "@/components/TimelinePlayer";
 import { UserMenu } from "@/components/UserMenu";
 import { hazardGuardService, PredictionResult } from "@/services/hazardGuard";
 import type { HazardGuardMode } from "@/components/HazardGuardCard";
 import type { TimelapseFrame } from "@/services/api";
+import type { UrbanPlanningFeature } from "@/services/urbanPlanning";
+import type { ForestDeptFeature } from "@/services/forestDepartment";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { creditsService, CreditBundle } from "@/services/credits";
@@ -44,8 +48,18 @@ const Index = () => {
   const [showGeoVision, setShowGeoVision] = useState(false);
   const [geoVisionCoords, setGeoVisionCoords] = useState<{ lat: number; lon: number } | null>(null);
 
-  // Credits state
-  const [credits, setCredits] = useState<number>(30);
+  // Urban Planning state
+  const [activeUrbanPlanningFeature, setActiveUrbanPlanningFeature] = useState<UrbanPlanningFeature | null>(null);
+  const [showUrbanPlanningPanel, setShowUrbanPlanningPanel] = useState(false);
+  const [urbanPlanningCoords, setUrbanPlanningCoords] = useState<number[][] | null>(null);
+
+  // Forest Department state
+  const [activeForestDeptFeature, setActiveForestDeptFeature] = useState<ForestDeptFeature | null>(null);
+  const [showForestDeptPanel, setShowForestDeptPanel] = useState(false);
+  const [forestDeptCoords, setForestDeptCoords] = useState<number[][] | null>(null);
+
+  // Credits state - null until fetched from server
+  const [credits, setCredits] = useState<number | null>(null);
   const [creditBundles, setCreditBundles] = useState<CreditBundle[]>(FALLBACK_CREDIT_BUNDLES);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [buyingBundleId, setBuyingBundleId] = useState<string | null>(null);
@@ -69,8 +83,9 @@ const Index = () => {
 
     const bootstrapCredits = async () => {
       try {
+        // Use syncWithServer to clear any stale localStorage and get fresh DB value
         const [balance, bundles] = await Promise.all([
-          creditsService.getBalance(),
+          creditsService.syncWithServer(),
           creditsService.getBundles(),
         ]);
         setCredits(balance);
@@ -231,6 +246,15 @@ const Index = () => {
     setHazardGuardActive(isActive);
     setHazardGuardMode(mode);
     setHazardGuardSamplePoints(samplePoints);
+    
+    // When activating HazardGuard, close other panels
+    if (isActive) {
+      setShowWeatherWise(false);
+      setWeatherWiseCoords(null);
+      setShowGeoVision(false);
+      setGeoVisionCoords(null);
+    }
+    
     if (!isActive) {
       setShowPanel(false);
       setPredictionResult(null);
@@ -250,7 +274,7 @@ const Index = () => {
   const handlePolygonDrawn = useCallback(async (polygon: Array<[number, number]>) => {
     if (!hazardGuardActive || hazardGuardMode !== 'region') return;
 
-    if (credits < HAZARDGUARD_COST) {
+    if (credits === null || credits < HAZARDGUARD_COST) {
       setShowBuyCredits(true);
       toast({
         title: 'Out of credits',
@@ -301,7 +325,7 @@ const Index = () => {
 
     if (!hazardGuardActive) return;
 
-    if (credits < HAZARDGUARD_COST) {
+    if (credits === null || credits < HAZARDGUARD_COST) {
       setShowBuyCredits(true);
       toast({
         title: 'Out of credits',
@@ -364,7 +388,60 @@ const Index = () => {
     setError(null);
     setHeatmapData(null);
     setHeatmapSummary(null);
+    // Deactivate HazardGuard mode when panel is closed via X button
+    setHazardGuardActive(false);
+    window.dispatchEvent(new CustomEvent('hazardguard:deactivate'));
   };
+
+  // --- Urban Planning handlers ---
+  const handleUrbanPlanningFeatureChange = useCallback((feature: UrbanPlanningFeature | null) => {
+    setActiveUrbanPlanningFeature(feature);
+    if (feature) {
+      setShowUrbanPlanningPanel(true);
+      // Reset coordinates when switching features
+      setUrbanPlanningCoords(null);
+    } else {
+      setShowUrbanPlanningPanel(false);
+      setUrbanPlanningCoords(null);
+    }
+  }, []);
+
+  const handleUrbanPlanningDraw = useCallback((coordinates: number[][], _type: 'polygon' | 'polyline') => {
+    setUrbanPlanningCoords(coordinates);
+    setShowUrbanPlanningPanel(true);
+  }, []);
+
+  const handleCloseUrbanPlanningPanel = useCallback(() => {
+    setShowUrbanPlanningPanel(false);
+    setActiveUrbanPlanningFeature(null);
+    setUrbanPlanningCoords(null);
+  }, []);
+
+  // --- Forest Department handlers ---
+  const handleForestDeptFeatureChange = useCallback((feature: ForestDeptFeature | null) => {
+    setActiveForestDeptFeature(feature);
+    // NDVI is a global layer, don't show panel for it
+    if (feature && feature !== 'ndvi') {
+      setShowForestDeptPanel(true);
+      setForestDeptCoords(null);
+    } else {
+      setShowForestDeptPanel(false);
+      setForestDeptCoords(null);
+    }
+  }, []);
+
+  const handleForestDeptDraw = useCallback((coordinates: number[][], _type: 'polygon' | 'polyline') => {
+    setForestDeptCoords(coordinates);
+    if (activeForestDeptFeature && activeForestDeptFeature !== 'ndvi') {
+      setShowForestDeptPanel(true);
+    }
+  }, [activeForestDeptFeature]);
+
+  const handleCloseForestDeptPanel = useCallback(() => {
+    setShowForestDeptPanel(false);
+    setActiveForestDeptFeature(null);
+    setForestDeptCoords(null);
+  }, []);
 
   if (authLoading) {
     return (
@@ -385,18 +462,64 @@ const Index = () => {
     <div className="flex h-screen w-full bg-background overflow-hidden">
       <Sidebar 
         onHazardGuardModeChange={handleHazardGuardModeChange}
-        onWeatherWiseOpen={() => setShowWeatherWise(true)}
-        onGeoVisionOpen={() => setShowGeoVision(true)}
+        onWeatherWiseToggle={() => {
+          if (showWeatherWise) {
+            // Close WeatherWise
+            setShowWeatherWise(false);
+            setWeatherWiseCoords(null);
+          } else {
+            // Close other panels when opening WeatherWise
+            setShowGeoVision(false);
+            setGeoVisionCoords(null);
+            setShowPanel(false);
+            setPredictionResult(null);
+            setHeatmapData(null);
+            setHeatmapSummary(null);
+            // Deactivate HazardGuard mode
+            setHazardGuardActive(false);
+            window.dispatchEvent(new CustomEvent('hazardguard:deactivate'));
+            // Open WeatherWise
+            setShowWeatherWise(true);
+          }
+        }}
+        isWeatherWiseActive={showWeatherWise}
+        onGeoVisionToggle={() => {
+          if (showGeoVision) {
+            // Close GeoVision
+            setShowGeoVision(false);
+            setGeoVisionCoords(null);
+          } else {
+            // Close other panels when opening GeoVision
+            setShowWeatherWise(false);
+            setWeatherWiseCoords(null);
+            setShowPanel(false);
+            setPredictionResult(null);
+            setHeatmapData(null);
+            setHeatmapSummary(null);
+            // Deactivate HazardGuard mode
+            setHazardGuardActive(false);
+            window.dispatchEvent(new CustomEvent('hazardguard:deactivate'));
+            // Open GeoVision
+            setShowGeoVision(true);
+          }
+        }}
+        isGeoVisionActive={showGeoVision}
         onTimelapseLoaded={handleTimelapseLoaded}
         onTimelapseClose={handleTimelapseClose}
         isTimelapseActive={timelapseActive}
+        activeUrbanPlanningFeature={activeUrbanPlanningFeature}
+        onUrbanPlanningFeatureChange={handleUrbanPlanningFeatureChange}
+        activeForestDeptFeature={activeForestDeptFeature}
+        onForestDeptFeatureChange={handleForestDeptFeatureChange}
       />
       <main className="flex-1 relative">
         {/* Top-left credits card */}
         <div className="absolute left-4 top-4 z-[1300]">
           <div className="flex items-center gap-2 rounded-md border border-border bg-background/95 px-3 py-2 text-sm font-semibold text-foreground shadow-sm backdrop-blur">
             <span className="text-muted-foreground">Credits:</span>{' '}
-            <span className={credits <= 0 ? 'text-red-500' : 'text-foreground'}>{credits}</span>
+            <span className={credits !== null && credits <= 0 ? 'text-red-500' : 'text-foreground'}>
+              {credits !== null ? credits : '...'}
+            </span>
             <button
               type="button"
               onClick={() => setShowBuyCredits(true)}
@@ -416,44 +539,94 @@ const Index = () => {
         </div>
 
         {showBuyCredits && (
-          <div className="absolute inset-0 z-[1500] flex items-center justify-center bg-black/55 p-4">
-            <div className="w-full max-w-md rounded-2xl border border-primary/30 bg-card p-4 shadow-2xl">
-              <div className="mb-3 flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-bold">Buy Credits</h3>
-                  <p className="text-xs text-muted-foreground">Current balance: <span className="font-semibold text-primary">{credits}</span></p>
+          <div className="absolute inset-0 z-[1500] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-2xl border border-primary/40 bg-gradient-to-b from-card to-card/95 p-5 shadow-2xl">
+              {/* Header */}
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/>
+                      <path d="M12 18V6"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">Buy Credits</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Balance: <span className="font-semibold text-primary">{credits !== null ? credits.toLocaleString('en-IN') : '...'}</span> credits
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowBuyCredits(false)}
-                  className="rounded-md border border-border px-2 py-1 text-xs"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-muted/50 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  aria-label="Close"
                 >
-                  Close
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                  </svg>
                 </button>
               </div>
 
-              <div className="space-y-2">
-                {creditBundles.map((bundle) => (
+              {/* Credit Bundles */}
+              <div className="space-y-2.5">
+                {creditBundles.map((bundle, index) => (
                   <button
                     key={bundle.id}
                     type="button"
                     onClick={() => handlePurchaseBundle(bundle.id)}
                     disabled={buyingBundleId !== null}
-                    className="flex w-full items-center justify-between rounded-xl border border-border bg-background px-3 py-3 text-left hover:border-primary/50"
+                    className={`group flex w-full items-center justify-between rounded-xl border bg-background px-4 py-3.5 text-left transition-all hover:scale-[1.01] hover:shadow-md disabled:opacity-60 ${
+                      index === 1 
+                        ? 'border-primary/50 ring-1 ring-primary/20' 
+                        : 'border-border hover:border-primary/40'
+                    }`}
                   >
-                    <div>
-                      <div className="text-sm font-semibold">{bundle.label}</div>
-                      <div className="text-xs text-muted-foreground">{bundle.credits} credits</div>
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold ${
+                        index === 0 ? 'bg-blue-500/15 text-blue-500' :
+                        index === 1 ? 'bg-primary/15 text-primary' :
+                        'bg-amber-500/15 text-amber-500'
+                      }`}>
+                        {index === 0 ? '1K' : index === 1 ? '10K' : '100K'}
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold">{bundle.credits.toLocaleString('en-IN')} Credits</div>
+                        <div className="text-xs text-muted-foreground">
+                          {index === 1 && <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">POPULAR</span>}
+                          {(bundle.price_inr / bundle.credits).toFixed(2)}/credit
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-sm font-bold text-primary">
-                      {buyingBundleId === bundle.id ? 'Processing payment...' : `Rs ${bundle.price_inr}`}
+                    <div className="text-right">
+                      {buyingBundleId === bundle.id ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Processing...
+                        </div>
+                      ) : (
+                        <div className="text-base font-bold text-primary">
+                          ₹{bundle.price_inr.toLocaleString('en-IN')}
+                        </div>
+                      )}
                     </div>
                   </button>
                 ))}
               </div>
 
-              <div className="mt-3 rounded-lg border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground">
-                Cost per prediction: HazardGuard 10 credits, WeatherWise 10 credits, GeoVision 15 credits.
+              {/* Footer Info */}
+              <div className="mt-4 rounded-xl border border-border bg-muted/40 p-3">
+                <div className="mb-1.5 text-xs font-medium text-foreground">Credit Usage</div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                  <span>HazardGuard: <span className="font-medium text-foreground">10</span> credits</span>
+                  <span>WeatherWise: <span className="font-medium text-foreground">10</span> credits</span>
+                  <span>GeoVision: <span className="font-medium text-foreground">15</span> credits</span>
+                </div>
               </div>
             </div>
           </div>
@@ -464,8 +637,12 @@ const Index = () => {
           hazardGuardMode={hazardGuardMode}
           weatherWiseActive={showWeatherWise}
           geoVisionActive={showGeoVision}
+          urbanPlanningFeature={activeUrbanPlanningFeature}
+          forestDeptFeature={activeForestDeptFeature}
           onMapClick={handleMapClick}
           onPolygonDrawn={handlePolygonDrawn}
+          onUrbanPlanningDraw={handleUrbanPlanningDraw}
+          onForestDeptDraw={handleForestDeptDraw}
           predictionResult={predictionResult}
           heatmapData={heatmapData}
           heatmapLoading={heatmapLoading}
@@ -491,6 +668,20 @@ const Index = () => {
           isVisible={showGeoVision}
           onClose={() => { setShowGeoVision(false); setGeoVisionCoords(null); }}
           mapCoords={geoVisionCoords}
+          availableCredits={credits}
+        />
+        <UrbanPlanningPanel
+          isVisible={showUrbanPlanningPanel}
+          onClose={handleCloseUrbanPlanningPanel}
+          activeFeature={activeUrbanPlanningFeature}
+          drawnCoordinates={urbanPlanningCoords}
+          availableCredits={credits}
+        />
+        <ForestDeptPanel
+          isVisible={showForestDeptPanel}
+          onClose={handleCloseForestDeptPanel}
+          activeFeature={activeForestDeptFeature}
+          drawnCoordinates={forestDeptCoords}
           availableCredits={credits}
         />
         {timelapseActive && timelapseFrames.length > 0 && (

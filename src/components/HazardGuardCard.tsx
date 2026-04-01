@@ -18,6 +18,18 @@ export const HazardGuardCard = ({ onModeChange }: HazardGuardCardProps) => {
     onModeChange(isActive, mode, samplePoints);
   }, [isActive, mode, samplePoints, onModeChange]);
 
+  // Listen for deactivation events (when panel is closed or other panels open)
+  useEffect(() => {
+    const handleDeactivate = () => {
+      setIsActive(false);
+    };
+    
+    window.addEventListener('hazardguard:deactivate', handleDeactivate);
+    return () => {
+      window.removeEventListener('hazardguard:deactivate', handleDeactivate);
+    };
+  }, []);
+
   const handleToggleMode = () => {
     setIsActive(!isActive);
   };
@@ -58,10 +70,10 @@ export const HazardGuardCard = ({ onModeChange }: HazardGuardCardProps) => {
         <Button
           onClick={handleToggleMode}
           className={cn(
-            "w-full transition-smooth font-semibold flex items-center gap-2",
+            "w-full transition-all duration-300 font-semibold flex items-center gap-2 hover:scale-[1.02]",
             isActive
-              ? "bg-success/20 hover:bg-success/30 text-success border border-success/50"
-              : "bg-primary/20 hover:bg-primary/30 text-primary border border-primary/50"
+              ? "bg-success/20 hover:bg-success/30 text-success border border-success/50 shadow-[0_0_15px_rgba(34,197,94,0.2)] hover:shadow-[0_0_25px_rgba(34,197,94,0.35)]"
+              : "bg-blue-500/20 hover:bg-blue-500/30 text-blue-500 dark:text-blue-400 border border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.15)] hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:border-blue-400/70"
           )}
           variant="outline"
         >

@@ -14,7 +14,7 @@ interface WeatherWisePanelProps {
   isVisible: boolean;
   onClose: () => void;
   mapCoords?: { lat: number; lon: number } | null;
-  availableCredits?: number;
+  availableCredits?: number | null;
 }
 
 export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredits = 0 }: WeatherWisePanelProps) => {
@@ -39,11 +39,12 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
   }, [mapCoords]);
 
   const handlePredict = async () => {
-    if (availableCredits < WEATHERWISE_COST) {
+    const credits = availableCredits ?? 0;
+    if (credits < WEATHERWISE_COST) {
       window.dispatchEvent(new CustomEvent('credits:insufficient', {
         detail: {
           required_credits: WEATHERWISE_COST,
-          remaining_credits: availableCredits,
+          remaining_credits: credits,
           model: 'weatherwise',
         }
       }));

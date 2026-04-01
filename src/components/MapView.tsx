@@ -6,6 +6,8 @@ import "leaflet-draw/dist/leaflet.draw.css";
 import "leaflet.heat";
 import { ActiveLayers } from "./ActiveLayers";
 import type { HazardGuardMode } from "./HazardGuardCard";
+import type { UrbanPlanningFeature } from "@/services/urbanPlanning";
+import type { ForestDeptFeature } from "@/services/forestDepartment";
 
 // Helper hook: keep a ref always in sync with the latest value
 function useLatest<T>(value: T) {
@@ -32,8 +34,12 @@ interface MapViewProps {
   hazardGuardMode?: HazardGuardMode;
   weatherWiseActive?: boolean;
   geoVisionActive?: boolean;
+  urbanPlanningFeature?: UrbanPlanningFeature | null;
+  forestDeptFeature?: ForestDeptFeature | null;
   onMapClick?: (latitude: number, longitude: number) => void;
   onPolygonDrawn?: (polygon: Array<[number, number]>) => void;
+  onUrbanPlanningDraw?: (coordinates: number[][], type: 'polygon' | 'polyline') => void;
+  onForestDeptDraw?: (coordinates: number[][], type: 'polygon' | 'polyline') => void;
   predictionResult?: {
     prediction: string;
     confidence: number;
@@ -44,7 +50,21 @@ interface MapViewProps {
   heatmapLoading?: boolean;
 }
 
-export const MapView = ({ hazardGuardActive = false, hazardGuardMode = 'point', weatherWiseActive = false, geoVisionActive = false, onMapClick, onPolygonDrawn, predictionResult, heatmapData, heatmapLoading }: MapViewProps) => {
+export const MapView = ({ 
+  hazardGuardActive = false, 
+  hazardGuardMode = 'point', 
+  weatherWiseActive = false, 
+  geoVisionActive = false,
+  urbanPlanningFeature = null,
+  forestDeptFeature = null,
+  onMapClick, 
+  onPolygonDrawn,
+  onUrbanPlanningDraw,
+  onForestDeptDraw,
+  predictionResult, 
+  heatmapData, 
+  heatmapLoading 
+}: MapViewProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const riskZonesRef = useRef<L.LayerGroup | null>(null);
@@ -64,6 +84,10 @@ export const MapView = ({ hazardGuardActive = false, hazardGuardMode = 'point', 
   const latestHazardGuardMode = useLatest(hazardGuardMode);
   const latestWeatherWiseActive = useLatest(weatherWiseActive);
   const latestGeoVisionActive = useLatest(geoVisionActive);
+  const latestUrbanPlanningFeature = useLatest(urbanPlanningFeature);
+  const latestOnUrbanPlanningDraw = useLatest(onUrbanPlanningDraw);
+  const latestForestDeptFeature = useLatest(forestDeptFeature);
+  const latestOnForestDeptDraw = useLatest(onForestDeptDraw);
 
   // One-time map initialisation — never re-runs, callbacks read via refs
   useEffect(() => {
@@ -116,22 +140,57 @@ export const MapView = ({ hazardGuardActive = false, hazardGuardMode = 'point', 
     map.addLayer(drawnItems);
     drawnItemsRef.current = drawnItems;
 
-    // Handle polygon/rectangle drawn
+    // Handle polygon/rectangle/polyline drawn
     map.on(L.Draw.Event.CREATED, (e: any) => {
       drawnItems.clearLayers();
       const layer = e.layer;
       drawnItems.addLayer(layer);
       
-      // Extract polygon coordinates
+      const layerType = e.layerType;
+      
+      // Handle polyline (for road width measurement)
+      if (layerType === 'polyline') {
+        const latlngs = layer.getLatLngs() as L.LatLng[];
+        const coords: Array<[number, number]> = latlngs.map((ll: L.LatLng) => [ll.lng, ll.lat]); // [lon, lat] for GEE
+        
+        if (latestOnUrbanPlanningDraw.current) {
+          latestOnUrbanPlanningDraw.current(coords, 'polyline');
+        }
+        return;
+      }
+      
+      // Handle polygon
       const latlngs = layer.getLatLngs()[0] as L.LatLng[];
       const coords: Array<[number, number]> = latlngs.map((ll: L.LatLng) => [ll.lat, normalizeLongitude(ll.lng)]);
       
+      // Check if this is for Forest Department (polygon features, excluding NDVI which is global)
+      if (latestForestDeptFeature.current && latestForestDeptFeature.current !== 'ndvi') {
+        // Convert to [lon, lat] format for GEE
+        const geeCoords: Array<[number, number]> = latlngs.map((ll: L.LatLng) => [normalizeLongitude(ll.lng), ll.lat]);
+        if (latestOnForestDeptDraw.current) {
+          latestOnForestDeptDraw.current(geeCoords, 'polygon');
+        }
+        return;
+      }
+      
+      // Check if this is for urban planning (polygon features)
+      if (latestUrbanPlanningFeature.current) {
+        // Convert to [lon, lat] format for GEE
+        const geeCoords: Array<[number, number]> = latlngs.map((ll: L.LatLng) => [normalizeLongitude(ll.lng), ll.lat]);
+        if (latestOnUrbanPlanningDraw.current) {
+          latestOnUrbanPlanningDraw.current(geeCoords, 'polygon');
+        }
+        return;
+      }
+      
+      // Default: HazardGuard polygon
       if (latestOnPolygonDrawn.current) {
         latestOnPolygonDrawn.current(coords);
       }
     });
 
     const layerRefs: Record<string, L.TileLayer> = {};
+    const geoJSONLayerRefs: Record<string, L.GeoJSON> = {};
 
     function addLayer(detail: any) {
       const { id, name, url, metadata, opacity = 0.8 } = detail;
@@ -151,9 +210,15 @@ export const MapView = ({ hazardGuardActive = false, hazardGuardMode = 'point', 
     function removeLayer(detail: any) {
       const { id } = detail;
       if (!id) return;
+      // Check tile layers
       if (layerRefs[id]) {
         map.removeLayer(layerRefs[id]);
         delete layerRefs[id];
+      }
+      // Check GeoJSON layers
+      if (geoJSONLayerRefs[id]) {
+        map.removeLayer(geoJSONLayerRefs[id]);
+        delete geoJSONLayerRefs[id];
       }
       if ((window as any).GEO_LAYERS?.[id]) {
         delete (window as any).GEO_LAYERS[id];
@@ -163,12 +228,23 @@ export const MapView = ({ hazardGuardActive = false, hazardGuardMode = 'point', 
 
     function toggleLayer(detail: any) {
       const { id, visible } = detail;
+      // Check tile layers
       const tile = layerRefs[id];
-      if (!tile) return;
-      if (visible) {
-        tile.addTo(map);
-      } else {
-        map.removeLayer(tile);
+      if (tile) {
+        if (visible) {
+          tile.addTo(map);
+        } else {
+          map.removeLayer(tile);
+        }
+      }
+      // Check GeoJSON layers
+      const geoLayer = geoJSONLayerRefs[id];
+      if (geoLayer) {
+        if (visible) {
+          geoLayer.addTo(map);
+        } else {
+          map.removeLayer(geoLayer);
+        }
       }
       if ((window as any).GEO_LAYERS?.[id]) {
         (window as any).GEO_LAYERS[id].visible = visible;
@@ -178,12 +254,126 @@ export const MapView = ({ hazardGuardActive = false, hazardGuardMode = 'point', 
 
     function updateOpacity(detail: any) {
       const { id, opacity } = detail;
+      // Check tile layers
       const tile = layerRefs[id];
       if (tile && typeof (tile as any).setOpacity === 'function') {
         (tile as any).setOpacity(opacity);
       }
+      // Check GeoJSON layers
+      const geoLayer = geoJSONLayerRefs[id];
+      if (geoLayer) {
+        geoLayer.setStyle({ fillOpacity: opacity * 0.3, opacity: opacity });
+      }
       if ((window as any).GEO_LAYERS?.[id]) {
         (window as any).GEO_LAYERS[id].opacity = opacity;
+      }
+      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: (window as any).GEO_LAYERS }));
+    }
+
+    // ── GeoJSON Layer Management ──────────────────────────────────────────────
+    function addGeoJSONLayer(detail: any) {
+      const { id, name, data, color = '#3B82F6', opacity = 0.7, category } = detail;
+      if (!id || !data) return;
+
+      // Remove existing layer with same ID
+      if (geoJSONLayerRefs[id]) {
+        map.removeLayer(geoJSONLayerRefs[id]);
+        delete geoJSONLayerRefs[id];
+      }
+
+      // Create GeoJSON layer with styling
+      const geoLayer = L.geoJSON(data, {
+        style: (feature) => {
+          const geomType = feature?.geometry?.type;
+          // Style based on geometry type
+          if (geomType === 'Point' || geomType === 'MultiPoint') {
+            return {};  // Points use pointToLayer
+          }
+          return {
+            color: color,
+            weight: 2,
+            opacity: opacity,
+            fillColor: color,
+            fillOpacity: opacity * 0.3
+          };
+        },
+        pointToLayer: (feature, latlng) => {
+          // Create circle markers for points
+          return L.circleMarker(latlng, {
+            radius: 6,
+            fillColor: color,
+            color: '#fff',
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8
+          });
+        },
+        onEachFeature: (feature, layer) => {
+          // Add popup with properties
+          if (feature.properties) {
+            const props = feature.properties;
+            const popupContent = Object.entries(props)
+              .filter(([key, value]) => value !== null && value !== undefined && value !== '')
+              .slice(0, 10)  // Limit to first 10 properties
+              .map(([key, value]) => `<b>${key}:</b> ${value}`)
+              .join('<br>');
+            if (popupContent) {
+              layer.bindPopup(`<div style="max-width: 300px; max-height: 200px; overflow: auto; font-size: 12px;">${popupContent}</div>`);
+            }
+          }
+        }
+      });
+
+      geoLayer.addTo(map);
+      geoJSONLayerRefs[id] = geoLayer;
+
+      // Store metadata
+      (window as any).GEO_LAYERS[id] = { 
+        id, 
+        name, 
+        type: 'geojson',
+        category,
+        color,
+        visible: true, 
+        opacity,
+        featureCount: data.features?.length || 0
+      };
+      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: (window as any).GEO_LAYERS }));
+
+      // Fit map to layer bounds if it has features
+      if (data.features && data.features.length > 0) {
+        try {
+          const bounds = geoLayer.getBounds();
+          if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+          }
+        } catch (e) {
+          console.warn('Could not fit bounds for GeoJSON layer:', e);
+        }
+      }
+    }
+
+    function removeGeoJSONLayer(id: string) {
+      if (geoJSONLayerRefs[id]) {
+        map.removeLayer(geoJSONLayerRefs[id]);
+        delete geoJSONLayerRefs[id];
+      }
+      if ((window as any).GEO_LAYERS?.[id]) {
+        delete (window as any).GEO_LAYERS[id];
+      }
+      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: (window as any).GEO_LAYERS }));
+    }
+
+    function toggleGeoJSONLayer(id: string, visible: boolean) {
+      const geoLayer = geoJSONLayerRefs[id];
+      if (!geoLayer) return;
+      if (visible) {
+        geoLayer.addTo(map);
+      } else {
+        map.removeLayer(geoLayer);
+      }
+      if ((window as any).GEO_LAYERS?.[id]) {
+        (window as any).GEO_LAYERS[id].visible = visible;
       }
       window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: (window as any).GEO_LAYERS }));
     }
@@ -227,6 +417,7 @@ export const MapView = ({ hazardGuardActive = false, hazardGuardMode = 'point', 
 
     // event listeners
     const onAdd = (e: any) => addLayer(e.detail);
+    const onAddGeoJSON = (e: any) => addGeoJSONLayer(e.detail);
     const onRemove = (e: any) => removeLayer(e.detail);
     const onToggle = (e: any) => toggleLayer(e.detail);
     const onOpacity = (e: any) => updateOpacity(e.detail);
@@ -235,6 +426,7 @@ export const MapView = ({ hazardGuardActive = false, hazardGuardMode = 'point', 
     const onTimelapseDestroy = () => timelapseDestroy();
 
     window.addEventListener('geo:add-layer', onAdd);
+    window.addEventListener('geo:add-geojson-layer', onAddGeoJSON);
     window.addEventListener('geo:remove-layer', onRemove);
     window.addEventListener('geo:toggle-layer', onToggle);
     window.addEventListener('geo:update-opacity', onOpacity);
@@ -282,7 +474,7 @@ export const MapView = ({ hazardGuardActive = false, hazardGuardMode = 'point', 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);  // intentionally empty — callbacks & state read via stable refs
 
-  // Effect to toggle draw control based on mode
+  // Effect to toggle draw control based on mode (HazardGuard region, Urban Planning, or Forest Dept)
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -293,25 +485,45 @@ export const MapView = ({ hazardGuardActive = false, hazardGuardMode = 'point', 
       drawControlRef.current = null;
     }
 
-    // Add draw control only in region mode
-    if (hazardGuardActive && hazardGuardMode === 'region' && drawnItemsRef.current) {
+    // Determine which features need polyline vs polygon
+    const needsPolyline = urbanPlanningFeature === 'road_length';
+    const needsPolygon = urbanPlanningFeature && urbanPlanningFeature !== 'road_length';
+    const isHazardGuardRegion = hazardGuardActive && hazardGuardMode === 'region';
+    // Forest Dept features that need polygon (all except 'ndvi' which is global)
+    const needsForestDeptPolygon = forestDeptFeature && forestDeptFeature !== 'ndvi';
+
+    // Add draw control for urban planning, forest dept, or HazardGuard region mode
+    if ((urbanPlanningFeature || needsForestDeptPolygon || isHazardGuardRegion) && drawnItemsRef.current) {
+      // Determine color based on the active feature
+      let polygonColor = '#8b5cf6'; // default purple for hazard guard
+      if (needsForestDeptPolygon) {
+        polygonColor = '#22c55e'; // green for forest department
+      } else if (urbanPlanningFeature) {
+        polygonColor = '#10b981'; // emerald for urban planning
+      }
+
       const drawControl = new (L.Control as any).Draw({
         position: 'topleft',
         draw: {
-          polygon: {
+          polygon: (needsPolygon || needsForestDeptPolygon || isHazardGuardRegion) ? {
             allowIntersection: false,
             shapeOptions: {
-              color: '#8b5cf6',
+              color: polygonColor,
               weight: 2,
               fillOpacity: 0.15,
-              fillColor: '#8b5cf6'
+              fillColor: polygonColor
             }
-          },
+          } : false,
+          polyline: needsPolyline ? {
+            shapeOptions: {
+              color: '#f59e0b', // amber for road measurement
+              weight: 3
+            }
+          } : false,
           rectangle: false,
           circle: false,
           circlemarker: false,
-          marker: false,
-          polyline: false
+          marker: false
         },
         edit: {
           featureGroup: drawnItemsRef.current
@@ -320,12 +532,12 @@ export const MapView = ({ hazardGuardActive = false, hazardGuardMode = 'point', 
       map.addControl(drawControl);
       drawControlRef.current = drawControl;
     } else {
-      // Clear drawn polygons when leaving region mode
+      // Clear drawn items when no draw mode is active
       if (drawnItemsRef.current) {
         drawnItemsRef.current.clearLayers();
       }
     }
-  }, [hazardGuardActive, hazardGuardMode]);
+  }, [hazardGuardActive, hazardGuardMode, urbanPlanningFeature, forestDeptFeature]);
 
   // Effect to render heatmap from prediction results
   useEffect(() => {

@@ -4,6 +4,10 @@
 import { getAuthHeaders } from "./authToken";
 import { creditsService } from "./credits";
 
+// NASA POWER API has a lag of ~7 days before data becomes available
+// Adjust this value if you need to use older historical data
+const NASA_POWER_LAG_DAYS = 7;
+
 export interface PredictionResult {
   prediction: string;
   confidence: number;
@@ -79,14 +83,13 @@ class HazardGuardService {
       console.log('[HAZARDGUARD_CLIENT] Using baseUrl:', this.baseUrl);
       console.log('[HAZARDGUARD_CLIENT] Coordinates:', { latitude, longitude });
       
-      // Calculate reference date accounting for:
-      // - 60 days of historical data needed (59 days before + 1 prediction day)
-      // - 7 days NASA POWER API lag requirement
-      // Total: today - 67 days
+      // Calculate reference date accounting for NASA POWER API lag
+      // The backend will use this as the END date and fetch 60 days of data backwards
+      // So if today is March 29 and lag is 7, we send March 22, and backend uses Jan 22 - March 22
       const referenceDate = new Date();
-      referenceDate.setDate(referenceDate.getDate() - 67); 
+      referenceDate.setDate(referenceDate.getDate() - NASA_POWER_LAG_DAYS); 
       const referenceDateString = referenceDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-      console.log('[HAZARDGUARD_CLIENT] Reference date (67 days ago for 60 days data + 7 day lag):', referenceDateString);
+      console.log(`[HAZARDGUARD_CLIENT] Reference date (${NASA_POWER_LAG_DAYS} days ago for NASA lag):`, referenceDateString);
       
       const requestUrl = `${this.baseUrl}/api/hazardguard/predict`;
       console.log('[HAZARDGUARD_CLIENT] Request URL:', requestUrl);

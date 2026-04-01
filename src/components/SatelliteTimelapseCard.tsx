@@ -158,12 +158,12 @@ export const SatelliteTimelapseCard = ({ onTimelapseLoaded, onTimelapseClose, is
         onClick={isActive ? onTimelapseClose : handleLoad}
         disabled={loading || (!isActive && !isRangeValid)}
         className={cn(
-          "w-full transition-smooth font-semibold",
+          "w-full transition-all duration-300 font-semibold hover:scale-[1.02]",
           loading
-            ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+            ? "bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.15)]"
             : isActive
-              ? "bg-green-500/20 hover:bg-red-500/20 text-green-400 hover:text-red-400 border border-green-500/50 hover:border-red-500/50"
-              : "bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/50"
+              ? "bg-green-500/20 hover:bg-red-500/20 text-green-400 hover:text-red-400 border border-green-500/50 hover:border-red-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)] hover:shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+              : "bg-blue-500/20 hover:bg-blue-500/30 text-blue-500 dark:text-blue-400 border border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.15)] hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:border-blue-400/70"
         )}
         variant="outline"
       >
