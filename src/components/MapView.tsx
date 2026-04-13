@@ -48,6 +48,7 @@ interface MapViewProps {
   } | null;
   heatmapData?: HeatmapPoint[] | null;
   heatmapLoading?: boolean;
+  showTileGrid?: boolean;
 }
 
 export const MapView = ({ 
@@ -63,7 +64,8 @@ export const MapView = ({
   onForestDeptDraw,
   predictionResult, 
   heatmapData, 
-  heatmapLoading 
+  heatmapLoading,
+  showTileGrid = false
 }: MapViewProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -72,6 +74,7 @@ export const MapView = ({
   const drawnItemsRef = useRef<L.FeatureGroup | null>(null);
   const heatLayerRef = useRef<any>(null);
   const heatMarkersRef = useRef<L.LayerGroup | null>(null);
+  const tileGridLayerRef = useRef<L.LayerGroup | null>(null);
 
   // --- Stable refs for values used inside the one-time map init effect ---
   const latestOnMapClick = useLatest(onMapClick);
@@ -605,94 +608,146 @@ export const MapView = ({
     if (predictionResult && hazardGuardActive) {
       const { latitude, longitude, prediction, confidence } = predictionResult;
       
-      // Calculate risk zone radii based on confidence and prediction type
-      const baseRadius = prediction.toLowerCase() === 'disaster' ? 5000 : 2000; // meters
-      const confidenceMultiplier = confidence / 100;
+      const TILE_RESOLUTION = 0.01;
+      const halfRes = TILE_RESOLUTION / 2;
       
-      const criticalRadius = baseRadius * confidenceMultiplier;
-      const moderateRadius = criticalRadius * 1.5;
-      const warningRadius = criticalRadius * 2.2;
+      // Compute the absolute bounds of the 11km Macro Tile
+      const minLat = latitude - halfRes;
+      const maxLat = latitude + halfRes;
+      const minLng = longitude - halfRes;
+      const maxLng = longitude + halfRes;
+
+      const tileBounds = [
+        [minLat, minLng],
+        [maxLat, minLng],
+        [maxLat, maxLng],
+        [minLat, maxLng]
+      ] as L.LatLngExpression[];
 
       // Define colors based on prediction type
       const isDisaster = prediction.toLowerCase() === 'disaster';
-      const criticalColor = isDisaster ? '#dc2626' : '#f59e0b'; // red or amber
-      const moderateColor = isDisaster ? '#ea580c' : '#eab308'; // orange or yellow
-      const warningColor = isDisaster ? '#f59e0b' : '#84cc16'; // amber or lime
+      const tileColor = isDisaster ? '#dc2626' : '#22c55e'; // red vs green
+      const confidenceLevel = confidence > 80 ? 'High' : confidence > 50 ? 'Moderate' : 'Low';
 
-      // Create risk zones (outermost first so they layer correctly)
-      const warningZone = L.circle([latitude, longitude], {
-        radius: warningRadius,
-        fillColor: warningColor,
-        color: warningColor,
-        weight: 2,
+      // Create Macro Tile polygon
+      const macroTile = L.polygon(tileBounds, {
+        fillColor: tileColor,
+        color: tileColor,
+        weight: 3,
         opacity: 0.8,
-        fillOpacity: 0.1
-      }).bindPopup(`
-        <div class="text-center">
-          <h4 class="font-bold">Warning Zone</h4>
-          <p class="text-sm">Stay Alert</p>
-          <p class="text-xs">Radius: ${(warningRadius / 1000).toFixed(1)}km</p>
-        </div>
-      `);
-
-      const moderateZone = L.circle([latitude, longitude], {
-        radius: moderateRadius,
-        fillColor: moderateColor,
-        color: moderateColor,
-        weight: 2,
-        opacity: 0.9,
         fillOpacity: 0.15
       }).bindPopup(`
         <div class="text-center">
-          <h4 class="font-bold">Moderate Risk Zone</h4>
-          <p class="text-sm">Exercise Caution</p>
-          <p class="text-xs">Radius: ${(moderateRadius / 1000).toFixed(1)}km</p>
+          <h4 class="font-bold border-b pb-1 mb-2 text-foreground">Tile Analysis Region</h4>
+          <p class="text-sm font-semibold ${isDisaster ? 'text-red-500' : 'text-green-500'}">${isDisaster ? 'Critical Threat Detected' : 'No Immediate Risk'}</p>
+          <p class="text-xs text-muted-foreground mt-1">Prediction: ${prediction}</p>
+          <p class="text-xs text-muted-foreground">Confidence: ${confidence.toFixed(1)}% (${confidenceLevel})</p>
+          <p class="text-[10px] text-muted-foreground mt-2 bg-muted p-1 rounded border">Macro Tile: ~1.1km x 1.1km</p>
         </div>
       `);
 
-      const criticalZone = L.circle([latitude, longitude], {
-        radius: criticalRadius,
-        fillColor: criticalColor,
-        color: criticalColor,
-        weight: 3,
-        opacity: 1.0,
-        fillOpacity: 0.25
-      }).bindPopup(`
-        <div class="text-center">
-          <h4 class="font-bold">${isDisaster ? 'Critical' : 'Elevated'} Risk Zone</h4>
-          <p class="text-sm">${isDisaster ? 'Immediate Action Required' : 'Monitor Closely'}</p>
-          <p class="text-xs">Radius: ${(criticalRadius / 1000).toFixed(1)}km</p>
-          <p class="text-xs">Confidence: ${confidence.toFixed(1)}%</p>
-        </div>
-      `);
-
-      // Add center marker
+      // Add center point reference
       const centerMarker = L.circleMarker([latitude, longitude], {
-        radius: 8,
+        radius: 4,
         fillColor: '#1f2937',
         color: '#ffffff',
-        weight: 2,
+        weight: 1.5,
         opacity: 1,
         fillOpacity: 1
-      }).bindPopup(`
-        <div class="text-center">
-          <h4 class="font-bold">Prediction Point</h4>
-          <p class="text-sm">${prediction}: ${confidence.toFixed(1)}%</p>
-          <p class="text-xs">${latitude.toFixed(4)}, ${longitude.toFixed(4)}</p>
-        </div>
-      `);
+      });
 
-      // Add all zones to the layer group
-      riskZonesRef.current.addLayer(warningZone);
-      riskZonesRef.current.addLayer(moderateZone);
-      riskZonesRef.current.addLayer(criticalZone);
+      // Add zones to the layer group
+      riskZonesRef.current.addLayer(macroTile);
       riskZonesRef.current.addLayer(centerMarker);
 
-      // Auto-fit map to show all risk zones
-      const bounds = warningZone.getBounds();
-      mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
+      // Auto-fit map to show the Tile
+      mapInstanceRef.current.fitBounds(L.latLngBounds(tileBounds), { padding: [50, 50] });
     }
   }, [predictionResult, hazardGuardActive]);
+
+  // Effect to rendering dynamic 0.1 degree tile grid
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+
+    if (showTileGrid) {
+      if (!tileGridLayerRef.current) {
+        tileGridLayerRef.current = L.layerGroup().addTo(map);
+      }
+      
+      const drawGrid = () => {
+        if (!tileGridLayerRef.current) return;
+        tileGridLayerRef.current.clearLayers();
+        
+        const zoom = map.getZoom();
+        if (zoom < 10) {
+          // If zoomed out too far, don't draw grid (would be too dense)
+          return;
+        }
+
+        const bounds = map.getBounds();
+        const minLat = Math.floor(bounds.getSouth() * 100) / 100;
+        const maxLat = Math.ceil(bounds.getNorth() * 100) / 100;
+        const minLng = Math.floor(bounds.getWest() * 100) / 100;
+        const maxLng = Math.ceil(bounds.getEast() * 100) / 100;
+
+        const lines: L.Polyline[] = [];
+
+        // Latitudes (Horizontals)
+        for (let lat = minLat; lat <= maxLat; lat = Math.round((lat + 0.01) * 100) / 100) {
+          lines.push(L.polyline([[lat, -180], [lat, 180]], { color: 'rgba(59, 130, 246, 0.4)', weight: 1, dashArray: '4' }));
+        }
+
+        // Longitudes (Verticals)
+        for (let lng = minLng; lng <= maxLng; lng = Math.round((lng + 0.01) * 100) / 100) {
+          lines.push(L.polyline([[-90, lng], [90, lng]], { color: 'rgba(59, 130, 246, 0.4)', weight: 1, dashArray: '4' }));
+        }
+
+        lines.forEach(line => line.addTo(tileGridLayerRef.current!));
+        
+        // Also add some text labels in the center of visible tiles if zoom is high enough
+        if (zoom >= 13) {
+          for (let lat = minLat; lat < maxLat; lat = Math.round((lat + 0.01) * 100) / 100) {
+            for (let lng = minLng; lng < maxLng; lng = Math.round((lng + 0.01) * 100) / 100) {
+              const centerLat = lat + 0.005;
+              const centerLng = lng + 0.005;
+              
+              // Only draw labels if inside current bounds
+              if (bounds.contains([centerLat, centerLng])) {
+                const icon = L.divIcon({
+                  className: 'tile-grid-label',
+                  html: `<div style="color: rgba(59, 130, 246, 0.6); font-size: 10px; font-weight: bold; background: rgba(255,255,255,0.7); padding: 2px; border-radius: 4px; pointer-events: none; white-space: nowrap;">
+                    T_${Math.abs(Math.round(centerLat * 100))}_${Math.abs(Math.round(centerLng * 100))}
+                  </div>`,
+                  iconSize: [60, 20],
+                  iconAnchor: [30, 10]
+                });
+                L.marker([centerLat, centerLng], { icon, interactive: false }).addTo(tileGridLayerRef.current!);
+              }
+            }
+          }
+        }
+      };
+
+      drawGrid();
+      map.on('moveend', drawGrid);
+      map.on('zoomend', drawGrid);
+
+      return () => {
+        map.off('moveend', drawGrid);
+        map.off('zoomend', drawGrid);
+        if (tileGridLayerRef.current) {
+          tileGridLayerRef.current.clearLayers();
+        }
+      };
+    } else {
+      if (tileGridLayerRef.current) {
+        tileGridLayerRef.current.clearLayers();
+        map.removeLayer(tileGridLayerRef.current!);
+        tileGridLayerRef.current = null;
+      }
+    }
+  }, [showTileGrid]);
 
   return (
     <div className="relative w-full h-full">

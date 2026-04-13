@@ -40,6 +40,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPanel, setShowPanel] = useState(false);
+  const [showTileGrid, setShowTileGrid] = useState(false);
   const [heatmapData, setHeatmapData] = useState<HeatmapPoint[] | null>(null);
   const [heatmapLoading, setHeatmapLoading] = useState(false);
   const [heatmapSummary, setHeatmapSummary] = useState<any>(null);
@@ -310,16 +311,28 @@ const Index = () => {
     }
   }, [hazardGuardActive, hazardGuardMode, hazardGuardSamplePoints, toast, credits]);
 
-  const handleMapClick = async (latitude: number, longitude: number) => {
+  const getTileCentroid = (lat: number, lon: number): { lat: number; lon: number } => {
+    const TILE_RESOLUTION = 0.01;
+    // Snap to the nearest 0.01 degree grid centroid
+    const snappedLat = Math.round(lat / TILE_RESOLUTION) * TILE_RESOLUTION;
+    const snappedLon = Math.round(lon / TILE_RESOLUTION) * TILE_RESOLUTION;
+    // Fix floating point precision issues (e.g., 0.30000000000000004 -> 0.3)
+    return {
+      lat: Number(snappedLat.toFixed(2)),
+      lon: Number(snappedLon.toFixed(2))
+    };
+  };
+
+  const handleMapClick = async (rawLatitude: number, rawLongitude: number) => {
     // GeoVision map click: auto-fill coordinates
     if (showGeoVision) {
-      setGeoVisionCoords({ lat: latitude, lon: longitude });
+      setGeoVisionCoords({ lat: rawLatitude, lon: rawLongitude });
       return;
     }
 
     // WeatherWise map click: auto-fill coordinates
     if (showWeatherWise) {
-      setWeatherWiseCoords({ lat: latitude, lon: longitude });
+      setWeatherWiseCoords({ lat: rawLatitude, lon: rawLongitude });
       return;
     }
 
@@ -334,6 +347,9 @@ const Index = () => {
       });
       return;
     }
+
+    // Normalize click coordinate to the Macro-Tile centroid
+    const { lat: latitude, lon: longitude } = getTileCentroid(rawLatitude, rawLongitude);
 
     setIsLoading(true);
     setError(null);
@@ -513,8 +529,9 @@ const Index = () => {
         onForestDeptFeatureChange={handleForestDeptFeatureChange}
       />
       <main className="flex-1 relative">
-        {/* Top-left credits card */}
-        <div className="absolute left-4 top-4 z-[1300]">
+        {/* Top-left controls */}
+        <div className="absolute left-4 top-4 z-[1300] flex flex-col gap-2">
+          {/* Credits Box */}
           <div className="flex items-center gap-2 rounded-md border border-border bg-background/95 px-3 py-2 text-sm font-semibold text-foreground shadow-sm backdrop-blur">
             <span className="text-muted-foreground">Credits:</span>{' '}
             <span className={credits !== null && credits <= 0 ? 'text-red-500' : 'text-foreground'}>
@@ -529,6 +546,18 @@ const Index = () => {
               +
             </button>
           </div>
+          
+          {/* Tile Grid Toggle */}
+          <button
+            onClick={() => setShowTileGrid(prev => !prev)}
+            className={`flex items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-xs font-semibold shadow-sm backdrop-blur transition-colors ${
+              showTileGrid 
+                ? 'border-primary bg-primary/20 text-primary' 
+                : 'border-border bg-background/95 text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            {showTileGrid ? 'Hide Tile Grid' : 'Show Tile Grid'}
+          </button>
         </div>
 
         {/* Top-right user menu */}
@@ -646,6 +675,7 @@ const Index = () => {
           predictionResult={predictionResult}
           heatmapData={heatmapData}
           heatmapLoading={heatmapLoading}
+          showTileGrid={showTileGrid}
         />
         <ChatButton />
         <HazardGuardPanel
