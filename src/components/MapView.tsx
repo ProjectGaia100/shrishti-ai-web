@@ -72,6 +72,7 @@ export const MapView = ({
   const drawnItemsRef = useRef<L.FeatureGroup | null>(null);
   const heatLayerRef = useRef<any>(null);
   const heatMarkersRef = useRef<L.LayerGroup | null>(null);
+  const jumpMarkerRef = useRef<L.CircleMarker | null>(null);
 
   // --- Stable refs for values used inside the one-time map init effect ---
   const latestOnMapClick = useLatest(onMapClick);
@@ -415,6 +416,44 @@ export const MapView = ({
     }
     // ── end timelapse ──────────────────────────────────────────────────────────
 
+    function jumpToLocation(detail: any) {
+      const lat = Number(detail?.lat);
+      const lon = Number(detail?.lon);
+      const zoom = Number.isFinite(Number(detail?.zoom)) ? Number(detail.zoom) : 10;
+      const label = typeof detail?.label === 'string' ? detail.label : '';
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+      const clampedLat = Math.max(-90, Math.min(90, lat));
+      const normalizedLon = normalizeLongitude(lon);
+      map.flyTo([clampedLat, normalizedLon], Math.max(2, Math.min(18, zoom)), {
+        animate: true,
+        duration: 1.1,
+      });
+
+      if (jumpMarkerRef.current && map.hasLayer(jumpMarkerRef.current)) {
+        map.removeLayer(jumpMarkerRef.current);
+      }
+
+      jumpMarkerRef.current = L.circleMarker([clampedLat, normalizedLon], {
+        radius: 7,
+        fillColor: '#2563eb',
+        color: '#ffffff',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.95,
+      }).addTo(map);
+
+      if (label) {
+        jumpMarkerRef.current.bindTooltip(label, {
+          direction: 'top',
+          offset: [0, -10],
+          permanent: false,
+          opacity: 0.95,
+        }).openTooltip();
+      }
+    }
+
     // event listeners
     const onAdd = (e: any) => addLayer(e.detail);
     const onAddGeoJSON = (e: any) => addGeoJSONLayer(e.detail);
@@ -424,6 +463,7 @@ export const MapView = ({
     const onTimelapseInit = (e: any) => timelapseInit(e.detail);
     const onTimelapseFrame = (e: any) => timelapseShowFrame(e.detail);
     const onTimelapseDestroy = () => timelapseDestroy();
+    const onJumpToLocation = (e: any) => jumpToLocation(e.detail);
 
     window.addEventListener('geo:add-layer', onAdd);
     window.addEventListener('geo:add-geojson-layer', onAddGeoJSON);
@@ -433,22 +473,28 @@ export const MapView = ({
     window.addEventListener('geo:timelapse-init', onTimelapseInit);
     window.addEventListener('geo:timelapse-frame', onTimelapseFrame);
     window.addEventListener('geo:timelapse-destroy', onTimelapseDestroy);
+    window.addEventListener('geo:jump-to', onJumpToLocation);
 
   mapInstanceRef.current = map;
 
     return () => {
       if (mapInstanceRef.current) {
         window.removeEventListener('geo:add-layer', onAdd);
+        window.removeEventListener('geo:add-geojson-layer', onAddGeoJSON);
         window.removeEventListener('geo:remove-layer', onRemove);
         window.removeEventListener('geo:toggle-layer', onToggle);
         window.removeEventListener('geo:update-opacity', onOpacity);
         window.removeEventListener('geo:timelapse-init', onTimelapseInit);
         window.removeEventListener('geo:timelapse-frame', onTimelapseFrame);
         window.removeEventListener('geo:timelapse-destroy', onTimelapseDestroy);
+        window.removeEventListener('geo:jump-to', onJumpToLocation);
         timelapseDestroy();
         mapInstanceRef.current.off('click', handleMapClick);
         if (riskZonesRef.current) {
           riskZonesRef.current.clearLayers();
+        }
+        if (jumpMarkerRef.current && mapInstanceRef.current.hasLayer(jumpMarkerRef.current)) {
+          mapInstanceRef.current.removeLayer(jumpMarkerRef.current);
         }
         if (heatMarkersRef.current) {
           heatMarkersRef.current.clearLayers();
@@ -467,6 +513,7 @@ export const MapView = ({
         riskZonesRef.current = null;
         heatMarkersRef.current = null;
         heatLayerRef.current = null;
+        jumpMarkerRef.current = null;
         drawnItemsRef.current = null;
         drawControlRef.current = null;
       }

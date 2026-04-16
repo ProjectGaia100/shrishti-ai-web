@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { FormEvent, useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/Sidebar";
 import { MapView } from "@/components/MapView";
@@ -19,12 +19,67 @@ import type { ForestDeptFeature } from "@/services/forestDepartment";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { creditsService, CreditBundle } from "@/services/credits";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const FALLBACK_CREDIT_BUNDLES: CreditBundle[] = [
   { id: 'plus_1000', credits: 1000, price_inr: 999, label: '1000 Credits' },
   { id: 'plus_10000', credits: 10000, price_inr: 7999, label: '10000 Credits' },
   { id: 'plus_100000', credits: 100000, price_inr: 59999, label: '100000 Credits' },
 ];
+
+const ARCGIS_GEOCODE_URL = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates";
+
+function normalizeLongitude(lon: number): number {
+  return ((lon + 180) % 360 + 360) % 360 - 180;
+}
+
+function parseCoordinateQuery(input: string): { lat: number; lon: number } | null {
+  const match = input.trim().match(/^(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)$/);
+  if (!match) return null;
+
+  const first = Number(match[1]);
+  const second = Number(match[2]);
+  if (!Number.isFinite(first) || !Number.isFinite(second)) return null;
+
+  if (Math.abs(first) <= 90 && Math.abs(second) <= 180) {
+    return { lat: first, lon: second };
+  }
+
+  if (Math.abs(first) <= 180 && Math.abs(second) <= 90) {
+    return { lat: second, lon: first };
+  }
+
+  return null;
+}
+
+async function geocodePlace(query: string): Promise<{ lat: number; lon: number; label: string } | null> {
+  const params = new URLSearchParams({
+    f: "pjson",
+    maxLocations: "1",
+    outFields: "Match_addr",
+    singleLine: query,
+  });
+
+  const response = await fetch(`${ARCGIS_GEOCODE_URL}?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error(`Geocoder request failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+  const candidate = data?.candidates?.[0];
+  if (!candidate?.location) return null;
+
+  const lat = Number(candidate.location.y);
+  const lon = Number(candidate.location.x);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+  return {
+    lat,
+    lon,
+    label: String(candidate.address || query),
+  };
+}
 
 const Index = () => {
   const HAZARDGUARD_COST = 10;
@@ -63,6 +118,8 @@ const Index = () => {
   const [creditBundles, setCreditBundles] = useState<CreditBundle[]>(FALLBACK_CREDIT_BUNDLES);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [buyingBundleId, setBuyingBundleId] = useState<string | null>(null);
+  const [locationQuery, setLocationQuery] = useState('');
+  const [locationSearchLoading, setLocationSearchLoading] = useState(false);
   const resetTimerRef = useRef<number | null>(null);
   const resetTriggeredRef = useRef(false);
 
@@ -241,6 +298,65 @@ const Index = () => {
       setBuyingBundleId(null);
     }
   }, [toast]);
+
+  const jumpToLocation = useCallback((lat: number, lon: number, label: string) => {
+    const normalizedLon = normalizeLongitude(lon);
+    window.dispatchEvent(new CustomEvent('geo:jump-to', {
+      detail: { lat, lon: normalizedLon, zoom: 10, label }
+    }));
+
+    if (showWeatherWise) {
+      setWeatherWiseCoords({ lat, lon: normalizedLon });
+    }
+
+    if (showGeoVision) {
+      setGeoVisionCoords({ lat, lon: normalizedLon });
+    }
+  }, [showWeatherWise, showGeoVision]);
+
+  const handleLocationSearch = useCallback(async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = locationQuery.trim();
+    if (!query || locationSearchLoading) return;
+
+    const directCoords = parseCoordinateQuery(query);
+    if (directCoords) {
+      jumpToLocation(directCoords.lat, directCoords.lon, `${directCoords.lat.toFixed(4)}, ${directCoords.lon.toFixed(4)}`);
+      toast({
+        title: 'Moved to coordinates',
+        description: `${directCoords.lat.toFixed(4)}, ${directCoords.lon.toFixed(4)}`,
+      });
+      return;
+    }
+
+    setLocationSearchLoading(true);
+    try {
+      const result = await geocodePlace(query);
+      if (!result) {
+        toast({
+          title: 'Location not found',
+          description: 'Try a more specific place name or use lat,long format.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      jumpToLocation(result.lat, result.lon, result.label);
+      toast({
+        title: 'Location found',
+        description: result.label,
+      });
+    } catch (err) {
+      console.error('[LOCATION_SEARCH] Geocode failed:', err);
+      toast({
+        title: 'Search failed',
+        description: 'Could not resolve that location right now.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLocationSearchLoading(false);
+    }
+  }, [jumpToLocation, locationQuery, locationSearchLoading, toast]);
 
   const handleHazardGuardModeChange = useCallback((isActive: boolean, mode: HazardGuardMode, samplePoints: number) => {
     setHazardGuardActive(isActive);
@@ -513,6 +629,29 @@ const Index = () => {
         onForestDeptFeatureChange={handleForestDeptFeatureChange}
       />
       <main className="flex-1 relative">
+        {/* Top-center location search */}
+        <div className="absolute left-1/2 top-3 z-[1300] w-[min(640px,calc(100vw-1.5rem))] -translate-x-1/2 px-1 sm:px-0">
+          <form
+            onSubmit={handleLocationSearch}
+            className="flex items-center gap-2 rounded-xl border border-border bg-background/90 p-2 shadow-md backdrop-blur"
+          >
+            <Input
+              value={locationQuery}
+              onChange={(e) => setLocationQuery(e.target.value)}
+              placeholder="Search place or lat,long (e.g. Margao or 15.2993, 74.1240)"
+              aria-label="Search location"
+              className="h-9 border-border bg-background/90"
+            />
+            <Button
+              type="submit"
+              size="sm"
+              disabled={locationSearchLoading || !locationQuery.trim()}
+            >
+              {locationSearchLoading ? 'Searching...' : 'Go'}
+            </Button>
+          </form>
+        </div>
+
         {/* Top-left credits card */}
         <div className="absolute left-4 top-4 z-[1300]">
           <div className="flex items-center gap-2 rounded-md border border-border bg-background/95 px-3 py-2 text-sm font-semibold text-foreground shadow-sm backdrop-blur">
