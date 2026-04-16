@@ -34,9 +34,9 @@ export function AboutSection() {
             <span className="text-gradient">Research</span>
           </h2>
           <p className="text-muted-foreground text-base leading-relaxed max-w-2xl mx-auto">
-            Shrishti AI is a research-grade geospatial intelligence platform developed
+            Shrishti AI is a research-grade agritech intelligence platform developed
             as part of an advanced exploration into the intersection of artificial
-            intelligence, remote sensing, and climate science.
+            intelligence, remote sensing, and precision agriculture.
           </p>
         </div>
 
@@ -56,9 +56,9 @@ export function AboutSection() {
               Our Vision
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              To democratize geospatial intelligence by making satellite data analysis and 
-              AI-powered prediction accessible through intuitive visualization tools — 
-              enabling researchers, disaster response teams, and environmental agencies to 
+              To democratize precision agriculture by making satellite data analysis and 
+              AI-powered yield prediction accessible through intuitive visualization tools — 
+              enabling farmers, agronomists, and agricultural planners to 
               make data-driven decisions faster than ever before.
             </p>
           </div>
@@ -77,8 +77,8 @@ export function AboutSection() {
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
               This platform represents a novel approach to combining multi-source satellite 
-              data with deep learning architectures for predictive environmental analysis, 
-              pushing the boundaries of what's possible in computational geoscience.
+              data with deep learning architectures for predictive crop stress analysis, 
+              pushing the boundaries of what's possible in sustainable agriculture.
             </p>
           </div>
         </div>

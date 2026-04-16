@@ -23,14 +23,14 @@ export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSect
 
           {/* Tagline - More prominent */}
           <p className="text-2xl sm:text-3xl font-light text-white/90 tracking-wide">
-            Satellite Intelligence for Disaster Prediction
+            Satellite Intelligence for Precision Agriculture
           </p>
 
           {/* Description - Better contrast */}
           <p className="text-lg sm:text-xl text-white/70 max-w-2xl leading-relaxed">
-            Harness satellite imagery, deep learning, and real-time climate data 
-            to predict natural disasters, monitor environmental change, and generate 
-            actionable geospatial intelligence — all from a single research platform.
+            Harness satellite imagery, deep learning, and predictive models 
+            to monitor crop health, analyze soil moisture, and mitigate seasonal risks 
+            — all from a single research platform.
           </p>
 
           {/* CTA Button - Single prominent button */}
@@ -51,9 +51,9 @@ export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSect
           {/* Stats row - More visual impact */}
           <div className="flex items-center justify-center lg:justify-start gap-12 pt-8">
             {[
-              { value: '5+', label: 'Data Layers' },
-              { value: 'AI', label: 'Predictions' },
-              { value: 'Real-time', label: 'Monitoring' },
+              { value: '5+', label: 'Asset Layers' },
+              { value: 'Yield', label: 'Predictions' },
+              { value: 'Daily', label: 'Soil Health' },
             ].map((stat, i) => (
               <div key={i} className="text-center">
                 <div className="text-2xl font-bold text-white">{stat.value}</div>
@@ -71,14 +71,14 @@ export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSect
           <div className="absolute -top-2 -right-4 md:top-4 md:right-0 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg px-4 py-2.5 text-sm animate-float">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="text-white/90 font-medium">NDVI Active</span>
+              <span className="text-white/90 font-medium">NDVI Optimized</span>
             </div>
           </div>
 
           <div className="absolute -bottom-2 -left-4 md:bottom-6 md:left-0 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg px-4 py-2.5 text-sm animate-float-delayed">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-blue-400" />
-              <span className="text-white/90 font-medium">Satellite Feed</span>
+              <span className="text-white/90 font-medium">Moisture Map</span>
             </div>
           </div>
 

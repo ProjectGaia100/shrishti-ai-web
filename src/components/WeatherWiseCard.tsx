@@ -30,13 +30,13 @@ export const WeatherWiseCard = ({ onTogglePanel, isActive = false }: WeatherWise
           <CloudRain className="w-5 h-5" />
         </div>
         <div className="flex-1">
-          <h3 className="font-bold text-lg leading-tight">WeatherWise</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">LSTM Weather Forecasting</p>
+          <h3 className="font-bold text-lg leading-tight">SeasonPlanner</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">LSTM Climate Intelligence</p>
         </div>
       </div>
 
       <p className="text-sm text-foreground/70 mb-3">
-        Predict weather trends for the next 60 days using advanced LSTM models. Analyze temperature, precipitation, and more.
+        Predict seasonal weather trends for the next 60 days to optimize your planting cycles and irrigation schedules.
       </p>
 
       <Button
@@ -52,12 +52,12 @@ export const WeatherWiseCard = ({ onTogglePanel, isActive = false }: WeatherWise
         {isActive ? (
           <>
             <X className="w-4 h-4" />
-            Close Weather Forecast
+            Close Climate Analysis
           </>
         ) : (
           <>
             <TrendingUp className="w-4 h-4" />
-            Open Weather Forecast
+            Explore Seasonal Trends
           </>
         )}
       </Button>

@@ -50,20 +50,20 @@ export const HazardGuardCard = ({ onModeChange }: HazardGuardCardProps) => {
       <div className="flex items-start gap-3 mb-3">
         <div className={cn(
           "p-2.5 rounded-lg transition-all duration-200",
-          isActive ? "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-500/20" : "text-blue-600 dark:text-blue-500 bg-blue-50 dark:bg-blue-500/10"
+          isActive ? "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/20" : "text-emerald-600 dark:text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10"
         )}>
           <Shield className="w-5 h-5" />
         </div>
         <div className="flex-1">
-          <h3 className="font-bold text-lg leading-tight">HazardGuard</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">AI Disaster Prediction</p>
+          <h3 className="font-bold text-lg leading-tight">AgriShield</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Crop Stress Prediction</p>
         </div>
       </div>
 
       <p className="text-sm text-foreground/70 mb-3">
         {mode === 'point' 
-          ? 'Click anywhere on the map to get real-time disaster risk predictions using advanced machine learning models.'
-          : 'Draw a polygon on the map to generate a disaster risk heatmap using sampled predictions.'}
+          ? 'Click anywhere on the map to analyze crop health and environmental stress factors using NASA satellite data.'
+          : 'Draw a polygon on the map to generate a crop mortality and soil stress heatmap.'}
       </p>
 
       <div className="space-y-2">
@@ -73,7 +73,7 @@ export const HazardGuardCard = ({ onModeChange }: HazardGuardCardProps) => {
             "w-full transition-all duration-300 font-semibold flex items-center gap-2 hover:scale-[1.02]",
             isActive
               ? "bg-success/20 hover:bg-success/30 text-success border border-success/50 shadow-[0_0_15px_rgba(34,197,94,0.2)] hover:shadow-[0_0_25px_rgba(34,197,94,0.35)]"
-              : "bg-blue-500/20 hover:bg-blue-500/30 text-blue-500 dark:text-blue-400 border border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.15)] hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:border-blue-400/70"
+              : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-500 dark:text-emerald-400 border border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.15)] hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:border-emerald-400/70"
           )}
           variant="outline"
         >
@@ -153,34 +153,34 @@ export const HazardGuardCard = ({ onModeChange }: HazardGuardCardProps) => {
               <div className="flex items-center justify-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                  {mode === 'point' ? 'Point Prediction Active' : 'Region Heatmap Active'}
+                  {mode === 'point' ? 'Live Agri-Analysis Active' : 'Region Stress Heatmap Active'}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
                 {mode === 'point' 
-                  ? 'Click anywhere on the map to analyze disaster risk for that location'
-                  : 'Draw a polygon on the map to generate a risk heatmap'}
+                  ? 'Click on your farm to analyze soil health and crop stress risk'
+                  : 'Draw a boundary to generate a spatial stress heatmap'}
               </p>
             </div>
 
             <div className="text-xs text-muted-foreground space-y-1">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-green-500 rounded"></div>
-                <span>Low Risk - Normal conditions</span>
+                <span>Optimal - Healthy crop conditions</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-red-500 rounded"></div>
-                <span>High Risk - Disaster likely</span>
+                <span>High Stress - Risk of yield loss</span>
               </div>
             </div>
 
             <div className="text-xs text-muted-foreground">
-              <p className="font-medium mb-1">Prediction Features:</p>
+              <p className="font-medium mb-1">Precision Factors:</p>
               <ul className="space-y-0.5 text-[10px]">
-                <li>• Weather & Climate Data</li>
-                <li>• Soil & Elevation Analysis</li>
-                <li>• Population Density</li>
-                <li>• Historical Patterns</li>
+                <li>• Soil Moisture & LST</li>
+                <li>• Vegetation Index (NDVI)</li>
+                <li>• Drainage Patterns</li>
+                <li>• Historical Yield Stability</li>
               </ul>
             </div>
           </div>

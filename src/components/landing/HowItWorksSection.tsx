@@ -3,42 +3,42 @@ import React, { useEffect, useRef, useState } from 'react';
 const steps = [
   {
     number: '01',
-    title: 'Data Ingestion',
-    subtitle: 'Satellite + Weather Data',
+    title: 'Asset Ingestion',
+    subtitle: 'Satellite + Agro-Weather',
     description:
-      'Multi-source satellite imagery from Sentinel, Landsat, and MODIS combined with real-time weather data streams through Google Earth Engine.',
+      'Multi-source multi-spectral imagery from Sentinel and Landsat combined with specialized NASA agro-weather streams for soil and climate analysis.',
     icon: (
       <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
       </svg>
     ),
-    details: ['Sentinel-2 MSI', 'Landsat 8/9', 'MODIS Terra/Aqua', 'Weather APIs'],
+    details: ['Sentinel-2 MSI', 'Landsat 8/9', 'NASA POWER', 'Soil Grids'],
   },
   {
     number: '02',
-    title: 'AI Processing',
-    subtitle: 'Deep Learning Models',
+    title: 'Agri-AI Modeling',
+    subtitle: 'Crop Stress Intelligence',
     description:
-      'Advanced neural networks including LSTMs, CNNs, and ensemble models process multi-dimensional geospatial data for pattern recognition.',
+      'Advanced neural networks analyze multi-spectral bands to identify NDVI anomalies, evapotranspiration rates, and soil moisture stress.',
     icon: (
       <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
       </svg>
     ),
-    details: ['LSTM Networks', 'CNN Classification', 'Random Forest', 'Transfer Learning'],
+    details: ['NDVI Analysis', 'Moisture Prediction', 'Yield Estimator', 'Stress CNN'],
   },
   {
     number: '03',
-    title: 'Predictive Insights',
-    subtitle: 'Visualization & Alerts',
+    title: 'Farm Planning',
+    subtitle: 'Strategic Yield Insights',
     description:
-      'Actionable intelligence delivered through interactive maps, real-time dashboards, predictive alerts, and comprehensive analytics.',
+      'Actionable agritech intelligence delivered through crop health maps, seasonal forecasts, and automated stress alerts for farm management.',
     icon: (
       <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" />
       </svg>
     ),
-    details: ['Interactive Maps', 'Risk Heatmaps', 'Trend Analytics', 'Alert System'],
+    details: ['NDVI Dashboards', 'Stress Alerts', 'Yield Optimization', 'Soil Insights'],
   },
 ];
 

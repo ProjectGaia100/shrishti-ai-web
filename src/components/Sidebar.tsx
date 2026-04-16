@@ -5,14 +5,10 @@ import type { HazardGuardMode } from "./HazardGuardCard";
 import { WeatherWiseCard } from "./WeatherWiseCard";
 import { GeoVisionCard } from "./GeoVisionCard";
 import { SatelliteTimelapseCard } from "./SatelliteTimelapseCard";
-import { UrbanPlanningCards } from "./UrbanPlanningCards";
-import { ForestDeptCards } from "./ForestDeptCards";
 import { GoaCards } from "./GoaCards";
 import { StateCards } from "./StateCards";
 import { CollapsibleSection } from "./CollapsibleSection";
 import type { TimelapseFrame } from "@/services/api";
-import type { UrbanPlanningFeature } from "@/services/urbanPlanning";
-import type { ForestDeptFeature } from "@/services/forestDepartment";
 import {
   indiaService,
   karnatakaService,
@@ -28,9 +24,7 @@ import {
   Map, 
   Thermometer, 
   Brain, 
-  Clock, 
-  Building2, 
-  Trees, 
+  Clock,
   MapPin,
   ChevronsUpDown,
   Globe,
@@ -187,8 +181,15 @@ export const Sidebar = ({
       {/* Header */}
       <div className="px-5 py-4 border-b border-border bg-muted/30 dark:bg-muted/10">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')} title="Back to Home">
-          <img src="/shrishti-icon-small.png" alt="Shrishti AI Icon" className="h-10 w-10 object-contain" />
-          <img src="/shrishti-text-long.png" alt="Shrishti AI" className="h-8 object-contain" />
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-emerald-500/20 rounded-lg">
+              <Globe className="h-6 w-6 text-emerald-500" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold tracking-tight text-foreground uppercase">Shrishti</span>
+              <span className="text-[10px] font-medium text-emerald-500 uppercase tracking-widest -mt-1">Agritech</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -206,9 +207,9 @@ export const Sidebar = ({
       </div>
 
       <div className="py-1">
-        {/* Models Section */}
+        {/* Precision Agri-AI Section */}
         <CollapsibleSection
-          title="Models"
+          title="Precision Agri-AI"
           icon={Brain}
           badge="3"
           expanded={sectionsExpanded.models}
@@ -248,145 +249,7 @@ export const Sidebar = ({
           ))}
         </CollapsibleSection>
 
-        {/* Urban Planning Section */}
-        <CollapsibleSection
-          title="Urban Planning"
-          icon={Building2}
-          badge="4"
-          expanded={sectionsExpanded.urbanPlanning}
-          onToggle={toggleSection('urbanPlanning')}
-        >
-          <UrbanPlanningCards
-            activeFeature={activeUrbanPlanningFeature ?? null}
-            onSelectFeature={onUrbanPlanningFeatureChange ?? (() => {})}
-          />
-        </CollapsibleSection>
-
-        {/* Forest Department Section */}
-        <CollapsibleSection
-          title="Forest Dept"
-          icon={Trees}
-          badge="8"
-          expanded={sectionsExpanded.forestDept}
-          onToggle={toggleSection('forestDept')}
-        >
-          <ForestDeptCards
-            activeFeature={activeForestDeptFeature ?? null}
-            onSelectFeature={onForestDeptFeatureChange ?? (() => {})}
-          />
-        </CollapsibleSection>
-
-        {/* ============================================ */}
-        {/* GEOGRAPHIC DATA SECTIONS - State-wise */}
-        {/* Order: India, Goa, Karnataka, Kerala, Maharashtra, Tamil Nadu, Andhra Pradesh */}
-        {/* ============================================ */}
-
-        {/* India Section */}
-        <CollapsibleSection
-          title="India"
-          icon={Globe}
-          badge="2"
-          expanded={sectionsExpanded.india}
-          onToggle={toggleSection('india')}
-        >
-          <StateCards
-            stateName="India"
-            stateSlug="india"
-            service={indiaService}
-            attribution="Data from LGD & Aviation Authority"
-          />
-        </CollapsibleSection>
-
-        {/* Goa Section */}
-        <CollapsibleSection
-          title="Goa"
-          icon={MapPin}
-          badge="7"
-          expanded={sectionsExpanded.goa}
-          onToggle={toggleSection('goa')}
-        >
-          <GoaCards />
-        </CollapsibleSection>
-
-        {/* Karnataka Section */}
-        <CollapsibleSection
-          title="Karnataka"
-          icon={Landmark}
-          badge="1"
-          expanded={sectionsExpanded.karnataka}
-          onToggle={toggleSection('karnataka')}
-        >
-          <StateCards
-            stateName="Karnataka"
-            stateSlug="karnataka"
-            service={karnatakaService}
-            attribution="Data from KGISMAPS"
-          />
-        </CollapsibleSection>
-
-        {/* Kerala Section */}
-        <CollapsibleSection
-          title="Kerala"
-          icon={Landmark}
-          badge="1"
-          expanded={sectionsExpanded.kerala}
-          onToggle={toggleSection('kerala')}
-        >
-          <StateCards
-            stateName="Kerala"
-            stateSlug="kerala"
-            service={keralaService}
-            attribution="Data from NCSCM"
-          />
-        </CollapsibleSection>
-
-        {/* Maharashtra Section */}
-        <CollapsibleSection
-          title="Maharashtra"
-          icon={Landmark}
-          badge="1"
-          expanded={sectionsExpanded.maharashtra}
-          onToggle={toggleSection('maharashtra')}
-        >
-          <StateCards
-            stateName="Maharashtra"
-            stateSlug="maharashtra"
-            service={maharashtraService}
-            attribution="Data from NCSCM"
-          />
-        </CollapsibleSection>
-
-        {/* Tamil Nadu Section */}
-        <CollapsibleSection
-          title="Tamil Nadu"
-          icon={Landmark}
-          badge="1"
-          expanded={sectionsExpanded.tamilnadu}
-          onToggle={toggleSection('tamilnadu')}
-        >
-          <StateCards
-            stateName="Tamil Nadu"
-            stateSlug="tamilnadu"
-            service={tamilnaduService}
-            attribution="Data from TNGIS"
-          />
-        </CollapsibleSection>
-
-        {/* Andhra Pradesh Section */}
-        <CollapsibleSection
-          title="Andhra Pradesh"
-          icon={Landmark}
-          badge="1"
-          expanded={sectionsExpanded.andhrapradesh}
-          onToggle={toggleSection('andhrapradesh')}
-        >
-          <StateCards
-            stateName="Andhra Pradesh"
-            stateSlug="andhrapradesh"
-            service={andhrapradeshService}
-            attribution="Data from APSAC"
-          />
-        </CollapsibleSection>
+        {/* Only keeping Agritech relevant sections for the hackathon */}
       </div>
     </aside>
   );

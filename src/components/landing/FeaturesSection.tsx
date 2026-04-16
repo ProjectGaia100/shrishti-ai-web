@@ -2,24 +2,24 @@ import React, { useEffect, useRef, useState } from 'react';
 
 const features = [
   {
-    title: 'HazardGuard',
-    subtitle: 'Disaster Prediction Engine',
+    title: 'AgriShield',
+    subtitle: 'Crop Health & Risk Prediction',
     description:
-      'Deep learning models analyze satellite imagery, seismic data, and climate patterns to predict natural disasters before they strike.',
+      'Deep learning models analyze multi-spectral imagery and soil moisture to predict crop stress, washout risks, and drought impact before they occur.',
     icon: (
       <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
       </svg>
     ),
-    accentColor: 'text-red-600 dark:text-red-400',
-    accentBg: 'bg-red-50 dark:bg-red-500/10',
-    accentBorder: 'hover:border-red-200 dark:hover:border-red-500/30',
+    accentColor: 'text-emerald-600 dark:text-emerald-400',
+    accentBg: 'bg-emerald-50 dark:bg-emerald-500/10',
+    accentBorder: 'hover:border-emerald-200 dark:hover:border-emerald-500/30',
   },
   {
-    title: 'WeatherWise',
-    subtitle: 'LSTM Weather Forecasting',
+    title: 'SeasonPlanner',
+    subtitle: 'Precision Weather Planning',
     description:
-      'Advanced LSTM neural networks process atmospheric data to deliver hyperlocal 60-day weather predictions across 36 variables.',
+      'Hyperlocal 60-day forecasts tailored for growth cycles, analyzing soil wetness, thermal stress, and evapotranspiration data.',
     icon: (
       <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
@@ -30,24 +30,24 @@ const features = [
     accentBorder: 'hover:border-blue-200 dark:hover:border-blue-500/30',
   },
   {
-    title: 'GeoVision Fusion',
-    subtitle: 'Multi-Model Ensemble',
+    title: 'FarmInsight Fusion',
+    subtitle: 'AgTech Ensemble Models',
     description:
-      'Cross-stacked ensemble fusing LSTM, Tree Models and CNN for disaster classification and weather regime prediction.',
+      'Cross-stacked ensemble processing multi-spectral data to identify vegetation anomalies, nutrient deficiencies, and yield trends.',
     icon: (
       <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
       </svg>
     ),
-    accentColor: 'text-emerald-600 dark:text-emerald-400',
-    accentBg: 'bg-emerald-50 dark:bg-emerald-500/10',
-    accentBorder: 'hover:border-emerald-200 dark:hover:border-emerald-500/30',
+    accentColor: 'text-purple-600 dark:text-purple-400',
+    accentBg: 'bg-purple-50 dark:bg-purple-500/10',
+    accentBorder: 'hover:border-purple-200 dark:hover:border-purple-500/30',
   },
   {
-    title: 'Earth Data Layers',
-    subtitle: 'Dynamic Earth Observation',
+    title: 'Precision Data Layers',
+    subtitle: 'Multi-Spectral Asset Monitoring',
     description:
-      'Toggle between NDVI, temperature, land cover, terrain, and nighttime lights with seamless layer blending on an interactive map.',
+      'Seamlessly analyze NDVI, moisture stress, and land types on a 10m resolution interactive map with specialized blending.',
     icon: (
       <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L12 12.75 6.429 9.75m11.142 0l4.179 2.25L12 17.25 2.25 12l4.179-2.25m11.142 0l4.179 2.25L12 22.5l-9.75-5.25 4.179-2.25" />

@@ -28,7 +28,7 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const disasterTypes = ["Normal", "Flood", "Drought", "Storm", "Landslide"];
+  const disasterTypes = ["Normal", "High Precipitation", "Dry Period", "Heat Stress", "Potential Washout"];
 
   // Auto-fill coordinates from map click
   useEffect(() => {
@@ -259,8 +259,8 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
               <CloudRain className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-lg">WeatherWise</h3>
-              <p className="text-xs text-muted-foreground">LSTM Weather Forecasting</p>
+              <h3 className="font-bold text-lg">SeasonPlanner</h3>
+              <p className="text-xs text-muted-foreground">Long-range Crop Planning</p>
             </div>
           </div>
           <Button
@@ -332,7 +332,7 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
             <div className="space-y-2">
               <Label htmlFor="ww-disasterType" className="text-sm font-medium flex items-center gap-1">
                 <Sparkles className="w-3 h-3" />
-                Disaster Type Context
+                Seasonal Stress Context
               </Label>
               <select
                 id="ww-disasterType"
@@ -395,16 +395,16 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
             <div className="space-y-4 animate-fade-in">
               <div className="flex items-center gap-2 text-sm font-semibold text-purple-600 dark:text-purple-400 pt-2 border-t border-border/50">
                 <TrendingUp className="w-4 h-4" />
-                <span>60-Day Weather Forecast (NASA POWER Variables)</span>
+                <span>60-Day Crop Planning Forecast</span>
               </div>
 
               {/* Tabbed Charts (NASA POWER-related variables only) */}
-              <Tabs defaultValue="core" className="w-full">
+              <Tabs defaultValue="moisture" className="w-full">
                 <TabsList className="grid grid-cols-4 w-full bg-purple-500/10">
-                  <TabsTrigger value="core" className="text-xs">Core (6)</TabsTrigger>
-                  <TabsTrigger value="temp" className="text-xs">Temp (2)</TabsTrigger>
-                  <TabsTrigger value="moisture" className="text-xs">Moisture (6)</TabsTrigger>
-                  <TabsTrigger value="risk" className="text-xs">Atmos (3)</TabsTrigger>
+                  <TabsTrigger value="moisture" className="text-xs">Soil & Water</TabsTrigger>
+                  <TabsTrigger value="core" className="text-xs">Core Sky</TabsTrigger>
+                  <TabsTrigger value="temp" className="text-xs">Thermal</TabsTrigger>
+                  <TabsTrigger value="risk" className="text-xs">Atmosphere</TabsTrigger>
                 </TabsList>
 
                 {/* Core Weather Variables */}
@@ -481,7 +481,7 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
                     <div className="font-medium">{date}</div>
                   </div>
                   <div className="space-y-1">
-                    <div className="text-muted-foreground">Disaster Context</div>
+                    <div className="text-muted-foreground">Seasonal Phase</div>
                     <div className="font-medium">{disasterType}</div>
                   </div>
                   <div className="space-y-1">

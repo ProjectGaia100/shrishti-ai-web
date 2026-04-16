@@ -65,11 +65,11 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
       case 'drought':
       case 'mass movement (wet)':
       case 'mass movement':
-        return { level: 'High Risk', color: 'text-red-500', bgColor: 'bg-red-500/10', borderColor: 'border-red-500/20' };
+        return { level: 'High Stress', color: 'text-red-500', bgColor: 'bg-red-500/10', borderColor: 'border-red-500/20' };
       case 'normal':
-        return { level: 'Low Risk', color: 'text-green-500', bgColor: 'bg-green-500/10', borderColor: 'border-green-500/20' };
+        return { level: 'Optimal', color: 'text-green-500', bgColor: 'bg-green-500/10', borderColor: 'border-green-500/20' };
       default:
-        return { level: 'Moderate Risk', color: 'text-yellow-500', bgColor: 'bg-yellow-500/10', borderColor: 'border-yellow-500/20' };
+        return { level: 'Moderate Stress', color: 'text-yellow-500', bgColor: 'bg-yellow-500/10', borderColor: 'border-yellow-500/20' };
     }
   };
 
@@ -88,8 +88,8 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
               <Shield className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-lg">HazardGuard</h3>
-              <p className="text-xs text-muted-foreground">Disaster Prediction</p>
+              <h3 className="font-bold text-lg">AgriShield</h3>
+              <p className="text-xs text-muted-foreground">Agricultural Risk Analysis</p>
             </div>
           </div>
           <Button
@@ -137,7 +137,7 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
             {(() => {
               const avgRisk = heatmapSummary.avg_risk;
               const isRegionDisaster = avgRisk >= 0.5;
-              const overallLabel = isRegionDisaster ? 'Disaster Likely' : 'Normal';
+              const overallLabel = isRegionDisaster ? 'Crop Stress Likely' : 'Optimal Conditions';
               const overallConfidence = isRegionDisaster ? avgRisk * 100 : (1 - avgRisk) * 100;
               return (
                 <div className={cn(
@@ -180,11 +180,11 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-lg p-3 text-center bg-muted/50 border border-border">
                 <p className="text-lg font-bold text-red-600 dark:text-red-400">{heatmapSummary.disaster_count}</p>
-                <p className="text-[10px] text-muted-foreground">Disaster Zones</p>
+                <p className="text-[10px] text-muted-foreground">Stressed Zones</p>
               </div>
               <div className="rounded-lg p-3 text-center bg-muted/50 border border-border">
                 <p className="text-lg font-bold text-green-600 dark:text-green-400">{heatmapSummary.successful - heatmapSummary.disaster_count}</p>
-                <p className="text-[10px] text-muted-foreground">Safe Zones</p>
+                <p className="text-[10px] text-muted-foreground">Optimal Zones</p>
               </div>
               <div className="rounded-lg p-3 text-center bg-muted/50 border border-border">
                 <p className="text-lg font-bold text-orange-600 dark:text-orange-400">{(heatmapSummary.max_risk * 100).toFixed(1)}%</p>
@@ -206,9 +206,9 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
                 {heatmapData
                   .sort((a, b) => b.risk_score - a.risk_score)
                   .map((pt, i) => {
-                    const isDisaster = pt.prediction.toLowerCase() === 'disaster';
-                    const ptLabel = isDisaster ? 'Disaster' : 'Normal';
-                    const ptConf = isDisaster ? pt.risk_score * 100 : (1 - pt.risk_score) * 100;
+                    const isStress = pt.prediction.toLowerCase() === 'stress';
+                    const ptLabel = isStress ? 'Stress' : 'Optimal';
+                    const ptConf = isStress ? pt.risk_score * 100 : (1 - pt.risk_score) * 100;
                     return (
                       <div
                         key={i}
@@ -297,48 +297,48 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
             </div>
 
             {/* Disaster Type Analysis - shown when disaster is detected */}
-            {result.prediction.toLowerCase() === 'disaster' && result.disaster_type_probabilities && 
-             Object.keys(result.disaster_type_probabilities).length > 0 && (
+            {result.prediction.toLowerCase() === 'stress' && result.agri_shield && 
+             Object.keys(result.agri_shield.probabilities).length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <div className="p-1.5 bg-orange-500/10 rounded-md">
                     <Zap className="w-4 h-4 text-orange-500" />
                   </div>
                   <div>
-                    <span className="font-semibold text-sm">Specialized Model Analysis</span>
-                    {result.disaster_type_confidence && (
+                    <span className="font-semibold text-sm">Crop Stress Analysis</span>
+                    {result.agri_shield.confidence && (
                       <span className={cn(
                         "ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-medium",
-                        result.disaster_type_confidence === 'high' ? 'bg-red-500/15 text-red-400' :
-                        result.disaster_type_confidence === 'medium' ? 'bg-yellow-500/15 text-yellow-400' :
+                        result.agri_shield.confidence === 'high' ? 'bg-emerald-500/15 text-emerald-400' :
+                        result.agri_shield.confidence === 'medium' ? 'bg-yellow-500/15 text-yellow-400' :
                         'bg-gray-500/15 text-gray-400'
                       )}>
-                        {result.disaster_type_confidence} confidence
+                        {result.agri_shield.confidence} confidence
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="space-y-2">
-                  {Object.entries(result.disaster_type_probabilities)
+                  {Object.entries(result.agri_shield.probabilities)
                     .sort(([, a], [, b]) => b - a)
                     .map(([type, probability]) => {
                       const prob = probability * 100;
-                      const isDetected = result.disaster_types?.includes(type);
+                      const isDetected = result.agri_shield.risk_types?.includes(type);
                       const getIcon = (t: string) => {
                         switch (t.toLowerCase()) {
-                          case 'flood': return <Droplets className="w-3.5 h-3.5" />;
-                          case 'storm': return <CloudRain className="w-3.5 h-3.5" />;
-                          case 'drought': return <Sun className="w-3.5 h-3.5" />;
-                          case 'landslide': return <Mountain className="w-3.5 h-3.5" />;
+                          case 'waterlogging / washout': return <Droplets className="w-3.5 h-3.5" />;
+                          case 'wind & hail stress': return <CloudRain className="w-3.5 h-3.5" />;
+                          case 'soil moisture deficit': return <Sun className="w-3.5 h-3.5" />;
+                          case 'soil erosion risk': return <Mountain className="w-3.5 h-3.5" />;
                           default: return <AlertTriangle className="w-3.5 h-3.5" />;
                         }
                       };
                       const getColor = (t: string) => {
                         switch (t.toLowerCase()) {
-                          case 'flood': return { bar: 'bg-blue-500', text: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' };
-                          case 'storm': return { bar: 'bg-purple-500', text: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' };
-                          case 'drought': return { bar: 'bg-amber-500', text: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30' };
-                          case 'landslide': return { bar: 'bg-orange-500', text: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30' };
+                          case 'waterlogging / washout': return { bar: 'bg-blue-500', text: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' };
+                          case 'wind & hail stress': return { bar: 'bg-purple-500', text: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' };
+                          case 'soil moisture deficit': return { bar: 'bg-amber-500', text: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30' };
+                          case 'soil erosion risk': return { bar: 'bg-orange-500', text: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30' };
                           default: return { bar: 'bg-gray-500', text: 'text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/30' };
                         }
                       };
@@ -389,28 +389,28 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
                       );
                     })}
                 </div>
-                {result.disaster_types && result.disaster_types.length > 0 && (
+                {result.agri_shield.risk_types && result.agri_shield.risk_types.length > 0 && (
                   <p className="text-[11px] text-muted-foreground mt-2 italic">
-                    {result.disaster_types.length} disaster type{result.disaster_types.length > 1 ? 's' : ''} detected: {result.disaster_types.join(', ')}
+                    {result.agri_shield.risk_types.length} risk factor{result.agri_shield.risk_types.length > 1 ? 's' : ''} detected: {result.agri_shield.risk_types.join(', ')}
                   </p>
                 )}
-                {result.disaster_types && result.disaster_types.length === 0 && (
+                {result.agri_shield.risk_types && result.agri_shield.risk_types.length === 0 && (
                   <p className="text-[11px] text-muted-foreground mt-2 italic">
-                    No specific disaster type exceeded the detection threshold
+                    No specific crop stress factors exceeded the detection threshold
                   </p>
                 )}
               </div>
             )}
 
             {/* Recommendations */}
-            {result.recommendations && result.recommendations.length > 0 && (
+            {result.agri_shield?.recommendations && result.agri_shield.recommendations.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <Info className="w-4 h-4 text-blue-500" />
-                  <span className="font-semibold text-sm">Recommendations</span>
+                  <span className="font-semibold text-sm">Agricultural Guidance</span>
                 </div>
                 <ul className="space-y-1 text-xs text-muted-foreground">
-                  {result.recommendations.map((rec, index) => (
+                  {result.agri_shield.recommendations.map((rec, index) => (
                     <li key={index} className="flex items-start gap-2">
                       <span className="text-blue-500 mt-1">•</span>
                       <span>{rec}</span>
@@ -420,52 +420,53 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
               </div>
             )}
 
-            {/* Emergency Contacts */}
-            {result.emergency_contacts && result.emergency_contacts.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="p-1.5 bg-red-500/10 rounded-md">
-                    <Phone className="w-4 h-4 text-red-500" />
-                  </div>
-                  <span className="font-semibold text-sm">Emergency Contacts</span>
+            {/* Agricultural Support */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 bg-emerald-500/10 rounded-md">
+                  <Phone className="w-4 h-4 text-emerald-500" />
                 </div>
-                <div className="space-y-2">
-                  {result.emergency_contacts.map((contact, index) => (
-                    <div key={index} className={cn(
-                      "flex items-center justify-between p-3 rounded-lg border transition-all duration-200 hover:shadow-md",
-                      "bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20",
-                      "border-red-200 dark:border-red-800/50 hover:border-red-300 dark:hover:border-red-700"
-                    )}>
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-red-500/10 rounded-full">
-                          <Phone className="w-3 h-3 text-red-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm text-gray-900 dark:text-gray-100">
-                            {contact.name}
-                          </p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">
-                            {contact.type} Services
-                          </p>
-                        </div>
-                      </div>
-                      <a 
-                        href={`tel:${contact.number}`}
-                        className={cn(
-                          "px-3 py-1.5 rounded-md font-medium text-sm transition-all duration-200",
-                          "bg-red-500 hover:bg-red-600 text-white",
-                          "hover:shadow-lg hover:scale-105 active:scale-95",
-                          "flex items-center gap-1.5"
-                        )}
-                      >
-                        <Phone className="w-3 h-3" />
-                        {contact.number}
-                      </a>
-                    </div>
-                  ))}
-                </div>
+                <span className="font-semibold text-sm">Agricultural Support</span>
               </div>
-            )}
+              <div className="space-y-2">
+                {[
+                  { name: 'District Ag-Extension', number: '1800-425-1556', type: 'Advisory' },
+                  { name: 'Kisan Call Centre', number: '1551', type: 'Expert Support' }
+                ].map((contact, index) => (
+                  <div key={index} className={cn(
+                    "flex items-center justify-between p-3 rounded-lg border transition-all duration-200 hover:shadow-md",
+                    "bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20",
+                    "border-emerald-200 dark:border-emerald-800/50 hover:border-emerald-300 dark:hover:border-emerald-700"
+                  )}>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-emerald-500/10 rounded-full">
+                        <Phone className="w-3 h-3 text-emerald-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                          {contact.name}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">
+                          {contact.type} Services
+                        </p>
+                      </div>
+                    </div>
+                    <a 
+                      href={`tel:${contact.number}`}
+                      className={cn(
+                        "px-3 py-1.5 rounded-md font-medium text-sm transition-all duration-200",
+                        "bg-emerald-500 hover:bg-emerald-600 text-white",
+                        "hover:shadow-lg hover:scale-105 active:scale-95",
+                        "flex items-center gap-1.5"
+                      )}
+                    >
+                      <Phone className="w-3 h-3" />
+                      {contact.number}
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             {/* Timestamp */}
             <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border/50">

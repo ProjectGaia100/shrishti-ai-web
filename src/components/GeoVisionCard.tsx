@@ -30,13 +30,13 @@ export const GeoVisionCard = ({ onTogglePanel, isActive = false }: GeoVisionCard
           <Brain className="w-5 h-5" />
         </div>
         <div className="flex-1">
-          <h3 className="font-bold text-lg leading-tight">GeoVision</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Fusion Ensemble Prediction</p>
+          <h3 className="font-bold text-lg leading-tight">FarmInsight</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Fusion Multi-Spectral Analysis</p>
         </div>
       </div>
 
       <p className="text-sm text-foreground/70 mb-3">
-        Cross-stacked ensemble fusing LSTM, Tree Models &amp; CNN for disaster &amp; weather regime prediction.
+        Advanced ensemble modeling fusing satellite imagery and climate data for comprehensive farm health diagnostics.
       </p>
 
       <Button
@@ -52,12 +52,12 @@ export const GeoVisionCard = ({ onTogglePanel, isActive = false }: GeoVisionCard
         {isActive ? (
           <>
             <X className="w-4 h-4" />
-            Close Fusion Prediction
+            Close Farm Diagnostics
           </>
         ) : (
           <>
             <Sparkles className="w-4 h-4" />
-            Open Fusion Prediction
+            Analyze Farm Metrics
           </>
         )}
       </Button>

@@ -7,8 +7,6 @@ import { ChatButton } from "@/components/ChatButton";
 import { HazardGuardPanel } from "@/components/HazardGuardPanel";
 import { WeatherWisePanel } from "@/components/WeatherWisePanel";
 import { GeoVisionPanel } from "@/components/GeoVisionPanel";
-import { UrbanPlanningPanel } from "@/components/UrbanPlanningPanel";
-import { ForestDeptPanel } from "@/components/ForestDeptPanel";
 import { TimelinePlayer } from "@/components/TimelinePlayer";
 import { UserMenu } from "@/components/UserMenu";
 import { hazardGuardService, PredictionResult } from "@/services/hazardGuard";
@@ -47,16 +45,6 @@ const Index = () => {
   const [weatherWiseCoords, setWeatherWiseCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [showGeoVision, setShowGeoVision] = useState(false);
   const [geoVisionCoords, setGeoVisionCoords] = useState<{ lat: number; lon: number } | null>(null);
-
-  // Urban Planning state
-  const [activeUrbanPlanningFeature, setActiveUrbanPlanningFeature] = useState<UrbanPlanningFeature | null>(null);
-  const [showUrbanPlanningPanel, setShowUrbanPlanningPanel] = useState(false);
-  const [urbanPlanningCoords, setUrbanPlanningCoords] = useState<number[][] | null>(null);
-
-  // Forest Department state
-  const [activeForestDeptFeature, setActiveForestDeptFeature] = useState<ForestDeptFeature | null>(null);
-  const [showForestDeptPanel, setShowForestDeptPanel] = useState(false);
-  const [forestDeptCoords, setForestDeptCoords] = useState<number[][] | null>(null);
 
   // Credits state - null until fetched from server
   const [credits, setCredits] = useState<number | null>(null);
@@ -393,54 +381,8 @@ const Index = () => {
     window.dispatchEvent(new CustomEvent('hazardguard:deactivate'));
   };
 
-  // --- Urban Planning handlers ---
-  const handleUrbanPlanningFeatureChange = useCallback((feature: UrbanPlanningFeature | null) => {
-    setActiveUrbanPlanningFeature(feature);
-    if (feature) {
-      setShowUrbanPlanningPanel(true);
-      // Reset coordinates when switching features
-      setUrbanPlanningCoords(null);
-    } else {
-      setShowUrbanPlanningPanel(false);
-      setUrbanPlanningCoords(null);
-    }
-  }, []);
-
-  const handleUrbanPlanningDraw = useCallback((coordinates: number[][], _type: 'polygon' | 'polyline') => {
-    setUrbanPlanningCoords(coordinates);
-    setShowUrbanPlanningPanel(true);
-  }, []);
-
-  const handleCloseUrbanPlanningPanel = useCallback(() => {
-    setShowUrbanPlanningPanel(false);
-    setActiveUrbanPlanningFeature(null);
-    setUrbanPlanningCoords(null);
-  }, []);
-
-  // --- Forest Department handlers ---
-  const handleForestDeptFeatureChange = useCallback((feature: ForestDeptFeature | null) => {
-    setActiveForestDeptFeature(feature);
-    // NDVI is a global layer, don't show panel for it
-    if (feature && feature !== 'ndvi') {
-      setShowForestDeptPanel(true);
-      setForestDeptCoords(null);
-    } else {
-      setShowForestDeptPanel(false);
-      setForestDeptCoords(null);
-    }
-  }, []);
-
-  const handleForestDeptDraw = useCallback((coordinates: number[][], _type: 'polygon' | 'polyline') => {
-    setForestDeptCoords(coordinates);
-    if (activeForestDeptFeature && activeForestDeptFeature !== 'ndvi') {
-      setShowForestDeptPanel(true);
-    }
-  }, [activeForestDeptFeature]);
-
   const handleCloseForestDeptPanel = useCallback(() => {
-    setShowForestDeptPanel(false);
-    setActiveForestDeptFeature(null);
-    setForestDeptCoords(null);
+    // Hidden
   }, []);
 
   if (authLoading) {
@@ -507,10 +449,6 @@ const Index = () => {
         onTimelapseLoaded={handleTimelapseLoaded}
         onTimelapseClose={handleTimelapseClose}
         isTimelapseActive={timelapseActive}
-        activeUrbanPlanningFeature={activeUrbanPlanningFeature}
-        onUrbanPlanningFeatureChange={handleUrbanPlanningFeatureChange}
-        activeForestDeptFeature={activeForestDeptFeature}
-        onForestDeptFeatureChange={handleForestDeptFeatureChange}
       />
       <main className="flex-1 relative">
         {/* Top-left credits card */}
@@ -637,12 +575,10 @@ const Index = () => {
           hazardGuardMode={hazardGuardMode}
           weatherWiseActive={showWeatherWise}
           geoVisionActive={showGeoVision}
-          urbanPlanningFeature={activeUrbanPlanningFeature}
-          forestDeptFeature={activeForestDeptFeature}
           onMapClick={handleMapClick}
           onPolygonDrawn={handlePolygonDrawn}
-          onUrbanPlanningDraw={handleUrbanPlanningDraw}
-          onForestDeptDraw={handleForestDeptDraw}
+          onUrbanPlanningDraw={() => {}}
+          onForestDeptDraw={() => {}}
           predictionResult={predictionResult}
           heatmapData={heatmapData}
           heatmapLoading={heatmapLoading}
@@ -668,20 +604,6 @@ const Index = () => {
           isVisible={showGeoVision}
           onClose={() => { setShowGeoVision(false); setGeoVisionCoords(null); }}
           mapCoords={geoVisionCoords}
-          availableCredits={credits}
-        />
-        <UrbanPlanningPanel
-          isVisible={showUrbanPlanningPanel}
-          onClose={handleCloseUrbanPlanningPanel}
-          activeFeature={activeUrbanPlanningFeature}
-          drawnCoordinates={urbanPlanningCoords}
-          availableCredits={credits}
-        />
-        <ForestDeptPanel
-          isVisible={showForestDeptPanel}
-          onClose={handleCloseForestDeptPanel}
-          activeFeature={activeForestDeptFeature}
-          drawnCoordinates={forestDeptCoords}
           availableCredits={credits}
         />
         {timelapseActive && timelapseFrames.length > 0 && (
