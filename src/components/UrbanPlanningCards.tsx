@@ -2,11 +2,17 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Ruler, Route, Building2, Target,
-  MapPin, Eye, Loader2, ChevronDown, ChevronUp
+  MapPin, Eye, Loader2, ChevronDown, ChevronUp, HelpCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UrbanPlanningFeature, URBAN_PLANNING_CREDIT_COSTS } from "@/services/urbanPlanning";
 import { fetchDataset } from "@/services/api";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface UrbanPlanningCardsProps {
   activeFeature: UrbanPlanningFeature | null;
@@ -30,9 +36,9 @@ const FEATURES: Array<{
     title: 'NDBI Analysis',
     description: 'Global heatmap showing built-up areas',
     icon: <Building2 className="w-4 h-4" />,
-    color: 'text-gray-600 dark:text-gray-400',
-    bgColor: 'bg-gray-50 dark:bg-gray-500/10',
-    borderColor: 'border-gray-200 dark:border-gray-500/30',
+    color: 'text-zinc-700 dark:text-zinc-300',
+    bgColor: 'bg-zinc-100/70 dark:bg-zinc-800/70',
+    borderColor: 'border-zinc-300/70 dark:border-zinc-700/70',
     drawType: 'global'
   },
   // === POLYGON/POLYLINE-BASED FEATURES ===
@@ -41,9 +47,9 @@ const FEATURES: Array<{
     title: 'Plot Measurement',
     description: 'Calculate area of a drawn polygon',
     icon: <Ruler className="w-4 h-4" />,
-    color: 'text-blue-600 dark:text-blue-400',
-    bgColor: 'bg-blue-50 dark:bg-blue-500/10',
-    borderColor: 'border-blue-200 dark:border-blue-500/30',
+    color: 'text-zinc-700 dark:text-zinc-300',
+    bgColor: 'bg-zinc-100/70 dark:bg-zinc-800/70',
+    borderColor: 'border-zinc-300/70 dark:border-zinc-700/70',
     drawType: 'polygon'
   },
   {
@@ -51,9 +57,9 @@ const FEATURES: Array<{
     title: 'Road/Line Length',
     description: 'Measure length of roads or paths',
     icon: <Route className="w-4 h-4" />,
-    color: 'text-orange-600 dark:text-orange-400',
-    bgColor: 'bg-orange-50 dark:bg-orange-500/10',
-    borderColor: 'border-orange-200 dark:border-orange-500/30',
+    color: 'text-zinc-700 dark:text-zinc-300',
+    bgColor: 'bg-zinc-100/70 dark:bg-zinc-800/70',
+    borderColor: 'border-zinc-300/70 dark:border-zinc-700/70',
     drawType: 'polyline'
   },
   {
@@ -61,9 +67,9 @@ const FEATURES: Array<{
     title: 'Suitability Analysis',
     description: 'Score areas for building suitability',
     icon: <Target className="w-4 h-4" />,
-    color: 'text-emerald-600 dark:text-emerald-400',
-    bgColor: 'bg-emerald-50 dark:bg-emerald-500/10',
-    borderColor: 'border-emerald-200 dark:border-emerald-500/30',
+    color: 'text-zinc-700 dark:text-zinc-300',
+    bgColor: 'bg-zinc-100/70 dark:bg-zinc-800/70',
+    borderColor: 'border-zinc-300/70 dark:border-zinc-700/70',
     drawType: 'polygon'
   }
 ];
@@ -85,15 +91,16 @@ export const UrbanPlanningCards = ({ activeFeature, onSelectFeature }: UrbanPlan
 
   // Listen for layer removal from Active Layers panel
   useEffect(() => {
-    const handleLayerRemoved = (e: CustomEvent) => {
-      if (e.detail?.id === 'ndbi') {
+    const handleLayerRemoved = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.id === 'ndbi') {
         setNdbiLoaded(false);
       }
     };
 
-    window.addEventListener('geo:layer-removed' as any, handleLayerRemoved);
+    window.addEventListener('geo:layer-removed', handleLayerRemoved);
     return () => {
-      window.removeEventListener('geo:layer-removed' as any, handleLayerRemoved);
+      window.removeEventListener('geo:layer-removed', handleLayerRemoved);
     };
   }, []);
 
@@ -145,53 +152,68 @@ export const UrbanPlanningCards = ({ activeFeature, onSelectFeature }: UrbanPlan
                   : "border-border bg-background hover:bg-muted/50"
               )}
             >
-              <div className="flex items-start gap-3">
-                <div className={cn("p-2 rounded-lg", `${feature.color} ${feature.bgColor}`)}>
+              <div className="flex items-center gap-3">
+                <div className={cn("p-2 rounded-lg shrink-0", `${feature.color} ${feature.bgColor}`)}>
                   {feature.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
                     <h4 className="font-semibold text-sm leading-tight">{feature.title}</h4>
-                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button className="text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+                            <HelpCircle className="w-3 h-3" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-[200px] text-[11px] leading-relaxed">
+                          {feature.description}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded ml-auto shrink-0">
                       Global
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{feature.description}</p>
+                  <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/60 mt-0.5">Built-up Index</p>
                 </div>
-              </div>
 
-              <div className="mt-3 space-y-2">
                 {!ndbiLoaded ? (
                   <Button
                     onClick={handleLoadNdbi}
                     disabled={ndbiLoading}
+                    size="sm"
                     variant="outline"
-                    className="w-full h-8 text-xs font-semibold transition-all duration-300 bg-gray-500/20 hover:bg-gray-500/30 text-gray-400 dark:text-gray-300 border border-gray-500/50 shadow-[0_0_10px_rgba(156,163,175,0.15)] hover:shadow-[0_0_20px_rgba(156,163,175,0.3)] hover:border-gray-400/70 hover:scale-[1.02]"
+                    className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider transition-all shrink-0"
                   >
                     {ndbiLoading ? (
-                      <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Loading...</>
+                      <Loader2 className="w-3 h-3 animate-spin" />
                     ) : (
-                      <><Eye className="w-3 h-3 mr-1.5" />Load Layer</>
+                      "Load"
                     )}
                   </Button>
                 ) : (
                   <Button
-                    variant="outline"
+                    variant="ghost"
+                    size="sm"
                     onClick={handleUnloadNdbi}
-                    className="w-full h-8 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"
+                    className="h-7 px-2 text-[10px] uppercase font-bold text-muted-foreground hover:text-foreground shrink-0"
                   >
-                    Unload Layer
+                    Unload
                   </Button>
                 )}
+              </div>
 
-                {/* Legend Toggle */}
-                <button
-                  onClick={() => setShowNdbiLegend(!showNdbiLegend)}
-                  className="w-full flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors px-1"
-                >
-                  <span>Legend</span>
-                  {showNdbiLegend ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                </button>
+              {ndbiLoaded && (
+                <div className="mt-2 pt-2 border-t border-border/20">
+                  {/* Legend Toggle */}
+                  <button
+                    onClick={() => setShowNdbiLegend(!showNdbiLegend)}
+                    className="w-full flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors px-1"
+                  >
+                    <span>Legend</span>
+                    {showNdbiLegend ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  </button>
 
                 {showNdbiLegend && (
                   <div className="space-y-1 pt-1 animate-fade-in">
@@ -207,9 +229,10 @@ export const UrbanPlanningCards = ({ activeFeature, onSelectFeature }: UrbanPlan
                   </div>
                 )}
               </div>
-            </div>
-          );
-        }
+            )}
+          </div>
+        );
+      }
 
         // Polygon/Polyline features
         return (
@@ -218,31 +241,52 @@ export const UrbanPlanningCards = ({ activeFeature, onSelectFeature }: UrbanPlan
             className={cn(
               "rounded-xl p-3 transition-all duration-200 border cursor-pointer",
               isActive
-                ? `${feature.borderColor} ${feature.bgColor}`
+                ? `${feature.borderColor} ${feature.bgColor} ring-1 ring-zinc-500/20`
                 : "border-border bg-background hover:bg-muted/50"
             )}
             onClick={() => onSelectFeature(isActive ? null : feature.id)}
           >
-            <div className="flex items-start gap-3">
-              <div className={cn("p-2 rounded-lg", `${feature.color} ${feature.bgColor}`)}>
+            <div className="flex items-center gap-3">
+              <div className={cn("p-2 rounded-lg shrink-0", `${feature.color} ${feature.bgColor}`)}>
                 {feature.icon}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-sm leading-tight">{feature.title}</h4>
-                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                <div className="flex items-center gap-1.5">
+                  <h4 className="font-semibold text-sm leading-tight truncate">{feature.title}</h4>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="text-muted-foreground/40 hover:text-muted-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
+                          <HelpCircle className="w-3 h-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[200px] text-[11px] leading-relaxed">
+                        {feature.description}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded ml-auto shrink-0">
                     {creditCost} cr
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{feature.description}</p>
+                <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/60 mt-0.5">Measurement Tool</p>
+              </div>
+              
+              <div className={cn(
+                "h-7 px-3 flex items-center justify-center rounded-lg text-[9px] uppercase font-black tracking-widest transition-all shrink-0",
+                isActive 
+                  ? "bg-foreground text-background" 
+                  : "bg-muted text-muted-foreground"
+              )}>
+                {isActive ? "Active" : "Select"}
               </div>
             </div>
 
             {isActive && (
               <div className="mt-3 pt-3 border-t border-border/50 animate-fade-in">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                  <div className="w-2 h-2 bg-zinc-500 rounded-full"></div>
+                  <span className="text-xs font-medium text-foreground">
                     {feature.drawType === 'polygon' ? 'Draw Polygon Mode' : 'Draw Line Mode'}
                   </span>
                 </div>

@@ -1,10 +1,10 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw";
 import "leaflet-draw/dist/leaflet.draw.css";
 import "leaflet.heat";
-import { ActiveLayers } from "./ActiveLayers";
+import { ChevronUp, Layers, Map as MapIcon, Mountain, Satellite } from "lucide-react";
 import type { HazardGuardMode } from "./HazardGuardCard";
 import type { UrbanPlanningFeature } from "@/services/urbanPlanning";
 import type { ForestDeptFeature } from "@/services/forestDepartment";
@@ -18,7 +18,15 @@ function useLatest<T>(value: T) {
 
 // Extend L namespace for heat layer
 declare module "leaflet" {
-  function heatLayer(latlngs: Array<[number, number, number]>, options?: any): any;
+  interface HeatLayerOptions {
+    radius?: number;
+    blur?: number;
+    maxZoom?: number;
+    max?: number;
+    minOpacity?: number;
+    gradient?: Record<number, string>;
+  }
+  function heatLayer(latlngs: Array<[number, number, number]>, options?: HeatLayerOptions): L.Layer;
 }
 
 export interface HeatmapPoint {
@@ -50,6 +58,78 @@ interface MapViewProps {
   heatmapLoading?: boolean;
 }
 
+interface GeoLayerMetadata {
+  id: string;
+  name: string;
+  url: string;
+  metadata?: Record<string, unknown>;
+  visible: boolean;
+  opacity: number;
+  zIndex?: number;
+  type?: 'tile' | 'geojson';
+  category?: string;
+  color?: string;
+  featureCount?: number;
+}
+
+type BasemapStyle = 'map' | 'satellite' | 'terrain' | 'hybrid';
+
+const AOI_RECTANGLE_STYLE: L.PathOptions = {
+  className: 'aoi-rectangle',
+  color: '#f59e0b',
+  weight: 3,
+  opacity: 1,
+  fillColor: '#f59e0b',
+  fillOpacity: 0.2,
+  dashArray: '8 6',
+  pane: 'aoi-draw-pane',
+};
+
+const BASEMAP_OPTIONS: Array<{
+  id: BasemapStyle;
+  label: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  thumbnail: string;
+}> = [
+  {
+    id: 'satellite',
+    label: 'Satellite',
+    Icon: Satellite,
+    thumbnail: "url('/map-switcher/satellite.png')",
+  },
+  {
+    id: 'terrain',
+    label: 'Terrain',
+    Icon: Mountain,
+    thumbnail: "url('/map-switcher/terrain.png')",
+  },
+  {
+    id: 'map',
+    label: 'Map',
+    Icon: MapIcon,
+    thumbnail: "url('/map-switcher/map.png')",
+  },
+  {
+    id: 'hybrid',
+    label: 'Hybrid',
+    Icon: Layers,
+    thumbnail: "url('/map-switcher/hybrid.png')",
+  },
+];
+
+declare global {
+  interface Window {
+    GEO_LAYERS: Record<string, GeoLayerMetadata>;
+    __GEO_AOI_BBOX?: {
+      minLon: number;
+      minLat: number;
+      maxLon: number;
+      maxLat: number;
+    } | null;
+    __GEO_AOI_ACTIVE?: boolean;
+  }
+}
+
 export const MapView = ({ 
   hazardGuardActive = false, 
   hazardGuardMode = 'point', 
@@ -67,12 +147,24 @@ export const MapView = ({
 }: MapViewProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const basemapLayersRef = useRef<Record<BasemapStyle, L.Layer | null>>({
+    map: null,
+    satellite: null,
+    terrain: null,
+    hybrid: null,
+  });
   const riskZonesRef = useRef<L.LayerGroup | null>(null);
-  const drawControlRef = useRef<any>(null);
+  const drawControlRef = useRef<L.Control | null>(null);
   const drawnItemsRef = useRef<L.FeatureGroup | null>(null);
-  const heatLayerRef = useRef<any>(null);
+  const activeDrawHandlerRef = useRef<any>(null);
+  const activeDrawTypeRef = useRef<'polygon' | 'polyline' | 'rectangle' | null>(null);
+  const aoiEditHandlerRef = useRef<any>(null);
+  const aoiDblClickZoomWasEnabledRef = useRef<boolean | null>(null);
+  const heatLayerRef = useRef<L.Layer | null>(null);
   const heatMarkersRef = useRef<L.LayerGroup | null>(null);
   const jumpMarkerRef = useRef<L.CircleMarker | null>(null);
+  const [selectedBasemap, setSelectedBasemap] = useState<BasemapStyle>('satellite');
+  const [basemapExpanded, setBasemapExpanded] = useState(false);
 
   // --- Stable refs for values used inside the one-time map init effect ---
   const latestOnMapClick = useLatest(onMapClick);
@@ -99,24 +191,63 @@ export const MapView = ({
       center: [20, 0],
       zoom: 3,
       zoomControl: false,
+      attributionControl: false,
     });
 
-    // Add tile layer
-    const base = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-      attribution: '&copy; Esri, DigitalGlobe, CNES/Airbus, USDA, USGS, AeroGRID, IGN',
-      maxZoom: 18,
-      crossOrigin: true,
-    }).addTo(map);
+    // Google Maps-style basemap options.
+    const esriAttribution = '&copy; Esri, DigitalGlobe, CNES/Airbus, USDA, USGS, AeroGRID, IGN';
+    const labelsUrl = "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}";
 
-    // Optional labels overlay
-    const labels = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", {
-      opacity: 0.75,
+    const mapLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
+      attribution: esriAttribution,
       maxZoom: 18,
       crossOrigin: true,
-    }).addTo(map);
+    });
+
+    const satelliteLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+      attribution: esriAttribution,
+      maxZoom: 18,
+      crossOrigin: true,
+    });
+
+    const terrainLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", {
+      attribution: esriAttribution,
+      maxZoom: 18,
+      crossOrigin: true,
+    });
+
+    const hybridLayer = L.layerGroup([
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+        attribution: esriAttribution,
+        maxZoom: 18,
+        crossOrigin: true,
+      }),
+      L.tileLayer(labelsUrl, {
+        opacity: 0.85,
+        maxZoom: 18,
+        crossOrigin: true,
+      }),
+    ]);
+
+    basemapLayersRef.current = {
+      map: mapLayer,
+      satellite: satelliteLayer,
+      terrain: terrainLayer,
+      hybrid: hybridLayer,
+    };
+
+    // Default selected basemap.
+    satelliteLayer.addTo(map);
+
+    // Standard Leaflet Zoom Control in bottom-left.
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
+    L.control.attribution({ position: 'bottomright' }).addTo(map);
+
+    const aoiPane = map.createPane('aoi-draw-pane');
+    aoiPane.style.zIndex = '650';
 
     // initialize global layers store
-    (window as any).GEO_LAYERS = (window as any).GEO_LAYERS || {};
+    window.GEO_LAYERS = window.GEO_LAYERS || {};
 
     // Add click handler for HazardGuard (point mode only) and WeatherWise
     const handleMapClick = (e: L.LeafletMouseEvent) => {
@@ -141,8 +272,86 @@ export const MapView = ({
     map.addLayer(drawnItems);
     drawnItemsRef.current = drawnItems;
 
+    const emitDrawState = (active: boolean, type: 'polygon' | 'polyline' | 'rectangle' | null) => {
+      window.dispatchEvent(new CustomEvent('geo:draw-state', {
+        detail: { active, type },
+      }));
+    };
+
+    const restoreAoiDoubleClickZoom = () => {
+      if (aoiDblClickZoomWasEnabledRef.current === true) {
+        map.doubleClickZoom.enable();
+      }
+      aoiDblClickZoomWasEnabledRef.current = null;
+    };
+
+    const disableAoiEditMode = () => {
+      if (aoiEditHandlerRef.current && typeof aoiEditHandlerRef.current.disable === 'function') {
+        aoiEditHandlerRef.current.disable();
+      }
+      aoiEditHandlerRef.current = null;
+    };
+
+    const clearAoiState = () => {
+      window.__GEO_AOI_BBOX = null;
+      window.__GEO_AOI_ACTIVE = false;
+      window.dispatchEvent(new CustomEvent('geo:aoi-cleared'));
+    };
+
+    const emitAoiFromRectangle = (rectangle: L.Rectangle) => {
+      rectangle.setStyle(AOI_RECTANGLE_STYLE);
+      rectangle.bringToFront();
+
+      const bounds = rectangle.getBounds();
+      const southWest = bounds.getSouthWest();
+      const northEast = bounds.getNorthEast();
+
+      const bbox = {
+        minLon: normalizeLongitude(Math.min(southWest.lng, northEast.lng)),
+        minLat: Math.min(southWest.lat, northEast.lat),
+        maxLon: normalizeLongitude(Math.max(southWest.lng, northEast.lng)),
+        maxLat: Math.max(southWest.lat, northEast.lat),
+      };
+
+      const aoiCoords: Array<[number, number]> = [
+        [bbox.minLon, bbox.minLat],
+        [bbox.maxLon, bbox.minLat],
+        [bbox.maxLon, bbox.maxLat],
+        [bbox.minLon, bbox.maxLat],
+        [bbox.minLon, bbox.minLat],
+      ];
+
+      window.__GEO_AOI_BBOX = bbox;
+      window.__GEO_AOI_ACTIVE = true;
+
+      window.dispatchEvent(new CustomEvent('geo:aoi-updated', {
+        detail: {
+          bbox,
+          coordinates: aoiCoords,
+        },
+      }));
+    };
+
+    const enableAoiEditMode = () => {
+      if (!drawnItemsRef.current) return;
+
+      const EditCtor = (L as any).EditToolbar?.Edit;
+      if (!EditCtor) return;
+
+      disableAoiEditMode();
+      aoiEditHandlerRef.current = new EditCtor(map, {
+        featureGroup: drawnItemsRef.current,
+        selectedPathOptions: false,
+      });
+      aoiEditHandlerRef.current.enable();
+    };
+
     // Handle polygon/rectangle/polyline drawn
-    map.on(L.Draw.Event.CREATED, (e: any) => {
+    map.on(L.Draw.Event.CREATED, (e: L.DrawEvents.Created) => {
+      activeDrawHandlerRef.current = null;
+      const activeType = activeDrawTypeRef.current;
+      activeDrawTypeRef.current = null;
+
       drawnItems.clearLayers();
       const layer = e.layer;
       drawnItems.addLayer(layer);
@@ -151,23 +360,68 @@ export const MapView = ({
       
       // Handle polyline (for road width measurement)
       if (layerType === 'polyline') {
-        const latlngs = layer.getLatLngs() as L.LatLng[];
+        const polyline = layer as L.Polyline;
+        const latlngs = polyline.getLatLngs() as L.LatLng[];
         const coords: Array<[number, number]> = latlngs.map((ll: L.LatLng) => [ll.lng, ll.lat]); // [lon, lat] for GEE
         
         if (latestOnUrbanPlanningDraw.current) {
           latestOnUrbanPlanningDraw.current(coords, 'polyline');
         }
+        emitDrawState(false, 'polyline');
+        return;
+      }
+
+      // Handle AOI rectangle draw
+      if (layerType === 'rectangle') {
+        const rectangle = layer as L.Rectangle;
+        const bounds = rectangle.getBounds();
+        const southWestPx = map.latLngToContainerPoint(bounds.getSouthWest());
+        const northEastPx = map.latLngToContainerPoint(bounds.getNorthEast());
+        const widthPx = Math.abs(northEastPx.x - southWestPx.x);
+        const heightPx = Math.abs(northEastPx.y - southWestPx.y);
+
+        // Ignore accidental tiny rectangles from double-clicks; keep draw active.
+        if (widthPx < 14 || heightPx < 14) {
+          drawnItems.clearLayers();
+          const retryHandler = new (L.Draw as any).Rectangle(map, {
+            showArea: false,
+            shapeOptions: {
+              ...AOI_RECTANGLE_STYLE,
+            },
+          });
+          activeDrawHandlerRef.current = retryHandler;
+          activeDrawTypeRef.current = 'rectangle';
+          emitDrawState(true, 'rectangle');
+          retryHandler.enable();
+          return;
+        }
+
+        rectangle.on('edit', () => {
+          emitAoiFromRectangle(rectangle);
+        });
+
+        emitAoiFromRectangle(rectangle);
+        enableAoiEditMode();
+        restoreAoiDoubleClickZoom();
+
+        emitDrawState(false, 'rectangle');
         return;
       }
       
       // Handle polygon
-      const latlngs = layer.getLatLngs()[0] as L.LatLng[];
+      const polygon = layer as L.Polygon;
+      const latlngsRaw = polygon.getLatLngs();
+      const latlngs = (Array.isArray(latlngsRaw[0]) ? latlngsRaw[0] : latlngsRaw) as L.LatLng[];
       const coords: Array<[number, number]> = latlngs.map((ll: L.LatLng) => [ll.lat, normalizeLongitude(ll.lng)]);
+      const geeCoords: Array<[number, number]> = latlngs.map((ll: L.LatLng) => [normalizeLongitude(ll.lng), ll.lat]);
+
+      // Notify panels that a polygon has been completed.
+      window.dispatchEvent(new CustomEvent('geo:polygon-complete', {
+        detail: { coordinates: geeCoords }
+      }));
       
       // Check if this is for Forest Department (polygon features, excluding NDVI which is global)
       if (latestForestDeptFeature.current && latestForestDeptFeature.current !== 'ndvi') {
-        // Convert to [lon, lat] format for GEE
-        const geeCoords: Array<[number, number]> = latlngs.map((ll: L.LatLng) => [normalizeLongitude(ll.lng), ll.lat]);
         if (latestOnForestDeptDraw.current) {
           latestOnForestDeptDraw.current(geeCoords, 'polygon');
         }
@@ -176,8 +430,6 @@ export const MapView = ({
       
       // Check if this is for urban planning (polygon features)
       if (latestUrbanPlanningFeature.current) {
-        // Convert to [lon, lat] format for GEE
-        const geeCoords: Array<[number, number]> = latlngs.map((ll: L.LatLng) => [normalizeLongitude(ll.lng), ll.lat]);
         if (latestOnUrbanPlanningDraw.current) {
           latestOnUrbanPlanningDraw.current(geeCoords, 'polygon');
         }
@@ -188,12 +440,21 @@ export const MapView = ({
       if (latestOnPolygonDrawn.current) {
         latestOnPolygonDrawn.current(coords);
       }
+
+      emitDrawState(false, activeType ?? 'polygon');
+    });
+
+    map.on(L.Draw.Event.DRAWSTOP, () => {
+      const lastType = activeDrawTypeRef.current;
+      activeDrawHandlerRef.current = null;
+      activeDrawTypeRef.current = null;
+      emitDrawState(false, lastType);
     });
 
     const layerRefs: Record<string, L.TileLayer> = {};
     const geoJSONLayerRefs: Record<string, L.GeoJSON> = {};
 
-    function addLayer(detail: any) {
+    function addLayer(detail: { id: string; name: string; url: string; metadata?: Record<string, unknown>; opacity?: number }) {
       const { id, name, url, metadata, opacity = 0.8 } = detail;
       if (!id || !url) return;
       // if existing remove
@@ -204,11 +465,11 @@ export const MapView = ({
       tile.addTo(map);
       layerRefs[id] = tile;
       // store metadata
-      (window as any).GEO_LAYERS[id] = { id, name, url, metadata, visible: true, opacity };
-      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: (window as any).GEO_LAYERS }));
+      window.GEO_LAYERS[id] = { id, name, url, metadata, visible: true, opacity, type: 'tile' };
+      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: window.GEO_LAYERS }));
     }
 
-    function removeLayer(detail: any) {
+    function removeLayer(detail: { id: string }) {
       const { id } = detail;
       if (!id) return;
       // Check tile layers
@@ -221,13 +482,13 @@ export const MapView = ({
         map.removeLayer(geoJSONLayerRefs[id]);
         delete geoJSONLayerRefs[id];
       }
-      if ((window as any).GEO_LAYERS?.[id]) {
-        delete (window as any).GEO_LAYERS[id];
+      if (window.GEO_LAYERS?.[id]) {
+        delete window.GEO_LAYERS[id];
       }
-      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: (window as any).GEO_LAYERS }));
+      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: window.GEO_LAYERS }));
     }
 
-    function toggleLayer(detail: any) {
+    function toggleLayer(detail: { id: string; visible: boolean }) {
       const { id, visible } = detail;
       // Check tile layers
       const tile = layerRefs[id];
@@ -247,32 +508,60 @@ export const MapView = ({
           map.removeLayer(geoLayer);
         }
       }
-      if ((window as any).GEO_LAYERS?.[id]) {
-        (window as any).GEO_LAYERS[id].visible = visible;
+      if (window.GEO_LAYERS?.[id]) {
+        window.GEO_LAYERS[id].visible = visible;
       }
-      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: (window as any).GEO_LAYERS }));
+      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: window.GEO_LAYERS }));
     }
 
-    function updateOpacity(detail: any) {
+    function updateOpacity(detail: { id: string; opacity: number }) {
       const { id, opacity } = detail;
       // Check tile layers
       const tile = layerRefs[id];
-      if (tile && typeof (tile as any).setOpacity === 'function') {
-        (tile as any).setOpacity(opacity);
+      if (tile && typeof tile.setOpacity === 'function') {
+        tile.setOpacity(opacity);
       }
       // Check GeoJSON layers
       const geoLayer = geoJSONLayerRefs[id];
       if (geoLayer) {
         geoLayer.setStyle({ fillOpacity: opacity * 0.3, opacity: opacity });
       }
-      if ((window as any).GEO_LAYERS?.[id]) {
-        (window as any).GEO_LAYERS[id].opacity = opacity;
+      if (window.GEO_LAYERS?.[id]) {
+        window.GEO_LAYERS[id].opacity = opacity;
       }
-      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: (window as any).GEO_LAYERS }));
+      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: window.GEO_LAYERS }));
+    }
+
+    function reorderLayers(detail: { orderedIds?: string[] }) {
+      const orderedIds = Array.isArray(detail?.orderedIds) ? detail.orderedIds : [];
+      if (!orderedIds.length) return;
+
+      // UI sends top -> bottom order; apply bottom -> top so top layer is drawn last.
+      const bottomToTop = [...orderedIds].reverse();
+      bottomToTop.forEach((id, index) => {
+        const zIndex = 300 + index;
+
+        const tileLayer = layerRefs[id];
+        if (tileLayer && map.hasLayer(tileLayer)) {
+          tileLayer.setZIndex(zIndex);
+          tileLayer.bringToFront();
+        }
+
+        const geoLayer = geoJSONLayerRefs[id];
+        if (geoLayer && map.hasLayer(geoLayer)) {
+          geoLayer.bringToFront();
+        }
+
+        if (window.GEO_LAYERS?.[id]) {
+          window.GEO_LAYERS[id].zIndex = zIndex;
+        }
+      });
+
+      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: window.GEO_LAYERS }));
     }
 
     // ── GeoJSON Layer Management ──────────────────────────────────────────────
-    function addGeoJSONLayer(detail: any) {
+    function addGeoJSONLayer(detail: { id: string; name: string; data: GeoJSON.FeatureCollection; color?: string; opacity?: number; category?: string }) {
       const { id, name, data, color = '#3B82F6', opacity = 0.7, category } = detail;
       if (!id || !data) return;
 
@@ -329,9 +618,10 @@ export const MapView = ({
       geoJSONLayerRefs[id] = geoLayer;
 
       // Store metadata
-      (window as any).GEO_LAYERS[id] = { 
+      window.GEO_LAYERS[id] = { 
         id, 
         name, 
+        url: '', // GeoJSON doesn't have a tile_url
         type: 'geojson',
         category,
         color,
@@ -339,7 +629,7 @@ export const MapView = ({
         opacity,
         featureCount: data.features?.length || 0
       };
-      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: (window as any).GEO_LAYERS }));
+      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: window.GEO_LAYERS }));
 
       // Fit map to layer bounds if it has features
       if (data.features && data.features.length > 0) {
@@ -359,10 +649,10 @@ export const MapView = ({
         map.removeLayer(geoJSONLayerRefs[id]);
         delete geoJSONLayerRefs[id];
       }
-      if ((window as any).GEO_LAYERS?.[id]) {
-        delete (window as any).GEO_LAYERS[id];
+      if (window.GEO_LAYERS?.[id]) {
+        delete window.GEO_LAYERS[id];
       }
-      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: (window as any).GEO_LAYERS }));
+      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: window.GEO_LAYERS }));
     }
 
     function toggleGeoJSONLayer(id: string, visible: boolean) {
@@ -373,10 +663,10 @@ export const MapView = ({
       } else {
         map.removeLayer(geoLayer);
       }
-      if ((window as any).GEO_LAYERS?.[id]) {
-        (window as any).GEO_LAYERS[id].visible = visible;
+      if (window.GEO_LAYERS?.[id]) {
+        window.GEO_LAYERS[id].visible = visible;
       }
-      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: (window as any).GEO_LAYERS }));
+      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: window.GEO_LAYERS }));
     }
 
     // ── Timelapse: pre-loaded layer pool ──────────────────────────────────────
@@ -385,14 +675,14 @@ export const MapView = ({
     // no network round-trip, no blank-map flicker.
     const timelapseLayerRefs: L.TileLayer[] = [];
 
-    function timelapseInit(detail: any) {
+    function timelapseInit(detail: { frames: Array<{ tile_url: string }>; opacity?: number }) {
       const { frames, opacity = 0.85 } = detail;
       // Tear down any previous timelapse
       timelapseLayerRefs.forEach(l => { try { map.removeLayer(l); } catch (_) {} });
       timelapseLayerRefs.length = 0;
       // Pre-create one tile layer per frame, all invisible. Adding them to the
       // map triggers tile fetching immediately so they're ready before playback.
-      (frames as any[]).forEach((frame, i) => {
+      frames.forEach((frame, i) => {
         const tile = L.tileLayer(frame.tile_url, {
           opacity: i === 0 ? opacity : 0,
           crossOrigin: true,
@@ -403,7 +693,7 @@ export const MapView = ({
       });
     }
 
-    function timelapseShowFrame(detail: any) {
+    function timelapseShowFrame(detail: { index: number; opacity?: number }) {
       const { index, opacity = 0.85 } = detail;
       timelapseLayerRefs.forEach((layer, i) => {
         layer.setOpacity(i === index ? opacity : 0);
@@ -416,7 +706,7 @@ export const MapView = ({
     }
     // ── end timelapse ──────────────────────────────────────────────────────────
 
-    function jumpToLocation(detail: any) {
+    function jumpToLocation(detail: { lat: number; lon: number; zoom?: number; label?: string }) {
       const lat = Number(detail?.lat);
       const lon = Number(detail?.lon);
       const zoom = Number.isFinite(Number(detail?.zoom)) ? Number(detail.zoom) : 10;
@@ -454,26 +744,101 @@ export const MapView = ({
       }
     }
 
+    function onStartDraw(e: Event) {
+      const detail = (e as CustomEvent<{ type?: 'polygon' | 'polyline' | 'rectangle' }>).detail;
+      const drawType = detail?.type;
+      if (!drawType) return;
+
+      disableAoiEditMode();
+      if (drawType === 'rectangle') {
+        clearAoiState();
+      }
+      drawnItems.clearLayers();
+
+      if (activeDrawHandlerRef.current && typeof activeDrawHandlerRef.current.disable === 'function') {
+        activeDrawHandlerRef.current.disable();
+      }
+
+      let handler: any;
+
+      if (drawType === 'polyline') {
+        handler = new (L.Draw as any).Polyline(map, {
+          shapeOptions: {
+            color: '#0f766e',
+            weight: 3,
+          },
+        });
+      } else if (drawType === 'rectangle') {
+        handler = new (L.Draw as any).Rectangle(map, {
+          showArea: false,
+          shapeOptions: {
+            ...AOI_RECTANGLE_STYLE,
+          },
+        });
+      } else {
+        handler = new (L.Draw as any).Polygon(map, {
+          allowIntersection: false,
+          shapeOptions: {
+            color: '#0f766e',
+            weight: 2,
+            fillOpacity: 0.15,
+            fillColor: '#0f766e',
+          },
+        });
+      }
+
+      activeDrawHandlerRef.current = handler;
+      activeDrawTypeRef.current = drawType;
+      if (drawType === 'rectangle') {
+        aoiDblClickZoomWasEnabledRef.current = map.doubleClickZoom.enabled();
+        map.doubleClickZoom.disable();
+      }
+      emitDrawState(true, drawType);
+      handler.enable();
+    }
+
+    function onCancelDraw() {
+      if (activeDrawHandlerRef.current && typeof activeDrawHandlerRef.current.disable === 'function') {
+        activeDrawHandlerRef.current.disable();
+      }
+      restoreAoiDoubleClickZoom();
+      const lastType = activeDrawTypeRef.current;
+      activeDrawHandlerRef.current = null;
+      activeDrawTypeRef.current = null;
+      if (lastType === 'rectangle') {
+        const hasDrawnAoi = Boolean(drawnItemsRef.current && drawnItemsRef.current.getLayers().length > 0);
+        if (!hasDrawnAoi) {
+          clearAoiState();
+        }
+      }
+      emitDrawState(false, lastType);
+    }
+
     // event listeners
-    const onAdd = (e: any) => addLayer(e.detail);
-    const onAddGeoJSON = (e: any) => addGeoJSONLayer(e.detail);
-    const onRemove = (e: any) => removeLayer(e.detail);
-    const onToggle = (e: any) => toggleLayer(e.detail);
-    const onOpacity = (e: any) => updateOpacity(e.detail);
-    const onTimelapseInit = (e: any) => timelapseInit(e.detail);
-    const onTimelapseFrame = (e: any) => timelapseShowFrame(e.detail);
+    const onAdd = (e: Event) => addLayer((e as CustomEvent).detail);
+    const onAddGeoJSON = (e: Event) => addGeoJSONLayer((e as CustomEvent).detail);
+    const onRemove = (e: Event) => removeLayer((e as CustomEvent).detail);
+    const onToggle = (e: Event) => toggleLayer((e as CustomEvent).detail);
+    const onOpacity = (e: Event) => updateOpacity((e as CustomEvent).detail);
+    const onOpacityGeoJSON = (e: Event) => updateOpacity((e as CustomEvent).detail); // Update for GeoJSON
+    const onReorderLayers = (e: Event) => reorderLayers((e as CustomEvent).detail);
+    const onTimelapseInit = (e: Event) => timelapseInit((e as CustomEvent).detail);
+    const onTimelapseFrame = (e: Event) => timelapseShowFrame((e as CustomEvent).detail);
     const onTimelapseDestroy = () => timelapseDestroy();
-    const onJumpToLocation = (e: any) => jumpToLocation(e.detail);
+    const onJumpToLocation = (e: Event) => jumpToLocation((e as CustomEvent).detail);
 
     window.addEventListener('geo:add-layer', onAdd);
     window.addEventListener('geo:add-geojson-layer', onAddGeoJSON);
     window.addEventListener('geo:remove-layer', onRemove);
     window.addEventListener('geo:toggle-layer', onToggle);
     window.addEventListener('geo:update-opacity', onOpacity);
+    window.addEventListener('geo:reorder-layers', onReorderLayers);
     window.addEventListener('geo:timelapse-init', onTimelapseInit);
     window.addEventListener('geo:timelapse-frame', onTimelapseFrame);
     window.addEventListener('geo:timelapse-destroy', onTimelapseDestroy);
     window.addEventListener('geo:jump-to', onJumpToLocation);
+    window.addEventListener('geo:start-draw', onStartDraw as EventListener);
+    window.addEventListener('geo:cancel-draw', onCancelDraw as EventListener);
 
   mapInstanceRef.current = map;
 
@@ -484,10 +849,15 @@ export const MapView = ({
         window.removeEventListener('geo:remove-layer', onRemove);
         window.removeEventListener('geo:toggle-layer', onToggle);
         window.removeEventListener('geo:update-opacity', onOpacity);
+        window.removeEventListener('geo:reorder-layers', onReorderLayers);
         window.removeEventListener('geo:timelapse-init', onTimelapseInit);
         window.removeEventListener('geo:timelapse-frame', onTimelapseFrame);
         window.removeEventListener('geo:timelapse-destroy', onTimelapseDestroy);
         window.removeEventListener('geo:jump-to', onJumpToLocation);
+        window.removeEventListener('geo:start-draw', onStartDraw as EventListener);
+        window.removeEventListener('geo:cancel-draw', onCancelDraw as EventListener);
+        disableAoiEditMode();
+        restoreAoiDoubleClickZoom();
         timelapseDestroy();
         mapInstanceRef.current.off('click', handleMapClick);
         if (riskZonesRef.current) {
@@ -516,10 +886,35 @@ export const MapView = ({
         jumpMarkerRef.current = null;
         drawnItemsRef.current = null;
         drawControlRef.current = null;
+        basemapLayersRef.current = {
+          map: null,
+          satellite: null,
+          terrain: null,
+          hybrid: null,
+        };
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);  // intentionally empty — callbacks & state read via stable refs
+
+  // Effect to switch active basemap layer from custom switcher
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    const basemapLayers = basemapLayersRef.current;
+    (Object.keys(basemapLayers) as BasemapStyle[]).forEach((style) => {
+      const layer = basemapLayers[style];
+      if (!layer) return;
+      const shouldShow = style === selectedBasemap;
+      const isVisible = map.hasLayer(layer);
+      if (shouldShow && !isVisible) {
+        layer.addTo(map);
+      } else if (!shouldShow && isVisible) {
+        map.removeLayer(layer);
+      }
+    });
+  }, [selectedBasemap]);
 
   // Effect to toggle draw control based on mode (HazardGuard region, Urban Planning, or Forest Dept)
   useEffect(() => {
@@ -541,13 +936,8 @@ export const MapView = ({
 
     // Add draw control for urban planning, forest dept, or HazardGuard region mode
     if ((urbanPlanningFeature || needsForestDeptPolygon || isHazardGuardRegion) && drawnItemsRef.current) {
-      // Determine color based on the active feature
-      let polygonColor = '#8b5cf6'; // default purple for hazard guard
-      if (needsForestDeptPolygon) {
-        polygonColor = '#22c55e'; // green for forest department
-      } else if (urbanPlanningFeature) {
-        polygonColor = '#10b981'; // emerald for urban planning
-      }
+      // Use one professional accent for all draw interactions.
+      const polygonColor = '#0f766e';
 
       const drawControl = new (L.Control as any).Draw({
         position: 'topleft',
@@ -563,7 +953,7 @@ export const MapView = ({
           } : false,
           polyline: needsPolyline ? {
             shapeOptions: {
-              color: '#f59e0b', // amber for road measurement
+              color: '#0f766e',
               weight: 3
             }
           } : false,
@@ -585,6 +975,8 @@ export const MapView = ({
       }
     }
   }, [hazardGuardActive, hazardGuardMode, urbanPlanningFeature, forestDeptFeature]);
+
+  const selectedBasemapOption = BASEMAP_OPTIONS.find(option => option.id === selectedBasemap) ?? BASEMAP_OPTIONS[0];
 
   // Effect to render heatmap from prediction results
   useEffect(() => {
@@ -612,7 +1004,7 @@ export const MapView = ({
       pt.risk_score   // 0 = safe, 1 = disaster
     ]);
 
-    heatLayerRef.current = (L as any).heatLayer(heatPoints, {
+    heatLayerRef.current = L.heatLayer(heatPoints, {
       radius: 80,
       blur: 60,
       maxZoom: 17,
@@ -744,6 +1136,42 @@ export const MapView = ({
   return (
     <div className="relative w-full h-full">
       <div ref={mapRef} className="hazard-map w-full h-full z-0" />
+
+      <div className={`map-style-switcher ${basemapExpanded ? 'is-open' : ''}`}>
+        <button
+          type="button"
+          className="map-style-selected"
+          onClick={() => setBasemapExpanded(prev => !prev)}
+          aria-expanded={basemapExpanded}
+          aria-label="Toggle map styles"
+        >
+          <span className="map-style-thumb" style={{ backgroundImage: selectedBasemapOption.thumbnail }} />
+          <span className="map-style-selected-label">{selectedBasemapOption.label}</span>
+          <ChevronUp className="h-3.5 w-3.5 map-style-caret" />
+        </button>
+
+        {basemapExpanded && (
+          <div className="map-style-strip" role="menu" aria-label="Map styles">
+            {BASEMAP_OPTIONS.filter(option => option.id !== selectedBasemap).map(({ id, label, Icon, thumbnail }) => (
+              <button
+                key={id}
+                type="button"
+                className="map-style-chip"
+                onClick={() => {
+                  setSelectedBasemap(id);
+                  setBasemapExpanded(false);
+                }}
+                role="menuitem"
+                aria-label={`Switch to ${label}`}
+              >
+                <span className="map-style-chip-thumb" style={{ backgroundImage: thumbnail }} />
+                <span className="map-style-chip-label">{label}</span>
+                <Icon className="h-3.5 w-3.5 map-style-chip-icon" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       
       {/* Heatmap loading overlay */}
       {heatmapLoading && (
@@ -756,7 +1184,6 @@ export const MapView = ({
         </div>
       )}
 
-      <ActiveLayers />
     </div>
   );
 };

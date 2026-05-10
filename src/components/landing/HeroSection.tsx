@@ -9,83 +9,92 @@ interface HeroSectionProps {
 
 export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSectionProps) {
   return (
-    <section className="relative min-h-[100svh] flex items-center justify-center overflow-hidden py-8">
+    <section className="relative min-h-[100svh] flex items-center overflow-hidden py-20">
       {/* Background is now transparent to show smoke animation */}
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-        {/* Left: Text Content */}
-        <div className="flex-1 text-center lg:text-left space-y-6 animate-fade-in">
-          {/* Heading - Larger and more impactful */}
-          <h1 className="text-6xl sm:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.05]">
-            <span className="text-white drop-shadow-lg">SHRISHTI</span>{' '}
-            <span className="text-gradient bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent">AI</span>
-          </h1>
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center">
+        {/* Left: Text Content (Occupies 7 columns) */}
+        <div className="lg:col-span-7 text-left space-y-8 animate-fade-in">
+          <div className="space-y-4">
+            <h1 className="text-7xl sm:text-8xl lg:text-[10rem] font-bold tracking-tighter leading-[0.85] text-white">
+              SHRISHTI<br/>
+              <span className="text-emerald-500">AI</span>
+            </h1>
+            <p className="text-2xl sm:text-3xl font-light text-emerald-100/90 tracking-wide max-w-xl">
+              Precision Satellite Intelligence for Global Disaster Resilience
+            </p>
+          </div>
 
-          {/* Tagline - More prominent */}
-          <p className="text-2xl sm:text-3xl font-light text-white/90 tracking-wide">
-            Satellite Intelligence for Disaster Prediction
+          <p className="text-lg sm:text-xl text-white/60 max-w-xl leading-relaxed">
+            Harnessing hyper-spectral imagery and deep LSTM architectures to predict 
+            environmental volatility. Actionable geospatial intelligence 
+            engineered for the next generation of climate response.
           </p>
 
-          {/* Description - Better contrast */}
-          <p className="text-lg sm:text-xl text-white/70 max-w-2xl leading-relaxed">
-            Harness satellite imagery, deep learning, and real-time climate data 
-            to predict natural disasters, monitor environmental change, and generate 
-            actionable geospatial intelligence — all from a single research platform.
-          </p>
-
-          {/* CTA Button - Single prominent button */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
+          <div className="flex flex-col sm:flex-row items-center gap-6 pt-6">
             <button
               onClick={isAuthenticated ? onDashboard : onSignIn}
-              className="group relative px-10 py-4 text-lg font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+              className="group relative px-12 py-5 text-lg font-medium rounded-full bg-emerald-600 text-white shadow-2xl shadow-emerald-500/20 hover:bg-emerald-500 transition-all duration-500 hover:scale-[1.02] active:scale-[0.98]"
             >
               <span className="relative z-10 flex items-center gap-3">
-                {isAuthenticated ? 'Go to Dashboard' : 'Explore Platform'}
-                <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                {isAuthenticated ? 'Enter Control Center' : 'Initialize Platform'}
+                <svg className="w-5 h-5 transition-transform duration-500 group-hover:translate-x-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
                 </svg>
               </span>
             </button>
+            
+            <div className="flex -space-x-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="w-10 h-10 rounded-full border-2 border-[#020617] bg-emerald-950/50 flex items-center justify-center overflow-hidden">
+                  <div className="w-full h-full bg-gradient-to-br from-emerald-500/20 to-transparent" />
+                </div>
+              ))}
+              <div className="pl-6 text-sm text-white/40 font-mono self-center">
+                +2.4k Nodes Active
+              </div>
+            </div>
           </div>
 
-          {/* Stats row - More visual impact */}
-          <div className="flex items-center justify-center lg:justify-start gap-12 pt-8">
+          {/* Metrics row */}
+          <div className="grid grid-cols-3 gap-8 pt-12 border-t border-white/5 max-w-lg">
             {[
-              { value: '5+', label: 'Data Layers' },
-              { value: 'AI', label: 'Predictions' },
-              { value: 'Real-time', label: 'Monitoring' },
+              { value: '60D', label: 'Forecast' },
+              { value: '97.3%', label: 'Accuracy' },
+              { value: 'REAL', label: 'Latency' },
             ].map((stat, i) => (
-              <div key={i} className="text-center">
-                <div className="text-2xl font-bold text-white">{stat.value}</div>
-                <div className="text-sm text-white/60 mt-1">{stat.label}</div>
+              <div key={i} className="space-y-1">
+                <div className="text-2xl font-bold text-white font-mono tracking-tight">{stat.value}</div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-emerald-500/60 font-semibold">{stat.label}</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Right: Globe - Larger */}
-        <div className="flex-shrink-0 relative lg:scale-110" style={{ animationDelay: '0.3s' }}>
-          <AnimatedGlobe />
+        {/* Right: Globe (Occupies 5 columns) */}
+        <div className="lg:col-span-5 relative flex justify-center lg:justify-end" style={{ animationDelay: '0.3s' }}>
+          <div className="relative lg:scale-125 translate-x-10">
+            <AnimatedGlobe />
 
-          {/* Floating status cards around globe - Glass morphism style */}
-          <div className="absolute -top-2 -right-4 md:top-4 md:right-0 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg px-4 py-2.5 text-sm animate-float">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="text-white/90 font-medium">NDVI Active</span>
+            {/* Tactical Status Cards */}
+            <div className="absolute -top-10 -left-10 bg-[#0F172A]/80 backdrop-blur-xl border border-emerald-500/20 rounded-2xl p-4 shadow-2xl animate-float">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]" />
+                <div className="space-y-0.5">
+                  <div className="text-[10px] uppercase tracking-widest text-emerald-500/60 font-bold">System Status</div>
+                  <div className="text-xs text-white font-mono">NOMINAL_OPS</div>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="absolute -bottom-2 -left-4 md:bottom-6 md:left-0 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg px-4 py-2.5 text-sm animate-float-delayed">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-blue-400" />
-              <span className="text-white/90 font-medium">Satellite Feed</span>
-            </div>
-          </div>
-
-          <div className="absolute top-1/2 -right-8 md:-right-6 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg px-4 py-2.5 text-sm animate-float-slow">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              <span className="text-white/90 font-medium">Processing</span>
+            <div className="absolute bottom-10 -right-5 bg-[#0F172A]/80 backdrop-blur-xl border border-emerald-500/20 rounded-2xl p-4 shadow-2xl animate-float-delayed">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse shadow-[0_0_12px_rgba(59,130,246,0.5)]" />
+                <div className="space-y-0.5">
+                  <div className="text-[10px] uppercase tracking-widest text-blue-500/60 font-bold">Inference Feed</div>
+                  <div className="text-xs text-white font-mono">STREAMING_PROBS</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

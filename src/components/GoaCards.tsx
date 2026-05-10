@@ -2,10 +2,16 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Droplets, Map, Trees, Mountain, Flame,
-  School, AlertTriangle, Eye, Loader2, Layers, Database
+  School, AlertTriangle, Eye, Loader2, Layers, Database, HelpCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { goaService, GoaLayer, GoaLayerId } from "@/services/goa";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Icon mapping for layers
 const LAYER_ICONS: Record<string, React.ReactNode> = {
@@ -59,8 +65,9 @@ export const GoaCards = () => {
 
   // Listen for layer removal from Active Layers panel
   useEffect(() => {
-    const handleLayerRemoved = (e: CustomEvent) => {
-      const { id } = e.detail;
+    const handleLayerRemoved = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const { id } = customEvent.detail || {};
       // Check if it's a Goa layer
       if (id && id.startsWith('goa-')) {
         const layerId = id.replace('goa-', '');
@@ -71,9 +78,9 @@ export const GoaCards = () => {
       }
     };
 
-    window.addEventListener('geo:layer-removed' as any, handleLayerRemoved);
+    window.addEventListener('geo:layer-removed', handleLayerRemoved);
     return () => {
-      window.removeEventListener('geo:layer-removed' as any, handleLayerRemoved);
+      window.removeEventListener('geo:layer-removed', handleLayerRemoved);
     };
   }, []);
 
@@ -187,78 +194,65 @@ export const GoaCards = () => {
             className={cn(
               "rounded-xl p-3 transition-all duration-200 border",
               state.loaded
-                ? "border-green-200 dark:border-green-500/30 bg-green-50/50 dark:bg-green-500/5"
+                ? "border-border bg-muted/30"
                 : "border-border bg-background hover:bg-muted/50"
             )}
           >
-            <div className="flex items-start gap-3">
-              <div
-                className="p-2 rounded-lg flex-shrink-0"
-                style={{ backgroundColor: `${layer.color}20`, color: layer.color }}
-              >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg flex-shrink-0 bg-muted text-foreground">
                 {LAYER_ICONS[layer.icon] || <Layers className="w-4 h-4" />}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <h5 className="text-sm font-medium truncate">{layer.title}</h5>
-                  {!layer.available ? (
-                    <span className="text-[10px] text-red-500 bg-red-100 dark:bg-red-500/20 px-1.5 py-0.5 rounded flex-shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <h5 className="text-sm font-semibold leading-tight">{layer.title}</h5>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+                          <HelpCircle className="w-3 h-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={5} className="max-w-[200px] text-[11px] leading-relaxed">
+                        {layer.description}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  {!layer.available && (
+                    <span className="text-[9px] text-red-500 bg-red-100 dark:bg-red-500/20 px-1.5 py-0.5 rounded ml-auto shrink-0">
                       N/A
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex-shrink-0">
-                      {formatSize(layer.file_size)}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                  {layer.description}
+                <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/60 mt-0.5">
+                  Goa Dataset
                 </p>
               </div>
-            </div>
 
-            {/* Load/Unload Button */}
-            <div className="mt-3">
-              {!state.loaded ? (
-                <Button
-                  onClick={() => handleLoadLayer(layer)}
-                  disabled={state.loading || !layer.available}
-                  variant="outline"
-                  className="w-full h-8 text-xs font-semibold transition-all duration-300 hover:scale-[1.02]"
-                  style={{ 
-                    backgroundColor: layer.available ? `${layer.color}20` : undefined,
-                    borderColor: layer.available ? `${layer.color}80` : undefined,
-                    color: layer.available ? layer.color : undefined,
-                    boxShadow: layer.available ? `0 0 10px ${layer.color}25` : undefined,
-                  }}
-                  onMouseEnter={(e) => {
-                    if (layer.available) {
-                      e.currentTarget.style.boxShadow = `0 0 20px ${layer.color}40`;
-                      e.currentTarget.style.borderColor = `${layer.color}`;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (layer.available) {
-                      e.currentTarget.style.boxShadow = `0 0 10px ${layer.color}25`;
-                      e.currentTarget.style.borderColor = `${layer.color}80`;
-                    }
-                  }}
-                >
-                  {state.loading ? (
-                    <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Loading...</>
-                  ) : (
-                    <><Eye className="w-3 h-3 mr-1.5" />Load Layer</>
-                  )}
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  onClick={() => handleUnloadLayer(layer)}
-                  className="w-full h-8 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"
-                >
-                  Unload Layer
-                </Button>
-              )}
+              <div className="shrink-0 ml-auto">
+                {!state.loaded ? (
+                  <Button
+                    onClick={() => handleLoadLayer(layer)}
+                    disabled={state.loading || !layer.available}
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-[9px] font-bold uppercase tracking-wider transition-all"
+                  >
+                    {state.loading ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      "Load"
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    className="h-7 px-2 text-[9px] uppercase font-bold text-muted-foreground hover:text-foreground shrink-0"
+                    onClick={() => handleUnloadLayer(layer)}
+                  >
+                    Unload
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         );

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { geoVisionService, GeoVisionPrediction } from "@/services/geoVision";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface GeoVisionPanelProps {
   isVisible: boolean;
@@ -65,7 +65,7 @@ export const GeoVisionPanel = ({ isVisible, onClose, mapCoords, availableCredits
           model: 'geovision',
         }
       }));
-      const errorMsg = 'Out of credits. Buy more credits to run GeoVision predictions.';
+      const errorMsg = 'Out of credits. Buy more credits to run TerraScan predictions.';
       setError(errorMsg);
       toast({ title: 'Out of credits', description: errorMsg, variant: 'destructive' });
       return;
@@ -82,7 +82,7 @@ export const GeoVisionPanel = ({ isVisible, onClose, mapCoords, availableCredits
     if (isNaN(lon) || lon < -180 || lon > 180) { setError("Longitude must be between -180 and 180"); return; }
 
     setIsLoading(true);
-    toast({ title: "Running GeoVision", description: "Fetching most recent data & fusing LSTM + Tree Ensemble models..." });
+    toast({ title: "Running TerraScan", description: "Fetching most recent data & fusing LSTM + Tree Ensemble models..." });
 
     try {
       const result = await geoVisionService.predictFusion(lat, lon);
@@ -94,8 +94,9 @@ export const GeoVisionPanel = ({ isVisible, onClose, mapCoords, availableCredits
         setError(result.error || "Prediction failed");
         toast({ title: "Prediction Failed", description: result.error, variant: "destructive" });
       }
-    } catch (err: any) {
-      setError(err.message || "Unexpected error");
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Unexpected error";
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -128,22 +129,27 @@ export const GeoVisionPanel = ({ isVisible, onClose, mapCoords, availableCredits
 
   return (
     <Card className={cn(
-      "fixed top-4 right-4 w-[420px] max-w-[90vw] max-h-[90vh] overflow-y-auto z-[1100]",
-      "bg-background border border-border shadow-xl animate-slide-in-from-right"
+      "fixed top-4 right-4 w-[400px] max-w-[90vw] max-h-[90vh] overflow-y-auto z-[1600]",
+      "bg-background/80 dark:bg-zinc-900/80 border border-border shadow-2xl animate-in slide-in-from-right-4 duration-500 backdrop-blur-xl custom-scrollbar"
     )}>
       <div className="p-5">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/40">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm ring-1 ring-border/20">
               <Brain className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-lg">GeoVision</h3>
-              <p className="text-xs text-muted-foreground">Fusion Ensemble Prediction</p>
+              <h3 className="font-bold text-sm tracking-tight uppercase">TerraScan</h3>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-1">Multi-modal Analysis</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose} className="p-2 hover:bg-red-500/10 hover:text-red-500">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
             <X className="w-4 h-4" />
           </Button>
         </div>

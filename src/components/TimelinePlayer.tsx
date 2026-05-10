@@ -65,17 +65,19 @@ export const TimelinePlayer = ({ frames, title, onFrameChange, onClose, defaultO
   if (frames.length === 0) return null;
 
   return (
-    <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[1100] w-[min(720px,92vw)]">
-      <div className="bg-background/95 backdrop-blur-sm rounded-2xl border border-border shadow-xl overflow-hidden">
+    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[1400] w-[min(640px,92vw)] pointer-events-auto">
+      <div className="bg-background/80 dark:bg-zinc-900/80 backdrop-blur-xl rounded-xl border border-border/40 shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-border/40">
           <div className="flex items-center gap-2">
-            <Satellite className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-xs font-semibold text-foreground/80">{title}</span>
+            <div className="p-1 rounded bg-zinc-100 dark:bg-zinc-800">
+              <Satellite className="w-3 h-3 text-foreground/70" />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{title}</span>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-md hover:bg-red-500/20 hover:text-red-400 transition-colors"
+            className="p-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -94,15 +96,15 @@ export const TimelinePlayer = ({ frames, title, onFrameChange, onClose, defaultO
                   className={cn(
                     "flex-1 relative flex items-center justify-center text-[11px] font-medium transition-all duration-300 rounded-md",
                     isCurrent
-                      ? "bg-primary text-primary-foreground shadow-sm scale-105 z-10"
+                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-sm scale-105 z-10"
                       : isPast
-                        ? "bg-primary/20 text-primary hover:bg-primary/30"
+                        ? "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                         : "bg-muted text-muted-foreground hover:bg-muted/80"
                   )}
                 >
                   {frame.date_label}
                   {isCurrent && (
-                    <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-zinc-950 dark:bg-zinc-50 animate-pulse" />
                   )}
                 </button>
               );
@@ -121,8 +123,8 @@ export const TimelinePlayer = ({ frames, title, onFrameChange, onClose, defaultO
             className={cn(
               "p-2.5 rounded-xl transition-all duration-200",
               isPlaying
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "bg-muted text-foreground hover:bg-primary hover:text-primary-foreground"
+                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 shadow-md"
+                : "bg-muted text-foreground hover:bg-zinc-900 hover:text-white dark:hover:bg-zinc-100 dark:hover:text-zinc-950"
             )}
           >
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
@@ -150,7 +152,7 @@ export const TimelinePlayer = ({ frames, title, onFrameChange, onClose, defaultO
                 className={cn(
                   "px-2 py-1 rounded text-[11px] font-medium transition-colors",
                   speedMs === opt.ms
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 )}
               >
@@ -168,7 +170,7 @@ export const TimelinePlayer = ({ frames, title, onFrameChange, onClose, defaultO
               max={100}
               value={Math.round(opacity * 100)}
               onChange={e => setOpacity(Number(e.target.value) / 100)}
-              className="w-20 h-1.5 accent-primary cursor-pointer"
+              className="w-20 h-1.5 accent-zinc-950 dark:accent-zinc-50 cursor-pointer"
             />
             <span className="text-[11px] text-foreground font-medium w-8 text-right">{Math.round(opacity * 100)}%</span>
           </div>

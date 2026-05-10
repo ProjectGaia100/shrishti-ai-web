@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { X, Shield, AlertTriangle, Info, MapPin, Clock, Phone, Zap, Droplets, CloudRain, Mountain, Sun, Hexagon, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { HazardGuardMode } from "./HazardGuardCard";
@@ -29,6 +31,9 @@ interface HazardGuardPanelProps {
   result: PredictionResult | null;
   loading: boolean;
   error: string | null;
+  mapCoords?: { lat: number; lon: number } | null;
+  onRunAnalysis?: (latitude: number, longitude: number) => void | Promise<void>;
+  availableCredits?: number | null;
   mode?: HazardGuardMode;
   heatmapData?: HeatmapPoint[] | null;
   heatmapSummary?: {
@@ -41,8 +46,23 @@ interface HazardGuardPanelProps {
   } | null;
 }
 
-export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, mode = 'point', heatmapData, heatmapSummary }: HazardGuardPanelProps) => {
+export const HazardGuardPanel = ({
+  isVisible,
+  onClose,
+  result,
+  loading,
+  error,
+  mapCoords,
+  onRunAnalysis,
+  availableCredits,
+  mode = 'point',
+  heatmapData,
+  heatmapSummary
+}: HazardGuardPanelProps) => {
+  const HAZARDGUARD_COST = 10;
   const [animatedConfidence, setAnimatedConfidence] = useState(0);
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
 
   useEffect(() => {
     if (result?.confidence) {
@@ -53,6 +73,25 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
       return () => clearTimeout(timer);
     }
   }, [result?.confidence]);
+
+  useEffect(() => {
+    if (mapCoords) {
+      setLatitude(mapCoords.lat.toFixed(6));
+      setLongitude(mapCoords.lon.toFixed(6));
+    }
+  }, [mapCoords]);
+
+  const handleRunAnalysis = async () => {
+    if (!onRunAnalysis || loading) return;
+
+    const lat = Number(latitude);
+    const lon = Number(longitude);
+
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90) return;
+    if (!Number.isFinite(lon) || lon < -180 || lon > 180) return;
+
+    await onRunAnalysis(lat, lon);
+  };
 
   if (!isVisible) return null;
 
@@ -74,52 +113,115 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
   };
 
   const riskInfo = result ? getRiskLevel(result.prediction) : null;
+  const isDisasterPrediction = result?.prediction?.toLowerCase() === 'disaster';
 
   return (
     <Card className={cn(
-      "fixed top-4 right-4 w-96 max-w-[90vw] max-h-[90vh] z-[1100] bg-background border border-border shadow-xl overflow-hidden flex flex-col",
-      "animate-slide-in-from-right"
+      "fixed top-4 right-4 w-[380px] max-w-[90vw] max-h-[90vh] z-[1600] bg-background border border-border shadow-2xl overflow-hidden flex flex-col",
+      "animate-in slide-in-from-right-4 duration-500 backdrop-blur-xl"
     )}>
-      <div className="p-4 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-border/50">
+      <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/40">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm ring-1 ring-border/20">
               <Shield className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-lg">HazardGuard</h3>
-              <p className="text-xs text-muted-foreground">Disaster Prediction</p>
+              <h3 className="font-bold text-base tracking-tight">CropShield</h3>
+              <p className="text-[11px] text-muted-foreground leading-none mt-1">
+                {mode === 'region' ? 'Regional Risk Analysis' : 'Location Status Analysis'}
+              </p>
             </div>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="p-2 hover:bg-red-500/10 hover:text-red-500"
+            className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800"
           >
             <X className="w-4 h-4" />
           </Button>
         </div>
 
         {/* Loading State */}
+        {mode === 'point' && (
+          <div className="rounded-xl p-4 mb-4 space-y-3 bg-muted/25 border border-border/70">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <MapPin className="w-4 h-4" />
+                <span>Location Input</span>
+              </div>
+              {mapCoords && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground bg-background border border-border rounded-full px-2 py-1">
+                  Map Synced
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="hg-latitude" className="text-sm font-medium">
+                  Latitude <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="hg-latitude"
+                  type="number"
+                  step="0.0001"
+                  placeholder="e.g., 22.9093"
+                  value={latitude}
+                  onChange={(event) => setLatitude(event.target.value)}
+                  className="bg-background border border-input text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="hg-longitude" className="text-sm font-medium">
+                  Longitude <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="hg-longitude"
+                  type="number"
+                  step="0.0001"
+                  placeholder="e.g., 76.4246"
+                  value={longitude}
+                  onChange={(event) => setLongitude(event.target.value)}
+                  className="bg-background border border-input text-sm"
+                />
+              </div>
+            </div>
+
+            <Button
+              onClick={() => {
+                void handleRunAnalysis();
+              }}
+              disabled={loading}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              {loading ? 'Running Analysis...' : 'Run Analysis'}
+            </Button>
+
+            {(availableCredits ?? 0) < HAZARDGUARD_COST && (
+              <p className="text-[11px] text-red-500">
+                Need {HAZARDGUARD_COST} credits to run CropShield analysis.
+              </p>
+            )}
+          </div>
+        )}
+
         {loading && (
           <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-3"></div>
-            <p className="text-sm text-muted-foreground">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900 dark:border-zinc-100 mx-auto mb-3"></div>
+            <p className="text-sm text-muted-foreground animate-pulse uppercase tracking-widest text-[10px] font-bold">
               {mode === 'region' ? 'Generating risk heatmap...' : 'Analyzing location...'}
             </p>
-            {mode === 'region' && (
-              <p className="text-[10px] text-muted-foreground mt-1">Running predictions for sample points</p>
-            )}
           </div>
         )}
 
         {/* Error State */}
         {error && !loading && (
           <div className="text-center py-6">
-            <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-3" />
-            <p className="text-sm text-red-500 mb-2">Prediction Failed</p>
+            <AlertTriangle className="w-8 h-8 text-zinc-400 mx-auto mb-3" />
+            <p className="text-sm font-bold uppercase tracking-tight text-foreground mb-2">Prediction Failed</p>
             <p className="text-xs text-muted-foreground">{error}</p>
           </div>
         )}
@@ -129,7 +231,7 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
           <div className="space-y-4">
             {/* Region header */}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Hexagon className="w-4 h-4 text-purple-400" />
+              <Hexagon className="w-4 h-4 text-zinc-400" />
               <span>Region Analysis &middot; {heatmapSummary.successful} sample points</span>
             </div>
 
@@ -141,33 +243,40 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
               const overallConfidence = isRegionDisaster ? avgRisk * 100 : (1 - avgRisk) * 100;
               return (
                 <div className={cn(
-                  "p-4 rounded-lg border",
+                  "p-4 rounded-xl border",
                   isRegionDisaster
-                    ? "bg-red-500/10 border-red-500/20"
-                    : "bg-green-500/10 border-green-500/20"
+                    ? "bg-zinc-950 dark:bg-zinc-50 border-zinc-900 dark:border-zinc-200"
+                    : "bg-background border-border"
                 )}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-lg">Overall Prediction</span>
-                  </div>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     <span className={cn(
-                      "text-xl font-bold",
-                      isRegionDisaster ? "text-red-500" : "text-green-500"
+                      "font-bold text-sm uppercase tracking-tight",
+                      isRegionDisaster ? "text-zinc-50 dark:text-zinc-950" : "text-muted-foreground"
+                    )}>
+                      Composite Prediction
+                    </span>
+                    <div className={cn(
+                      "text-[10px] font-black py-0.5 px-2 rounded uppercase tracking-widest",
+                      isRegionDisaster 
+                        ? "bg-zinc-50 text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50" 
+                        : "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-sm"
                     )}>
                       {overallLabel}
-                    </span>
+                    </div>
+                  </div>
+                  <div className="flex items-end justify-between mb-2">
                     <span className={cn(
-                      "text-lg font-bold tabular-nums",
-                      isRegionDisaster ? "text-red-400" : "text-green-400"
+                      "text-2xl font-black tracking-tighter leading-none",
+                      isRegionDisaster ? "text-white dark:text-zinc-900" : "text-foreground"
                     )}>
-                      {overallConfidence.toFixed(1)}% confidence
+                      {overallConfidence.toFixed(0)}<span className="text-[10px] ml-0.5 opacity-50 uppercase font-black">% Conf</span>
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800/50 overflow-hidden">
                     <div
                       className={cn(
-                        "h-2 rounded-full transition-all duration-1000 ease-out",
-                        isRegionDisaster ? "bg-red-500" : "bg-green-500"
+                        "h-full transition-all duration-1000 ease-out",
+                        isRegionDisaster ? "bg-white dark:bg-zinc-900" : "bg-zinc-950 dark:bg-zinc-50"
                       )}
                       style={{ width: `${Math.min(overallConfidence, 100)}%` }}
                     />
@@ -179,19 +288,19 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
             {/* Stats grid */}
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-lg p-3 text-center bg-muted/50 border border-border">
-                <p className="text-lg font-bold text-red-600 dark:text-red-400">{heatmapSummary.disaster_count}</p>
+                <p className="text-lg font-bold text-foreground">{heatmapSummary.disaster_count}</p>
                 <p className="text-[10px] text-muted-foreground">Disaster Zones</p>
               </div>
               <div className="rounded-lg p-3 text-center bg-muted/50 border border-border">
-                <p className="text-lg font-bold text-green-600 dark:text-green-400">{heatmapSummary.successful - heatmapSummary.disaster_count}</p>
+                <p className="text-lg font-bold text-foreground">{heatmapSummary.successful - heatmapSummary.disaster_count}</p>
                 <p className="text-[10px] text-muted-foreground">Safe Zones</p>
               </div>
               <div className="rounded-lg p-3 text-center bg-muted/50 border border-border">
-                <p className="text-lg font-bold text-orange-600 dark:text-orange-400">{(heatmapSummary.max_risk * 100).toFixed(1)}%</p>
+                <p className="text-lg font-bold text-foreground">{(heatmapSummary.max_risk * 100).toFixed(1)}%</p>
                 <p className="text-[10px] text-muted-foreground">Peak Risk</p>
               </div>
               <div className="rounded-lg p-3 text-center bg-muted/50 border border-border">
-                <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{heatmapSummary.successful}/{heatmapSummary.total}</p>
+                <p className="text-lg font-bold text-foreground">{heatmapSummary.successful}/{heatmapSummary.total}</p>
                 <p className="text-[10px] text-muted-foreground">Points Analyzed</p>
               </div>
             </div>
@@ -251,20 +360,14 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
         {/* Results */}
         {result && !loading && !error && (
           <div className="space-y-4">
-            {/* Location Info */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="w-4 h-4" />
-              <span>{result.latitude.toFixed(4)}, {result.longitude.toFixed(4)}</span>
-            </div>
-
             {/* Risk Assessment */}
             <div className={cn(
-              "p-4 rounded-lg border",
+              "p-4 rounded-xl border",
               riskInfo?.bgColor,
               riskInfo?.borderColor
             )}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-semibold">Risk Assessment</span>
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-semibold text-base">Risk Assessment</span>
                 <span className={cn("font-bold", riskInfo?.color)}>
                   {riskInfo?.level}
                 </span>
@@ -295,6 +398,25 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
                 </div>
               </div>
             </div>
+
+            {/* Location Info */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <MapPin className="w-4 h-4" />
+              <span>{result.latitude.toFixed(4)}, {result.longitude.toFixed(4)}</span>
+            </div>
+
+            {/* Professional concise output for normal predictions */}
+            {!isDisasterPrediction && (
+              <div className="p-3.5 rounded-lg border border-border bg-muted/30">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Info className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-semibold">Status Note</span>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  No immediate escalation required. Continue passive monitoring and run a new assessment only if local conditions change.
+                </p>
+              </div>
+            )}
 
             {/* Disaster Type Analysis - shown when disaster is detected */}
             {result.prediction.toLowerCase() === 'disaster' && result.disaster_type_probabilities && 
@@ -403,7 +525,7 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
             )}
 
             {/* Recommendations */}
-            {result.recommendations && result.recommendations.length > 0 && (
+            {isDisasterPrediction && result.recommendations && result.recommendations.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <Info className="w-4 h-4 text-blue-500" />
@@ -421,7 +543,7 @@ export const HazardGuardPanel = ({ isVisible, onClose, result, loading, error, m
             )}
 
             {/* Emergency Contacts */}
-            {result.emergency_contacts && result.emergency_contacts.length > 0 && (
+            {isDisasterPrediction && result.emergency_contacts && result.emergency_contacts.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <div className="p-1.5 bg-red-500/10 rounded-md">

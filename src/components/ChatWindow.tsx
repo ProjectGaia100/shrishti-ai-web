@@ -35,7 +35,12 @@ export const ChatWindow = ({ onClose }: ChatWindowProps) => {
     // call backend chat endpoint
     (async () => {
       try {
-        const response = await sendChatMessage(userMessage, []);
+        // Send current history to maintain context
+        const response = await sendChatMessage(userMessage, messages.map(m => ({ 
+          role: m.role, 
+          content: m.content 
+        })));
+        
         // The backend should return response_text and optionally tile_url
         if (response?.response_text) {
           setMessages((prev) => [...prev, { role: "assistant", content: response.response_text }]);
@@ -60,7 +65,7 @@ export const ChatWindow = ({ onClose }: ChatWindowProps) => {
               opacity: 0.8,
             }
           }));
-          setMessages((prev) => [...prev, { role: 'assistant', content: '✅ Layer added to map. You can adjust its opacity and visibility in the Active Layers panel.' }]);
+          setMessages((prev) => [...prev, { role: 'assistant', content: '✅ Layer added to map. The data is now visualized on the globe.' }]);
         }
       } catch (err) {
         console.error('Chat API error', err);
@@ -70,16 +75,16 @@ export const ChatWindow = ({ onClose }: ChatWindowProps) => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[1001] w-96 h-[500px] bg-background rounded-2xl shadow-xl border border-border flex flex-col overflow-hidden animate-fade-in">
+    <div className="fixed bottom-10 right-10 z-[1001] w-96 h-[500px] bg-background rounded-2xl shadow-2xl border border-border flex flex-col overflow-hidden animate-fade-in">
       {/* Header */}
-      <div className="bg-primary p-4 flex items-center justify-between">
+      <div className="bg-zinc-900 dark:bg-zinc-100 p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-primary-foreground" />
+          <div className="w-10 h-10 rounded-full bg-white/10 dark:bg-black/10 flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-white dark:text-black" />
           </div>
           <div>
-            <h3 className="font-bold text-primary-foreground">GEE AI Assistant</h3>
-            <p className="text-xs text-primary-foreground/80">Online</p>
+            <h3 className="font-bold text-white dark:text-black">GEE AI Assistant</h3>
+            <p className="text-xs text-white/70 dark:text-black/70 font-medium tracking-wide">Online</p>
           </div>
         </div>
         <div className="flex gap-1">
@@ -113,7 +118,7 @@ export const ChatWindow = ({ onClose }: ChatWindowProps) => {
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-2 ${
                   message.role === "user"
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 font-medium"
                     : "bg-muted/50 border border-border"
                 }`}
               >
@@ -152,7 +157,7 @@ export const ChatWindow = ({ onClose }: ChatWindowProps) => {
           <Button
             onClick={handleSend}
             size="sm"
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
+            className="bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all"
           >
             <Send className="w-4 h-4" />
           </Button>

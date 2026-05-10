@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CloudRain, TrendingUp, X } from "lucide-react";
+import { CloudRain, TrendingUp, X, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface WeatherWiseCardProps {
   onTogglePanel: () => void;
@@ -16,51 +22,63 @@ export const WeatherWiseCard = ({ onTogglePanel, isActive = false }: WeatherWise
       className={cn(
         "rounded-xl p-4 transition-all duration-200 border mx-3",
         isActive
-          ? "border-purple-300 dark:border-purple-500/50 bg-purple-50 dark:bg-purple-500/10"
+          ? "border-zinc-400 dark:border-zinc-500 bg-zinc-100 dark:bg-zinc-800"
           : "border-border bg-background hover:bg-muted/50"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="flex items-start gap-3 mb-3">
+      <div className="flex items-center gap-3">
         <div className={cn(
           "p-2.5 rounded-lg transition-all duration-200",
-          isActive || isHovered ? "text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-500/20" : "text-purple-600 dark:text-purple-500 bg-purple-50 dark:bg-purple-500/10"
+          isActive || isHovered 
+            ? "text-foreground bg-zinc-200 dark:bg-zinc-700" 
+            : "text-muted-foreground bg-zinc-50 dark:bg-zinc-900"
         )}>
           <CloudRain className="w-5 h-5" />
         </div>
-        <div className="flex-1">
-          <h3 className="font-bold text-lg leading-tight">WeatherWise</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">LSTM Weather Forecasting</p>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <h3 className="font-bold text-[15px] tracking-tight leading-tight">AgriSense</h3>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+                    <HelpCircle className="w-3.5 h-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-[200px] text-[11px] leading-relaxed">
+                  Predict weather trends for the next 60 days using advanced LSTM models. Analyze temperature, precipitation, and more.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-0.5">Weather Prediction</p>
         </div>
+
+        <Button
+          onClick={onTogglePanel}
+          size="sm"
+          className={cn(
+            "h-7 px-3 font-black rounded-lg text-[9px] uppercase tracking-widest transition-all shrink-0",
+            isActive
+              ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100"
+              : "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 shadow-sm"
+          )}
+        >
+          {isActive ? (
+            <div className="flex items-center gap-1.5">
+              <X className="w-3 h-3" />
+              <span>Close</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <TrendingUp className="w-3 h-3" />
+              <span>Open</span>
+            </div>
+          )}
+        </Button>
       </div>
-
-      <p className="text-sm text-foreground/70 mb-3">
-        Predict weather trends for the next 60 days using advanced LSTM models. Analyze temperature, precipitation, and more.
-      </p>
-
-      <Button
-        onClick={onTogglePanel}
-        className={cn(
-          "w-full transition-all duration-300 font-semibold flex items-center gap-2 hover:scale-[1.02]",
-          isActive
-            ? "bg-purple-500/30 hover:bg-purple-500/40 text-purple-500 dark:text-purple-300 border border-purple-500/60 shadow-[0_0_15px_rgba(168,85,247,0.25)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)]"
-            : "bg-purple-500/20 hover:bg-purple-500/30 text-purple-500 dark:text-purple-400 border border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.15)] hover:shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:border-purple-400/70"
-        )}
-        variant="outline"
-      >
-        {isActive ? (
-          <>
-            <X className="w-4 h-4" />
-            Close Weather Forecast
-          </>
-        ) : (
-          <>
-            <TrendingUp className="w-4 h-4" />
-            Open Weather Forecast
-          </>
-        )}
-      </Button>
     </div>
   );
 };

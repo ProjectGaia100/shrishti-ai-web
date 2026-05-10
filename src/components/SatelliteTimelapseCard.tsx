@@ -1,8 +1,14 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Satellite, Play, Loader2, ChevronDown } from "lucide-react";
+import { Satellite, Play, Loader2, ChevronDown, HelpCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchTimelapse, type TimelapseFrame } from "@/services/api";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export type TimelapseDataset = "sentinel2" | "ndvi" | "temperature" | "nightlights" | "precipitation" | "vegetation_modis";
 
@@ -94,14 +100,49 @@ export const SatelliteTimelapseCard = ({ onTimelapseLoaded, onTimelapseClose, is
       isActive ? "border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10" : "border-border bg-background hover:bg-muted/50"
     )}>
       {/* Header */}
-      <div className="flex items-start gap-3 mb-3">
-        <div className="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
           <Satellite className="w-5 h-5" />
         </div>
-        <div className="flex-1">
-          <h3 className="font-bold text-lg leading-tight">Satellite Timelapse</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Animated Imagery</p>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <h3 className="font-bold text-sm tracking-tight leading-tight truncate">Satellite Timelapse</h3>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+                    <HelpCircle className="w-3.5 h-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-[200px] text-[11px] leading-relaxed">
+                  Animated imagery showing planetary changes over time using multi-spectral satellite data.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/60 mt-0.5">Atmospheric Ops</p>
         </div>
+
+        <Button
+          onClick={isActive ? onTimelapseClose : handleLoad}
+          disabled={loading || (!isActive && !isRangeValid)}
+          size="sm"
+          className={cn(
+            "h-7 px-3 font-black rounded-lg text-[9px] uppercase tracking-widest transition-all shrink-0",
+            isActive
+              ? "bg-green-500/10 text-green-600 border border-green-500/30 hover:bg-red-500/10 hover:text-red-600 hover:border-red-500/30"
+              : "bg-blue-500/10 text-blue-600 border border-blue-500/30 hover:bg-blue-500/20"
+          )}
+          variant="outline"
+        >
+          {loading ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : isActive ? (
+            <X className="w-3 h-3" />
+          ) : (
+            "Load"
+          )}
+        </Button>
       </div>
 
       {/* Dataset selector */}
@@ -153,34 +194,7 @@ export const SatelliteTimelapseCard = ({ onTimelapseLoaded, onTimelapseClose, is
         </div>
       </div>
 
-      {/* Load / Unload button */}
-      <Button
-        onClick={isActive ? onTimelapseClose : handleLoad}
-        disabled={loading || (!isActive && !isRangeValid)}
-        className={cn(
-          "w-full transition-all duration-300 font-semibold hover:scale-[1.02]",
-          loading
-            ? "bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.15)]"
-            : isActive
-              ? "bg-green-500/20 hover:bg-red-500/20 text-green-400 hover:text-red-400 border border-green-500/50 hover:border-red-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)] hover:shadow-[0_0_15px_rgba(239,68,68,0.2)]"
-              : "bg-blue-500/20 hover:bg-blue-500/30 text-blue-500 dark:text-blue-400 border border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.15)] hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:border-blue-400/70"
-        )}
-        variant="outline"
-      >
-        {loading ? (
-          <span className="flex items-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Generating {frameCount} tiles...
-          </span>
-        ) : isActive ? (
-          "✓ Timelapse Active — Click to Close"
-        ) : (
-          <span className="flex items-center gap-2">
-            <Play className="w-4 h-4" />
-            Load Timelapse
-          </span>
-        )}
-      </Button>
+      {/* Load / Unload button removed from here, moved to header */}
 
       {error && (
         <p className="text-xs text-red-400 mt-2">{error}</p>
@@ -194,4 +208,3 @@ export const SatelliteTimelapseCard = ({ onTimelapseLoaded, onTimelapseClose, is
     </div>
   );
 };
-
