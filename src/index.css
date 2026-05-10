@@ -3,15 +3,11 @@
 @tailwind utilities;
 
 /* =================================================================
-   SHRISHTI AI — Design System
-   Dark Mode Only: Satellite operations control center
+   SHRISHTI AI — Design System (V3)
+   HSL Refined — Aligned strictly with AGRI standards.
    ================================================================= */
 
 @layer base {
-  /* ---------------------------------------------------------------
-     LIGHT THEME (Default)
-     Clean, professional, high-clarity fintech/utility vibe
-     --------------------------------------------------------------- */
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
@@ -57,19 +53,8 @@
     --success: 142 76% 36%;
     --warning: 38 92% 50%;
     --error: 0 72% 51%;
-
-    /* Atmospheric Monolith Foundation */
-    --canvas: 10% 0.01 240;
-    --hardware-edge: 98% 0.00 0 / 8%;
-    --titanium: 95% 0.01 240;
-    --slate-text: 60% 0.02 240;
-    --emerald-status: 70% 0.16 160;
   }
 
-  /* ---------------------------------------------------------------
-     DARK THEME (Optional)
-     Deep charcoal, satellite control-room vibe
-     --------------------------------------------------------------- */
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -96,13 +81,17 @@
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
     --ring: 0 0% 83.1%;
+  }
+}
 
-    /* Atmospheric Monolith Foundation */
-    --canvas: 10% 0.01 240;
-    --hardware-edge: 98% 0.00 0 / 8%;
-    --titanium: 95% 0.01 240;
-    --slate-text: 60% 0.02 240;
-    --emerald-status: 70% 0.16 160;
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 }
 
@@ -117,13 +106,14 @@
     box-shadow: 0 2px 8px 0 rgba(0,0,0,0.35);
   }
 
-  .surface-raised {
-    background-color: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    box-shadow: 0 4px 12px 0 rgba(0,0,0,0.08);
+  .surface-glass {
+    background: hsla(var(--card) / 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsla(var(--border) / 0.14);
   }
-  .dark .surface-raised {
-    box-shadow: 0 4px 12px 0 rgba(0,0,0,0.4);
+  .dark .surface-glass {
+    background: hsla(0, 0%, 7%, 0.85);
   }
 
   .surface-inset {
@@ -131,42 +121,17 @@
     border: 1px solid hsl(var(--border));
   }
 
-  /* Glass — adaptive aesthetics */
+  /* Glass - improved refraction */
   .glass {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-  .dark .glass {
-    background: rgba(15, 20, 35, 0.8);
+    @apply surface-glass;
   }
 
-  .glass-strong {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
-  .dark .glass-strong {
-    background: rgba(15, 20, 35, 0.95);
-  }
-
-  .glass-subtle {
-    background: rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-  .dark .glass-subtle {
-    background: rgba(15, 20, 35, 0.5);
-  }
-
-  /* Gradient backgrounds */
-  .gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--background)), hsl(var(--muted)));
-  }
-
-  /* Smooth transitions */
-  .transition-smooth {
-    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* Text effects */
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--dataset-landcover)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   /* Hover elevation — subtle, professional */
@@ -181,129 +146,27 @@
     box-shadow: 0 8px 25px -5px rgba(0,0,0,0.4);
   }
 
-  /* Text accent gradient */
-  .text-gradient {
-    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--dataset-landcover)));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  /* Scrollbar aesthetics */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
   }
-
-  /* Shadow utilities */
-  .shadow-glow {
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.15);
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+    border-radius: 3px;
   }
-  .dark .shadow-glow {
-    box-shadow: 0 0 30px rgba(59, 130, 246, 0.25);
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.15);
+    border-radius: 3px;
   }
-
-  /* Separator */
-  .separator-gradient {
-    height: 1px;
-    background: linear-gradient(to right, transparent, hsl(var(--border)), transparent);
+  .dark ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.3);
   }
-
-  /* Gradient mesh — subtle in light, dramatic in dark */
-  .gradient-mesh {
-    background:
-      radial-gradient(at 40% 20%, rgba(59,130,246,0.03) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, rgba(59,130,246,0.02) 0px, transparent 50%);
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.25);
   }
-  .dark .gradient-mesh {
-    background:
-      radial-gradient(at 40% 20%, rgba(59,130,246,0.06) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, rgba(59,130,246,0.04) 0px, transparent 50%),
-      radial-gradient(at 0% 50%, rgba(6,182,212,0.04) 0px, transparent 50%);
-  }
-
-  /* Animation utilities */
-  .animate-fade-in {
-    animation: fade-in 0.2s ease-out;
-  }
-  .animate-slide-in-from-right {
-    animation: slide-in-from-right 0.3s ease-out;
-  }
-  .animate-scale-in {
-    animation: scale-in 0.3s ease-out;
-  }
-
-  @keyframes fade-in {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes slide-in-from-right {
-    from { opacity: 0; transform: translateX(100%); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-  @keyframes scale-in {
-    from { opacity: 0; transform: scale(0.98); }
-    to { opacity: 1; transform: scale(1); }
-  }
-
-  /* Landing page animations */
-  .animate-float {
-    animation: float 4s ease-in-out infinite;
-  }
-  .animate-float-delayed {
-    animation: float 4s ease-in-out infinite;
-    animation-delay: 1.3s;
-  }
-  .animate-float-slow {
-    animation: float 5s ease-in-out infinite;
-    animation-delay: 0.7s;
-  }
-  .animate-bounce-slow {
-    animation: bounce-slow 2.5s ease-in-out infinite;
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-8px); }
-  }
-  @keyframes bounce-slow {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-5px); }
-  }
-
-  .duration-2000 {
-    transition-duration: 2000ms;
-  }
-
-  /* Keep draw-polygon controls clear of top overlays. */
-  .hazard-map .leaflet-top.leaflet-left .leaflet-draw {
-    margin-top: 64px;
-  }
-
-  /* Professional, low-noise style for drawing controls. */
-  .hazard-map .leaflet-draw-toolbar a {
-    background-color: rgba(24, 24, 27, 0.88);
-    border-color: rgba(255, 255, 255, 0.14);
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
-  }
-
-  .hazard-map .leaflet-draw-toolbar a:hover,
-  .hazard-map .leaflet-draw-toolbar a:focus {
-    background-color: rgba(39, 39, 42, 0.94);
-  }
-
-  .hazard-map .leaflet-draw-actions a {
-    background-color: rgba(24, 24, 27, 0.9);
-    color: #f4f4f5;
-    border-left-color: rgba(255, 255, 255, 0.14);
-  }
-
-  .hazard-map .leaflet-draw-actions a:hover {
-    background-color: rgba(39, 39, 42, 0.96);
-  }
-
-  .hazard-map path.aoi-rectangle,
-  .hazard-map .leaflet-draw-shape.aoi-rectangle {
-    stroke: #f59e0b !important;
-    stroke-width: 3px !important;
-    stroke-opacity: 1 !important;
-    stroke-dasharray: 8 6 !important;
-    fill: #f59e0b !important;
-    fill-opacity: 0.2 !important;
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.5);
   }
 
   /* Screenshot-style map switcher (selected card + horizontal options). */
@@ -353,11 +216,16 @@
   }
 
   .map-style-selected-label {
-    display: none;
+    font-size: 11px;
+    font-weight: 700;
+    color: hsl(var(--foreground));
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
   }
 
   .map-style-caret {
-    display: none;
+    color: hsl(var(--muted-foreground));
+    transition: transform 160ms ease;
   }
 
   .map-style-switcher.is-open .map-style-caret {
@@ -416,10 +284,17 @@
     color: hsl(var(--muted-foreground));
   }
 
-  .dark .map-style-selected,
-  .dark .map-style-strip {
-    background: rgba(17, 24, 39, 0.94);
-    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.52);
+  /* High-end floating tool cluster for map */
+  .tool-cluster {
+    box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.5);
+    background: hsla(var(--background) / 0.85);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+  }
+
+  .dark .tool-cluster {
+    background: hsla(0, 0%, 7%, 0.9);
+    box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.7);
   }
 
   @media (max-width: 768px) {
@@ -456,43 +331,13 @@
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
+/* Map specific overrides */
+.hazard-map .leaflet-top.leaflet-left .leaflet-draw {
+  margin-top: 80px;
+}
 
-  body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: hsl(var(--background));
-    border-radius: 3px;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--primary) / 0.15);
-    border-radius: 3px;
-  }
-  .dark ::-webkit-scrollbar-thumb {
-    background: hsl(var(--primary) / 0.3);
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary) / 0.25);
-  }
-  .dark ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary) / 0.5);
-  }
-
-  /* Improve visibility of native calendar button in dark WeatherWise input. */
-  .dark .weatherwise-date-input::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-    opacity: 1;
-    cursor: pointer;
-  }
+.weatherwise-date-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.7;
+  cursor: pointer;
 }

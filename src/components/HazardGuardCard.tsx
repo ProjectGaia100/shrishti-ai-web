@@ -62,7 +62,7 @@ export const HazardGuardCard = ({ onModeChange }: HazardGuardCardProps) => {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <h3 className="font-bold text-sm tracking-tight leading-none">CropShield</h3>
+            <h3 className="font-bold text-sm tracking-tight leading-none">HazardGuard</h3>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>

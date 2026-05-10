@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useScroll, useTransform, motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { SmokeBackground } from '@/components/ui/smoke-background';
 import { Navbar } from './landing/Navbar';
@@ -13,14 +12,14 @@ import { Footer } from './landing/Footer';
 // =============================================================================
 const SMOKE_CONFIG = {
   // --- SMOKE SETTINGS ---
-  smokeColor: "#71717a",      // Desaturated silver-grey
+  smokeColor: "#044bb7",      // Main smoke color (hex)
   glowColor: "#3B82F6",       // Glow/highlight color on smoke edges (hex)
-  glowIntensity: 0.2,         // Subtle glow
+  glowIntensity: 0.4,         // Glow brightness (0.0 - 2.0)
   brightness: 0.8,            // Overall smoke brightness (0.0 - 1.0)
-  speed: 0.4,                 // Slow, cinematic speed
+  speed: 2.0,                 // Animation speed (0.1 - 2.0)
   
   // --- BACKGROUND COLOR (the dark/black areas) ---
-  baseColor: "#050505",       // Deep OLED black
+  baseColor: "#1a1a60",       // Dark background color (hex) - try "#0a0a0a" for pure dark
   baseMix: 0.8,               // How much baseColor stays after fade-in (0.0 = fades to black, 1.0 = stays baseColor fully)
   
   // --- OVERLAY (darkens everything for text readability) ---
@@ -35,25 +34,9 @@ const SMOKE_CONFIG = {
 };
 // =============================================================================
 
-const staggerContainer = {
-  initial: { opacity: 0 },
-  animate: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.15,
-      delayChildren: 0.1,
-    },
-  },
-};
-
 export function LandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, logout } = useAuth();
-  const { scrollYProgress } = useScroll();
-  
-  // Dynamic opacity based on scroll depth - fades out as user scrolls down
-  const backgroundOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0.3]);
-  const contentBrightness = useTransform(scrollYProgress, [0, 0.5], [1, 0.8]);
 
   const goToAuth = () => navigate('/auth');
   const goToDashboard = () => navigate('/dashboard');
@@ -62,10 +45,7 @@ export function LandingPage() {
   return (
     <div className="relative min-h-screen bg-background text-foreground overflow-x-hidden">
       {/* Animated Smoke Background */}
-      <motion.div 
-        className="fixed inset-0 z-0"
-        style={{ opacity: backgroundOpacity }}
-      >
+      <div className="fixed inset-0 z-0">
         <SmokeBackground 
           smokeColor={SMOKE_CONFIG.smokeColor}
           glowColor={SMOKE_CONFIG.glowColor}
@@ -85,16 +65,10 @@ export function LandingPage() {
           className="absolute inset-0 bg-black pointer-events-none"
           style={{ opacity: SMOKE_CONFIG.overlayOpacity }}
         />
-      </motion.div>
+      </div>
       
       {/* Content Layer */}
-      <motion.div 
-        variants={staggerContainer}
-        initial="initial"
-        animate="animate"
-        className="relative z-10"
-        style={{ filter: `brightness(${contentBrightness})` }}
-      >
+      <div className="relative z-10">
         <Navbar
           isAuthenticated={isAuthenticated}
           onSignIn={goToAuth}
@@ -107,9 +81,7 @@ export function LandingPage() {
           onDashboard={goToDashboard}
         />
         <Footer />
-      </motion.div>
+      </div>
     </div>
   );
 }
-
-export default LandingPage;

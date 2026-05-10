@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, LucideIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchDataset } from "@/services/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface Legend {
   color: string;
@@ -23,6 +24,7 @@ export const DatasetCard = ({ id, name, title, description, icon: Icon, theme, l
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showLegend, setShowLegend] = useState(false);
+  const { toast } = useToast();
 
   const iconColors: Record<string, string> = {
     vegetation: "text-dataset-vegetation",
@@ -79,11 +81,25 @@ export const DatasetCard = ({ id, name, title, description, icon: Icon, theme, l
           }
         }));
         setIsLoaded(true);
+        toast({
+          title: "Layer active",
+          description: `${name} has been added to the map.`,
+        });
       } else {
         console.error('No tile_url returned from server for', name, data);
+        toast({
+          title: "Connection Issue",
+          description: `Failed to fetch tiles for ${name}.`,
+          variant: "destructive",
+        });
       }
     } catch (err) {
       console.error('Failed to load dataset', err);
+      toast({
+        title: "Sync Error",
+        description: `Could not connect to the geospatial data service.`,
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -92,6 +108,10 @@ export const DatasetCard = ({ id, name, title, description, icon: Icon, theme, l
   const handleUnload = () => {
     window.dispatchEvent(new CustomEvent('geo:remove-layer', { detail: { id } }));
     setIsLoaded(false);
+    toast({
+      title: "Layer removed",
+      description: `${name} has been detached.`,
+    });
   };
 
   return (

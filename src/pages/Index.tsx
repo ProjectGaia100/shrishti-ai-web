@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ChevronDown, GripVertical, Layers, Square, Trash2, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, normalizeLongitude } from "@/lib/utils";
 import { GLOBAL_DATASETS } from "@/services/datasetService";
 
 const FALLBACK_CREDIT_BUNDLES: CreditBundle[] = [
@@ -51,10 +51,6 @@ interface DashboardLayerItem {
   opacity: number;
   type?: string;
   zIndex?: number;
-}
-
-function normalizeLongitude(lon: number): number {
-  return ((lon + 180) % 360 + 360) % 360 - 180;
 }
 
 function parseCoordinateQuery(input: string): { lat: number; lon: number } | null {
@@ -224,7 +220,14 @@ const Index = () => {
     });
 
     setSidebarLayerCatalog(nextCatalog);
-  }, [layersById, sidebarLayerCatalog]);
+    
+    if (dedupedIds.length > sidebarLayerCatalog.length) {
+      toast({
+        title: "Project updated",
+        description: `Added ${dedupedIds.length - sidebarLayerCatalog.length} new dataset(s) to sidebar.`,
+      });
+    }
+  }, [layersById, sidebarLayerCatalog, toast]);
 
   useEffect(() => {
     const onCreditsUpdated = (event: Event) => {
@@ -479,10 +482,20 @@ const Index = () => {
       if (!detail?.bbox) return;
       setAoiBbox(detail.bbox);
       setIsAoiDrawing(false);
+      
+      // Auto-trigger layer refresh with new AOI clipping
+      // We wait for the next tick to ensure state is updated or use the detail.bbox
+      setTimeout(() => {
+        handleRefreshAddedLayers();
+      }, 0);
     };
 
     const onAoiCleared = () => {
       setAoiBbox(null);
+      // Revert layers to global view when AOI is removed
+      setTimeout(() => {
+        handleRefreshAddedLayers();
+      }, 0);
     };
 
     const onDrawState = (event: Event) => {
@@ -964,6 +977,7 @@ const Index = () => {
         onRefreshAddedLayers={handleRefreshAddedLayers}
         refreshingAddedLayers={refreshingAddedLayers}
         sidebarLayerCatalog={sidebarLayerCatalog}
+        aoiBbox={aoiBbox}
       />
       <main className="flex-1 relative flex flex-col overflow-hidden">
         {/* Unified Dashboard Header / Control Bar */}

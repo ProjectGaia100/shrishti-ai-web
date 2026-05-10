@@ -65,7 +65,7 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
           model: 'weatherwise',
         }
       }));
-      const errorMsg = 'Out of credits. Buy more credits to run AgriSense forecasts.';
+      const errorMsg = 'Out of credits. Buy more credits to run WeatherWise forecasts.';
       setError(errorMsg);
       toast({
         title: 'Out of credits',
@@ -297,7 +297,7 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
               <CloudRain className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-base tracking-tight leading-none">AgriSense</h3>
+              <h3 className="font-bold text-base tracking-tight leading-none">WeatherWise</h3>
               <p className="text-[11px] text-muted-foreground leading-none mt-1">Forecast Analysis</p>
             </div>
           </div>
@@ -411,7 +411,7 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
                 </PopoverContent>
               </Popover>
               <p className="text-[11px] text-muted-foreground">
-                Recent NASA days may be missing; AgriSense fetches maximum available data and fills missing tail values.
+                Recent NASA days may be missing; WeatherWise fetches maximum available data and fills missing tail values.
               </p>
             </div>
 

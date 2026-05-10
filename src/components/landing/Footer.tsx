@@ -1,21 +1,8 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 
 export function Footer() {
-  const footerVariants = {
-    initial: { opacity: 0, y: 20 },
-    animate: { 
-      opacity: 1, 
-      y: 0, 
-      transition: { type: "spring", stiffness: 120, damping: 25 } 
-    }
-  };
-
   return (
-    <motion.footer 
-      variants={footerVariants}
-      className="relative border-t border-white/10 bg-black/20 backdrop-blur-sm"
-    >
+    <footer className="relative border-t border-white/10 bg-black/20 backdrop-blur-sm">
       <div className="relative max-w-7xl mx-auto px-6 py-8">
         {/* Simplified single-row footer */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">

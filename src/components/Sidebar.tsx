@@ -12,6 +12,7 @@ import { CollapsibleSection } from "./CollapsibleSection";
 import type { TimelapseFrame } from "@/services/api";
 import type { UrbanPlanningFeature } from "@/services/urbanPlanning";
 import type { ForestDeptFeature } from "@/services/forestDepartment";
+import { ThemeToggle } from "./ThemeToggle";
 import {
   indiaService,
 } from "@/services/stateData";
@@ -30,9 +31,7 @@ import {
   ChevronsUpDown,
   Globe,
   Plus,
-  RefreshCw,
-  Sprout,
-  Wheat
+  RefreshCw
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -44,23 +43,6 @@ import {
 } from "@/components/ui/tooltip";
 import { fetchDataset } from "@/services/api";
 import { GLOBAL_DATASETS } from "@/services/datasetService";
-
-const COMING_SOON_MODELS = [
-  {
-    title: "RootPulse",
-    subtitle: "Soil health & irrigation intelligence",
-    description:
-      "Analyzes soil moisture levels, nutrient content, and water retention patterns to recommend precise irrigation schedules. Reduces water waste by telling farmers exactly when and how much to irrigate, field by field.",
-    icon: Sprout,
-  },
-  {
-    title: "HarvestMind",
-    subtitle: "Yield optimization & harvest timing",
-    description:
-      "Combines crop growth stage tracking with weather forecasts to predict the ideal harvest window. Goes beyond predicting yield quantity by also predicting when to harvest for maximum quality and minimum loss.",
-    icon: Wheat,
-  },
-] as const;
 
 export const Sidebar = ({ 
   isCollapsed = false,
@@ -81,6 +63,7 @@ export const Sidebar = ({
   onRefreshAddedLayers,
   refreshingAddedLayers = false,
   sidebarLayerCatalog = [],
+  aoiBbox = null,
 }: {
   onHazardGuardModeChange: (isActive: boolean, mode: HazardGuardMode, samplePoints: number) => void;
   onWeatherWiseToggle?: () => void;
@@ -100,6 +83,7 @@ export const Sidebar = ({
   sidebarLayerCatalog?: Array<{ id: string; name: string }>;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  aoiBbox?: AoiBbox | null;
 }) => {
   // Track expanded state for all sections
   const [sectionsExpanded, setSectionsExpanded] = useState<Record<string, boolean>>({
@@ -221,23 +205,22 @@ export const Sidebar = ({
         "flex items-center gap-3 py-4 border-b border-border/60 bg-muted/5 transition-all",
         isCollapsed ? "px-0 justify-center" : "px-6"
       )}>
-        <div 
-          className="flex items-center gap-2.5 cursor-pointer group shrink-0" 
-          onClick={() => navigate('/')} 
-          title="Back to Home"
-        >
-          <img src="/shrishti-icon-small.png" alt="Shrishti AI" className="h-7 w-7 object-contain opacity-80 group-hover:opacity-100 transition-opacity" />
-          {!isCollapsed && (
-            <motion.div 
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex flex-col"
-            >
-              <span className="text-[11px] font-black tracking-widest uppercase leading-none text-foreground/90">Shrishti</span>
-              <span className="text-[9px] font-bold tracking-[0.1em] uppercase text-muted-foreground leading-none mt-0.5">Intelligence</span>
-            </motion.div>
-          )}
-        </div>
+          <div className="flex items-center gap-3 cursor-pointer shrink-0" onClick={() => navigate('/')}>
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl">
+              <img src="/shrishti-icon.png" alt="Logo" className="w-10 h-10 object-contain" />
+            </div>
+            {!isCollapsed && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex flex-col"
+              >
+                <span className="text-sm font-black tracking-tight text-foreground uppercase leading-none">
+                  Shrishti AI
+                </span>
+              </motion.div>
+            )}
+          </div>
       </div>
 
       {/* Toggle Button */}
@@ -341,48 +324,6 @@ export const Sidebar = ({
                   <HazardGuardCard onModeChange={onHazardGuardModeChange} />
                   {onWeatherWiseToggle && <WeatherWiseCard onTogglePanel={onWeatherWiseToggle} isActive={isWeatherWiseActive} />}
                   {onGeoVisionToggle && <GeoVisionCard onTogglePanel={onGeoVisionToggle} isActive={isGeoVisionActive} />}
-
-                  <div className="mx-3 mt-2 rounded-xl border border-dashed border-border/70 bg-muted/20 p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h5 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Coming Soon</h5>
-                    </div>
-
-                    {COMING_SOON_MODELS.map((model) => {
-                      const Icon = model.icon;
-                      return (
-                        <div key={model.title} className="rounded-lg border border-border/60 bg-background/70 px-3 py-2.5">
-                          <div className="flex items-center gap-2.5">
-                            <div className="p-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200">
-                              <Icon className="w-3.5 h-3.5" />
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-bold tracking-tight text-foreground">{model.title}</span>
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <button type="button" className="text-muted-foreground/50 hover:text-muted-foreground transition-colors">
-                                        <HelpCircle className="w-3.5 h-3.5" />
-                                      </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="right" className="max-w-[260px] text-[11px] leading-relaxed">
-                                      {model.description}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                              <p className="text-[10px] text-muted-foreground truncate">{model.subtitle}</p>
-                            </div>
-
-                            <span className="text-[9px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-100/70 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/30 rounded px-1.5 py-0.5">
-                              Coming Soon
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
                 </div>
               </div>
             )}
@@ -504,6 +445,26 @@ export const Sidebar = ({
                     )}
                   </div>
                 </div>
+
+                {/* Catalog Link */}
+                <div className="mt-4 pt-6 border-t border-border/40">
+                  <div className="flex flex-col items-center text-center px-4">
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
+                      <Plus className="w-5 h-5 text-muted-foreground/50" />
+                    </div>
+                    <h4 className="text-sm font-bold text-foreground mb-1">Looking for more?</h4>
+                    <p className="text-[11px] text-muted-foreground mb-4 leading-relaxed">
+                      Browse our global catalog of multi-spectral satellite datasets and planetary-scale indices.
+                    </p>
+                    <Button 
+                      onClick={() => onOpenDatasetDiscovery?.()}
+                      variant="outline"
+                      className="w-full rounded-xl font-black uppercase tracking-widest text-[9px] h-9 border-border/60 hover:bg-muted/50"
+                    >
+                      Discover Datasets
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -549,15 +510,16 @@ export const Sidebar = ({
           </>
         )}
       </div>
+{/* Sidebar Footer */}
+{!isCollapsed && (
+  <div className="p-4 border-t border-border/60 bg-muted/10 text-center">
+    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+      Shrishti AI © 2026 • v2.4.0
+    </p>
+  </div>
+)}
 
-      {/* Sidebar Footer */}
-      {!isCollapsed && (
-        <div className="p-4 border-t border-border/60 bg-muted/10 text-center">
-          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
-            Shrishti AI © 2026 • v2.4.0
-          </p>
-        </div>
-      )}
     </motion.aside>
   );
 };
+

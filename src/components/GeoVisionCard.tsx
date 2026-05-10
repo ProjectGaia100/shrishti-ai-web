@@ -39,7 +39,7 @@ export const GeoVisionCard = ({ onTogglePanel, isActive = false }: GeoVisionCard
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <h3 className="font-bold text-[15px] tracking-tight leading-tight">TerraScan</h3>
+            <h3 className="font-bold text-[15px] tracking-tight leading-tight">GeoVision</h3>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>

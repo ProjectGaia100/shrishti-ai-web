@@ -65,7 +65,7 @@ export const GeoVisionPanel = ({ isVisible, onClose, mapCoords, availableCredits
           model: 'geovision',
         }
       }));
-      const errorMsg = 'Out of credits. Buy more credits to run TerraScan predictions.';
+      const errorMsg = 'Out of credits. Buy more credits to run GeoVision predictions.';
       setError(errorMsg);
       toast({ title: 'Out of credits', description: errorMsg, variant: 'destructive' });
       return;
@@ -82,7 +82,7 @@ export const GeoVisionPanel = ({ isVisible, onClose, mapCoords, availableCredits
     if (isNaN(lon) || lon < -180 || lon > 180) { setError("Longitude must be between -180 and 180"); return; }
 
     setIsLoading(true);
-    toast({ title: "Running TerraScan", description: "Fetching most recent data & fusing LSTM + Tree Ensemble models..." });
+    toast({ title: "Running GeoVision", description: "Fetching most recent data & fusing LSTM + Tree Ensemble models..." });
 
     try {
       const result = await geoVisionService.predictFusion(lat, lon);
@@ -140,7 +140,7 @@ export const GeoVisionPanel = ({ isVisible, onClose, mapCoords, availableCredits
               <Brain className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-sm tracking-tight uppercase">TerraScan</h3>
+              <h3 className="font-bold text-sm tracking-tight uppercase">GeoVision</h3>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-1">Multi-modal Analysis</p>
             </div>
           </div>

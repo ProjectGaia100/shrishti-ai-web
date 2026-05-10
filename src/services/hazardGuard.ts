@@ -31,9 +31,24 @@ export interface HazardGuardResponse {
   error?: string;
 }
 
+export interface HeatmapSummary {
+  total: number;
+  successful: number;
+  failed: number;
+  avg_risk: number;
+  max_risk: number;
+  disaster_count: number;
+}
+
 class HazardGuardService {
   private baseUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_HAZARDGUARD_URL || 'http://127.0.0.1:5000';
   private readonly predictionCost = 10;
+
+  private debugLog(...args: unknown[]) {
+    if (import.meta.env.DEV) {
+      console.log(...args);
+    }
+  }
 
   private async ensureCreditsForPrediction(): Promise<{ ok: boolean; error?: string }> {
     try {
@@ -78,21 +93,18 @@ class HazardGuardService {
       return { success: false, error: creditGate.error };
     }
 
+    let shouldConsumeCredits = false;
+
     try {
-      console.log('[HAZARDGUARD_CLIENT] Starting prediction request...');
-      console.log('[HAZARDGUARD_CLIENT] Using baseUrl:', this.baseUrl);
-      console.log('[HAZARDGUARD_CLIENT] Coordinates:', { latitude, longitude });
+      this.debugLog('[HAZARDGUARD_CLIENT] Starting prediction request...');
+      this.debugLog('[HAZARDGUARD_CLIENT] Using baseUrl:', this.baseUrl);
+      this.debugLog('[HAZARDGUARD_CLIENT] Coordinates:', { latitude, longitude });
       
-      // Calculate reference date accounting for NASA POWER API lag
-      // The backend will use this as the END date and fetch 60 days of data backwards
-      // So if today is March 29 and lag is 7, we send March 22, and backend uses Jan 22 - March 22
       const referenceDate = new Date();
       referenceDate.setDate(referenceDate.getDate() - NASA_POWER_LAG_DAYS); 
-      const referenceDateString = referenceDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-      console.log(`[HAZARDGUARD_CLIENT] Reference date (${NASA_POWER_LAG_DAYS} days ago for NASA lag):`, referenceDateString);
+      const referenceDateString = referenceDate.toISOString().split('T')[0];
       
       const requestUrl = `${this.baseUrl}/api/hazardguard/predict`;
-      console.log('[HAZARDGUARD_CLIENT] Request URL:', requestUrl);
       
       const response = await fetch(requestUrl, {
         method: 'POST',
@@ -107,8 +119,6 @@ class HazardGuardService {
           reference_date: referenceDateString
         }),
       });
-
-      console.log('[HAZARDGUARD_CLIENT] Response status:', response.status);
 
       if (!response.ok) {
         if (response.status === 402) {
@@ -127,12 +137,10 @@ class HazardGuardService {
         } catch {
           backendError = '';
         }
-        console.error('[HAZARDGUARD_CLIENT] Response not OK:', response.status, response.statusText, backendError);
         throw new Error(backendError ? `Prediction service error ${response.status}: ${backendError}` : `Prediction service error ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('[HAZARDGUARD_CLIENT] Response data:', JSON.stringify(data, null, 2));
 
       if (data.credit_info?.remaining_credits !== undefined) {
         window.dispatchEvent(new CustomEvent('credits:updated', {
@@ -141,21 +149,19 @@ class HazardGuardService {
       }
       
       if (!data.success) {
-        console.error('[HAZARDGUARD_CLIENT] Prediction failed:', data.error);
         return {
           success: false,
           error: data.error || 'Prediction failed'
         };
       }
 
-      console.log('[HAZARDGUARD_CLIENT] Prediction successful:', data.data?.prediction?.prediction);
-      console.log('[HAZARDGUARD_CLIENT] Disaster types from API:', data.data?.disaster_types?.disaster_types);
-      console.log('[HAZARDGUARD_CLIENT] Disaster type probabilities:', data.data?.disaster_types?.probabilities);
+      shouldConsumeCredits = true;
+
       return {
         success: true,
         data: {
           prediction: data.data?.prediction?.prediction || 'UNKNOWN',
-          confidence: (data.data?.prediction?.confidence || 0) * 100, // Convert to percentage
+          confidence: (data.data?.prediction?.confidence || 0) * 100,
           latitude,
           longitude,
           disaster_types: data.data?.disaster_types?.disaster_types || [],
@@ -166,19 +172,11 @@ class HazardGuardService {
             normal_probability: (data.data?.prediction?.probability?.normal || 0) * 100,
             processing_time: data.data?.processing_details?.total_processing_time_seconds || 0,
             data_collection_success: data.data?.data_collection_summary ? 
-              (Object.values(data.data.data_collection_summary).every((item: any) => item) ? 1 : 0) : 0
+              (Object.values(data.data.data_collection_summary as Record<string, boolean>).every((item: boolean) => item) ? 1 : 0) : 0
           },
           emergency_contacts: [
-            {
-              name: "Emergency Services",
-              number: "911", 
-              type: "emergency"
-            },
-            {
-              name: "Local Emergency Management",
-              number: "211",
-              type: "disaster"
-            }
+            { name: "Emergency Services", number: "911", type: "emergency" },
+            { name: "Local Emergency Management", number: "211", type: "disaster" }
           ],
           recommendations: this.getDefaultRecommendations(data.data?.prediction?.prediction || 'UNKNOWN')
         }
@@ -190,7 +188,9 @@ class HazardGuardService {
         error: error instanceof Error ? error.message : 'Failed to connect to HazardGuard service'
       };
     } finally {
-      await this.syncCreditBalanceOrConsumeFallback(this.predictionCost);
+      if (shouldConsumeCredits) {
+        await this.syncCreditBalanceOrConsumeFallback(this.predictionCost);
+      }
     }
   }
 
@@ -212,10 +212,6 @@ class HazardGuardService {
     }
   }
 
-  /**
-   * Generate evenly-spaced sample points within a polygon and
-   * run HazardGuard predictions for each to build a heatmap.
-   */
   async predictRegion(
     polygon: Array<[number, number]>,
     sampleCount: number = 5
@@ -230,14 +226,7 @@ class HazardGuardService {
       disaster_types?: string[];
       disaster_type_probabilities?: Record<string, number>;
     }>;
-    summary?: {
-      total: number;
-      successful: number;
-      failed: number;
-      avg_risk: number;
-      max_risk: number;
-      disaster_count: number;
-    };
+    summary?: HeatmapSummary;
     error?: string;
   }> {
     const creditGate = await this.ensureCreditsForPrediction();
@@ -246,33 +235,22 @@ class HazardGuardService {
     }
 
     try {
-      console.log('[HAZARDGUARD_CLIENT] Starting region prediction...');
-      console.log('[HAZARDGUARD_CLIENT] Polygon vertices:', polygon.length, 'Sample points:', sampleCount);
-
-      // Generate sample points inside the polygon
       const sampleLocations = this.generateGridPointsInPolygon(polygon, sampleCount);
-      console.log('[HAZARDGUARD_CLIENT] Generated', sampleLocations.length, 'sample points');
-
       if (sampleLocations.length === 0) {
         return { success: false, error: 'Could not generate sample points within the polygon' };
       }
 
-      // Calculate reference date (same logic as single prediction)
       const referenceDate = new Date();
       referenceDate.setDate(referenceDate.getDate() - 67);
       const referenceDateString = referenceDate.toISOString().split('T')[0];
 
-      // Build batch request
       const locations = sampleLocations.map(([lat, lng]) => ({
         latitude: lat,
         longitude: lng,
         reference_date: referenceDateString
       }));
 
-      const requestUrl = `${this.baseUrl}/api/hazardguard/predict/batch`;
-      console.log('[HAZARDGUARD_CLIENT] Batch URL:', requestUrl);
-
-      const response = await fetch(requestUrl, {
+      const response = await fetch(`${this.baseUrl}/api/hazardguard/predict/batch`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -293,7 +271,6 @@ class HazardGuardService {
       }
 
       const data = await response.json();
-      console.log('[HAZARDGUARD_CLIENT] Batch response:', JSON.stringify(data, null, 2).slice(0, 500));
 
       if (data.credit_info?.remaining_credits !== undefined) {
         window.dispatchEvent(new CustomEvent('credits:updated', {
@@ -305,17 +282,7 @@ class HazardGuardService {
         return { success: false, error: data.error || 'Batch prediction failed' };
       }
 
-      // Transform results into heatmap points
-      const points: Array<{
-        latitude: number;
-        longitude: number;
-        risk_score: number;
-        prediction: string;
-        confidence: number;
-        disaster_types?: string[];
-        disaster_type_probabilities?: Record<string, number>;
-      }> = [];
-
+      const points: any[] = [];
       let totalRisk = 0;
       let maxRisk = 0;
       let disasterCount = 0;
@@ -324,17 +291,13 @@ class HazardGuardService {
       for (const result of (data.data?.results || [])) {
         if (!result.success) continue;
         successfulCount++;
-
         const prediction = result.prediction?.prediction || 'UNKNOWN';
         const confidence = result.prediction?.confidence || 0;
         const disasterProb = result.prediction?.probability?.disaster || 0;
-        const isDisaster = prediction.toLowerCase() === 'disaster';
-
-        // Risk score: use disaster probability as 0-1 intensity
         const risk_score = disasterProb;
         totalRisk += risk_score;
         maxRisk = Math.max(maxRisk, risk_score);
-        if (isDisaster) disasterCount++;
+        if (prediction.toLowerCase() === 'disaster') disasterCount++;
 
         points.push({
           latitude: result.location?.latitude || 0,
@@ -360,105 +323,40 @@ class HazardGuardService {
         }
       };
     } catch (error) {
-      console.error('[HAZARDGUARD_CLIENT] Region prediction error:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Region prediction failed'
-      };
+      console.error('Region prediction error:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Region prediction failed' };
     } finally {
       await this.syncCreditBalanceOrConsumeFallback(this.predictionCost);
     }
   }
 
-  /**
-   * Generate roughly `count` evenly spaced grid points that fall inside the given polygon.
-   * Uses a bounding-box grid and point-in-polygon filtering.
-   */
-  private generateGridPointsInPolygon(
-    polygon: Array<[number, number]>,
-    count: number
-  ): Array<[number, number]> {
-    // Compute bounding box
+  private generateGridPointsInPolygon(polygon: Array<[number, number]>, count: number): Array<[number, number]> {
     const lats = polygon.map(p => p[0]);
     const lngs = polygon.map(p => p[1]);
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
-
-    // Determine grid dimensions — approximate square grid with `count` cells
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
     const aspect = (maxLng - minLng) / Math.max(maxLat - minLat, 0.0001);
     const rows = Math.max(1, Math.round(Math.sqrt(count / aspect)));
     const cols = Math.max(1, Math.round(count / rows));
-
-    const latStep = (maxLat - minLat) / (rows + 1);
-    const lngStep = (maxLng - minLng) / (cols + 1);
-
+    const latStep = (maxLat - minLat) / (rows + 1), lngStep = (maxLng - minLng) / (cols + 1);
     const points: Array<[number, number]> = [];
-
     for (let r = 1; r <= rows; r++) {
       for (let c = 1; c <= cols; c++) {
-        const lat = minLat + r * latStep;
-        const lng = minLng + c * lngStep;
-        if (this.pointInPolygon(lat, lng, polygon)) {
-          points.push([lat, lng]);
-        }
+        const lat = minLat + r * latStep, lng = minLng + c * lngStep;
+        if (this.pointInPolygon(lat, lng, polygon)) points.push([lat, lng]);
       }
     }
-
-    // If we got fewer than needed (non-convex polygon), try denser grid
-    if (points.length < Math.min(count, 3)) {
-      const denseRows = rows * 2;
-      const denseCols = cols * 2;
-      const dLatStep = (maxLat - minLat) / (denseRows + 1);
-      const dLngStep = (maxLng - minLng) / (denseCols + 1);
-      points.length = 0;
-      for (let r = 1; r <= denseRows; r++) {
-        for (let c = 1; c <= denseCols; c++) {
-          const lat = minLat + r * dLatStep;
-          const lng = minLng + c * dLngStep;
-          if (this.pointInPolygon(lat, lng, polygon)) {
-            points.push([lat, lng]);
-          }
-        }
-      }
-    }
-
-    // Trim to target count (pick evenly spaced subset if we have more)
-    if (points.length > count) {
-      const step = points.length / count;
-      const sampled: Array<[number, number]> = [];
-      for (let i = 0; i < count; i++) {
-        sampled.push(points[Math.floor(i * step)]);
-      }
-      return sampled;
-    }
-
     return points;
   }
 
-  /** Ray-casting point-in-polygon test */
   private pointInPolygon(lat: number, lng: number, polygon: Array<[number, number]>): boolean {
     let inside = false;
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-      const [yi, xi] = polygon[i];
-      const [yj, xj] = polygon[j];
-      const intersect = ((yi > lat) !== (yj > lat)) &&
-        (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+      const [yi, xi] = polygon[i], [yj, xj] = polygon[j];
+      const intersect = ((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
       if (intersect) inside = !inside;
     }
     return inside;
-  }
-
-  async checkServiceHealth(): Promise<boolean> {
-    try {
-      const response = await fetch(`${this.baseUrl}/health`, {
-        method: 'GET',
-      });
-      return response.ok;
-    } catch {
-      return false;
-    }
   }
 }
 

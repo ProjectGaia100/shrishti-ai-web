@@ -128,7 +128,7 @@ export const HazardGuardPanel = ({
               <Shield className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-base tracking-tight">CropShield</h3>
+              <h3 className="font-bold text-base tracking-tight">HazardGuard</h3>
               <p className="text-[11px] text-muted-foreground leading-none mt-1">
                 {mode === 'region' ? 'Regional Risk Analysis' : 'Location Status Analysis'}
               </p>
@@ -202,7 +202,7 @@ export const HazardGuardPanel = ({
 
             {(availableCredits ?? 0) < HAZARDGUARD_COST && (
               <p className="text-[11px] text-red-500">
-                Need {HAZARDGUARD_COST} credits to run CropShield analysis.
+                Need {HAZARDGUARD_COST} credits to run HazardGuard analysis.
               </p>
             )}
           </div>

@@ -22,7 +22,6 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          glow: "hsl(var(--primary-glow))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -59,15 +58,10 @@ export default {
         success: "hsl(var(--success))",
         warning: "hsl(var(--warning))",
         error: "hsl(var(--error))",
-        canvas: "oklch(var(--canvas) / <alpha-value>)",
-        "hardware-edge": "oklch(var(--hardware-edge) / <alpha-value>)",
-        titanium: "oklch(var(--titanium) / <alpha-value>)",
-        "slate-text": "oklch(var(--slate-text) / <alpha-value>)",
-        "emerald-status": "oklch(var(--emerald-status) / <alpha-value>)",
       },
       fontFamily: {
-        sans: ["Geist", "Inter", "sans-serif"],
-        mono: ["Geist Mono", "Fira Code", "monospace"],
+        sans: ["Inter", "sans-serif"],
+        mono: ["Fira Code", "monospace"],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
@@ -98,9 +92,9 @@ export default {
           "0%, 100%": { boxShadow: "0 0 20px rgba(59, 130, 246, 0.3)" },
           "50%": { boxShadow: "0 0 40px rgba(59, 130, 246, 0.6)" },
         },
-        "spin-slow": {
-          from: { transform: "rotate(0deg)" },
-          to: { transform: "rotate(360deg)" },
+        "scale-in": {
+          from: { opacity: "0", transform: "scale(0.95) translateY(10px)" },
+          to: { opacity: "1", transform: "scale(1) translateY(0)" },
         },
       },
       animation: {
@@ -109,7 +103,7 @@ export default {
         "fade-in": "fade-in 0.3s ease-out",
         "slide-in": "slide-in 0.3s ease-out",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
-        "spin-slow": "spin-slow 3s linear infinite",
+        "scale-in": "scale-in 0.2s ease-out",
       },
     },
   },
