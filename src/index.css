@@ -9,55 +9,86 @@
 
 @layer base {
   /* ---------------------------------------------------------------
-     DARK THEME (Only theme)
-     Deep charcoal, subtle glow accents, satellite control-room vibe
+     LIGHT THEME (Default)
+     Clean, professional, high-clarity fintech/utility vibe
      --------------------------------------------------------------- */
   :root {
-    --background: 224 30% 9%;
-    --foreground: 210 20% 95%;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
 
-    --card: 224 25% 12%;
-    --card-foreground: 210 20% 95%;
-    --card-glass: 224 20% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --card-glass: 0 0% 100%;
 
-    --popover: 224 25% 12%;
-    --popover-foreground: 210 20% 95%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    /* Bright blue primary */
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 217 91% 70%;
+    /* Pure, professional black primary */
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
 
-    /* Dark secondary */
-    --secondary: 224 20% 16%;
-    --secondary-foreground: 210 20% 95%;
+    /* Subtle secondary/muted colors */
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
 
-    --muted: 224 20% 16%;
-    --muted-foreground: 215 16% 57%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
 
-    --accent: 224 20% 16%;
-    --accent-foreground: 210 20% 95%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 224 15% 20%;
-    --input: 224 20% 16%;
-    --ring: 217 91% 60%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
 
-    --radius: 0.625rem;
+    --radius: 0.5rem;
 
-    /* Dataset theme colors */
-    --dataset-vegetation: 142 76% 42%;
-    --dataset-terrain: 25 95% 53%;
-    --dataset-lights: 48 96% 53%;
-    --dataset-landcover: 199 89% 48%;
-    --dataset-temperature: 0 84% 60%;
+    /* Dataset theme colors (adjusted for light bg) */
+    --dataset-vegetation: 142 76% 36%;
+    --dataset-terrain: 25 95% 45%;
+    --dataset-lights: 38 92% 50%;
+    --dataset-landcover: 199 89% 40%;
+    --dataset-temperature: 0 72% 51%;
 
     /* Status colors */
-    --success: 142 76% 42%;
-    --warning: 48 96% 53%;
-    --error: 0 84% 60%;
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --error: 0 72% 51%;
+  }
+
+  /* ---------------------------------------------------------------
+     DARK THEME (Optional)
+     Deep charcoal, satellite control-room vibe
+     --------------------------------------------------------------- */
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --card-glass: 0 0% 7%;
+
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
   }
 }
 
@@ -66,57 +97,79 @@
   .surface {
     background-color: hsl(var(--card));
     border: 1px solid hsl(var(--border));
+    box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1);
+  }
+  .dark .surface {
     box-shadow: 0 2px 8px 0 rgba(0,0,0,0.35);
   }
+
   .surface-raised {
     background-color: hsl(var(--card));
     border: 1px solid hsl(var(--border));
-    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.35);
+    box-shadow: 0 4px 12px 0 rgba(0,0,0,0.08);
   }
+  .dark .surface-raised {
+    box-shadow: 0 4px 12px 0 rgba(0,0,0,0.4);
+  }
+
   .surface-inset {
     background-color: hsl(var(--muted));
     border: 1px solid hsl(var(--border));
   }
 
-  /* Glass — dark mode aesthetics */
+  /* Glass — adaptive aesthetics */
   .glass {
-    background: rgba(15, 20, 35, 0.8);
+    background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
+  .dark .glass {
+    background: rgba(15, 20, 35, 0.8);
+  }
+
   .glass-strong {
-    background: rgba(15, 20, 35, 0.95);
+    background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
   }
+  .dark .glass-strong {
+    background: rgba(15, 20, 35, 0.95);
+  }
+
   .glass-subtle {
-    background: rgba(15, 20, 35, 0.5);
+    background: rgba(255, 255, 255, 0.4);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+  }
+  .dark .glass-subtle {
+    background: rgba(15, 20, 35, 0.5);
   }
 
   /* Gradient backgrounds */
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(224, 30%, 9%), hsl(224, 25%, 12%));
+    background: linear-gradient(135deg, hsl(var(--background)), hsl(var(--muted)));
   }
 
   /* Smooth transitions */
   .transition-smooth {
-    transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* Hover elevation — subtle, professional */
   .hover-lift {
-    transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   .hover-lift:hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px -2px rgba(0,0,0,0.1);
+  }
+  .dark .hover-lift:hover {
     box-shadow: 0 8px 25px -5px rgba(0,0,0,0.4);
   }
 
   /* Text accent gradient */
   .text-gradient {
-    background: linear-gradient(135deg, hsl(217, 91%, 60%), hsl(199, 89%, 48%));
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--dataset-landcover)));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -124,10 +177,10 @@
 
   /* Shadow utilities */
   .shadow-glow {
-    box-shadow: 0 0 30px rgba(59, 130, 246, 0.25);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.15);
   }
-  .shadow-glow-purple {
-    box-shadow: 0 0 30px rgba(139, 92, 246, 0.25);
+  .dark .shadow-glow {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.25);
   }
 
   /* Separator */
@@ -136,8 +189,13 @@
     background: linear-gradient(to right, transparent, hsl(var(--border)), transparent);
   }
 
-  /* Gradient mesh — dark mode only */
+  /* Gradient mesh — subtle in light, dramatic in dark */
   .gradient-mesh {
+    background:
+      radial-gradient(at 40% 20%, rgba(59,130,246,0.03) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, rgba(59,130,246,0.02) 0px, transparent 50%);
+  }
+  .dark .gradient-mesh {
     background:
       radial-gradient(at 40% 20%, rgba(59,130,246,0.06) 0px, transparent 50%),
       radial-gradient(at 80% 0%, rgba(59,130,246,0.04) 0px, transparent 50%),
@@ -146,17 +204,17 @@
 
   /* Animation utilities */
   .animate-fade-in {
-    animation: fade-in 0.3s ease-out;
+    animation: fade-in 0.2s ease-out;
   }
   .animate-slide-in-from-right {
-    animation: slide-in-from-right 0.35s ease-out;
+    animation: slide-in-from-right 0.3s ease-out;
   }
   .animate-scale-in {
-    animation: scale-in 0.4s ease-out;
+    animation: scale-in 0.3s ease-out;
   }
 
   @keyframes fade-in {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
   }
   @keyframes slide-in-from-right {
@@ -164,7 +222,7 @@
     to { opacity: 1; transform: translateX(0); }
   }
   @keyframes scale-in {
-    from { opacity: 0; transform: scale(0.95); }
+    from { opacity: 0; transform: scale(0.98); }
     to { opacity: 1; transform: scale(1); }
   }
 
@@ -201,6 +259,187 @@
   .hazard-map .leaflet-top.leaflet-left .leaflet-draw {
     margin-top: 64px;
   }
+
+  /* Professional, low-noise style for drawing controls. */
+  .hazard-map .leaflet-draw-toolbar a {
+    background-color: rgba(24, 24, 27, 0.88);
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+  }
+
+  .hazard-map .leaflet-draw-toolbar a:hover,
+  .hazard-map .leaflet-draw-toolbar a:focus {
+    background-color: rgba(39, 39, 42, 0.94);
+  }
+
+  .hazard-map .leaflet-draw-actions a {
+    background-color: rgba(24, 24, 27, 0.9);
+    color: #f4f4f5;
+    border-left-color: rgba(255, 255, 255, 0.14);
+  }
+
+  .hazard-map .leaflet-draw-actions a:hover {
+    background-color: rgba(39, 39, 42, 0.96);
+  }
+
+  .hazard-map path.aoi-rectangle,
+  .hazard-map .leaflet-draw-shape.aoi-rectangle {
+    stroke: #f59e0b !important;
+    stroke-width: 3px !important;
+    stroke-opacity: 1 !important;
+    stroke-dasharray: 8 6 !important;
+    fill: #f59e0b !important;
+    fill-opacity: 0.2 !important;
+  }
+
+  /* Screenshot-style map switcher (selected card + horizontal options). */
+  .map-style-switcher {
+    position: absolute;
+    left: 56px;
+    bottom: 12px;
+    z-index: 430;
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    pointer-events: auto;
+  }
+
+  .map-style-selected {
+    width: 52px;
+    height: 56px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 9px;
+    background: hsl(var(--card) / 0.95);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px;
+    cursor: pointer;
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  }
+
+  .map-style-selected:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.28);
+    border-color: hsl(var(--primary) / 0.45);
+  }
+
+  .map-style-thumb {
+    width: 46px;
+    height: 50px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background-size: cover;
+    background-position: center;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  }
+
+  .map-style-selected-label {
+    display: none;
+  }
+
+  .map-style-caret {
+    display: none;
+  }
+
+  .map-style-switcher.is-open .map-style-caret {
+    transform: rotate(180deg);
+  }
+
+  .map-style-strip {
+    border: 1px solid hsl(var(--border));
+    border-radius: 9px;
+    background: hsl(var(--card) / 0.95);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 4px;
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .map-style-chip {
+    width: 52px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    padding: 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    cursor: pointer;
+    transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+  }
+
+  .map-style-chip:hover {
+    border-color: hsl(var(--border));
+    background: hsl(var(--accent));
+    transform: translateY(-1px);
+  }
+
+  .map-style-chip-thumb {
+    width: 46px;
+    height: 26px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background-size: cover;
+    background-position: center;
+  }
+
+  .map-style-chip-label {
+    font-size: 10px;
+    color: hsl(var(--foreground));
+    line-height: 1;
+  }
+
+  .map-style-chip-icon {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .dark .map-style-selected,
+  .dark .map-style-strip {
+    background: rgba(17, 24, 39, 0.94);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.52);
+  }
+
+  @media (max-width: 768px) {
+    .map-style-switcher {
+      left: 52px;
+      bottom: 10px;
+      gap: 6px;
+    }
+
+    .map-style-selected {
+      width: 48px;
+      height: 52px;
+      padding: 3px;
+    }
+
+    .map-style-thumb {
+      width: 42px;
+      height: 46px;
+    }
+
+    .map-style-strip {
+      padding: 5px;
+      gap: 5px;
+    }
+
+    .map-style-chip {
+      width: 48px;
+    }
+
+    .map-style-chip-thumb {
+      width: 42px;
+      height: 22px;
+    }
+  }
 }
 
 @layer base {
@@ -223,15 +462,21 @@
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--primary) / 0.3);
+    background: hsl(var(--primary) / 0.15);
     border-radius: 3px;
   }
+  .dark ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.3);
+  }
   ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.25);
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--primary) / 0.5);
   }
 
   /* Improve visibility of native calendar button in dark WeatherWise input. */
-  .weatherwise-date-input::-webkit-calendar-picker-indicator {
+  .dark .weatherwise-date-input::-webkit-calendar-picker-indicator {
     filter: invert(1);
     opacity: 1;
     cursor: pointer;
