@@ -59,6 +59,15 @@ export default {
         success: "hsl(var(--success))",
         warning: "hsl(var(--warning))",
         error: "hsl(var(--error))",
+        canvas: "oklch(var(--canvas) / <alpha-value>)",
+        "hardware-edge": "oklch(var(--hardware-edge) / <alpha-value>)",
+        titanium: "oklch(var(--titanium) / <alpha-value>)",
+        "slate-text": "oklch(var(--slate-text) / <alpha-value>)",
+        "emerald-status": "oklch(var(--emerald-status) / <alpha-value>)",
+      },
+      fontFamily: {
+        sans: ["Geist", "Inter", "sans-serif"],
+        mono: ["Geist Mono", "Fira Code", "monospace"],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

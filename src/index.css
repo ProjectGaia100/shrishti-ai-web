@@ -57,6 +57,13 @@
     --success: 142 76% 36%;
     --warning: 38 92% 50%;
     --error: 0 72% 51%;
+
+    /* Atmospheric Monolith Foundation */
+    --canvas: 10% 0.01 240;
+    --hardware-edge: 98% 0.00 0 / 8%;
+    --titanium: 95% 0.01 240;
+    --slate-text: 60% 0.02 240;
+    --emerald-status: 70% 0.16 160;
   }
 
   /* ---------------------------------------------------------------
@@ -89,6 +96,13 @@
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
     --ring: 0 0% 83.1%;
+
+    /* Atmospheric Monolith Foundation */
+    --canvas: 10% 0.01 240;
+    --hardware-edge: 98% 0.00 0 / 8%;
+    --titanium: 95% 0.01 240;
+    --slate-text: 60% 0.02 240;
+    --emerald-status: 70% 0.16 160;
   }
 }
 
