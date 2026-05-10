@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useScroll, useTransform, motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { SmokeBackground } from '@/components/ui/smoke-background';
 import { Navbar } from './landing/Navbar';
@@ -12,14 +13,14 @@ import { Footer } from './landing/Footer';
 // =============================================================================
 const SMOKE_CONFIG = {
   // --- SMOKE SETTINGS ---
-  smokeColor: "#044bb7",      // Main smoke color (hex)
+  smokeColor: "#71717a",      // Desaturated silver-grey
   glowColor: "#3B82F6",       // Glow/highlight color on smoke edges (hex)
-  glowIntensity: 0.4,         // Glow brightness (0.0 - 2.0)
+  glowIntensity: 0.2,         // Subtle glow
   brightness: 0.8,            // Overall smoke brightness (0.0 - 1.0)
-  speed: 2.0,                 // Animation speed (0.1 - 2.0)
+  speed: 0.4,                 // Slow, cinematic speed
   
   // --- BACKGROUND COLOR (the dark/black areas) ---
-  baseColor: "#1a1a60",       // Dark background color (hex) - try "#0a0a0a" for pure dark
+  baseColor: "#050505",       // Deep OLED black
   baseMix: 0.8,               // How much baseColor stays after fade-in (0.0 = fades to black, 1.0 = stays baseColor fully)
   
   // --- OVERLAY (darkens everything for text readability) ---
@@ -37,6 +38,11 @@ const SMOKE_CONFIG = {
 export function LandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, logout } = useAuth();
+  const { scrollYProgress } = useScroll();
+  
+  // Dynamic opacity based on scroll depth - fades out as user scrolls down
+  const backgroundOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0.3]);
+  const contentBrightness = useTransform(scrollYProgress, [0, 0.5], [1, 0.8]);
 
   const goToAuth = () => navigate('/auth');
   const goToDashboard = () => navigate('/dashboard');
@@ -45,7 +51,10 @@ export function LandingPage() {
   return (
     <div className="relative min-h-screen bg-background text-foreground overflow-x-hidden">
       {/* Animated Smoke Background */}
-      <div className="fixed inset-0 z-0">
+      <motion.div 
+        className="fixed inset-0 z-0"
+        style={{ opacity: backgroundOpacity }}
+      >
         <SmokeBackground 
           smokeColor={SMOKE_CONFIG.smokeColor}
           glowColor={SMOKE_CONFIG.glowColor}
@@ -65,10 +74,13 @@ export function LandingPage() {
           className="absolute inset-0 bg-black pointer-events-none"
           style={{ opacity: SMOKE_CONFIG.overlayOpacity }}
         />
-      </div>
+      </motion.div>
       
       {/* Content Layer */}
-      <div className="relative z-10">
+      <motion.div 
+        className="relative z-10"
+        style={{ filter: `brightness(${contentBrightness})` }}
+      >
         <Navbar
           isAuthenticated={isAuthenticated}
           onSignIn={goToAuth}
@@ -81,7 +93,9 @@ export function LandingPage() {
           onDashboard={goToDashboard}
         />
         <Footer />
-      </div>
+      </motion.div>
     </div>
   );
 }
+
+export default LandingPage;

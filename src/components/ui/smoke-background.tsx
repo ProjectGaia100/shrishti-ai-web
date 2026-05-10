@@ -49,27 +49,29 @@ void main(){
   smokeUv.x+=.25;
   smokeUv*=vec2(2,1);
 
-  float n=fbm(smokeUv*.28-vec2(T*.01,0));
-  n=noise(smokeUv*3.+n*2.);
+  // Moody slow-moving fbm mist
+  float n=fbm(smokeUv*.28-vec2(T*.005,0)); // Slower horizontal drift
+  n=noise(smokeUv*2.5+n*1.5); // Slightly softer noise
 
-  col.r-=fbm(smokeUv+vec2(0,T*.015)+n);
-  col.g-=fbm(smokeUv*1.003+vec2(0,T*.015)+n+.003);
-  col.b-=fbm(smokeUv*1.006+vec2(0,T*.015)+n+.006);
+  col.r-=fbm(smokeUv+vec2(0,T*.01)+n);
+  col.g-=fbm(smokeUv*1.002+vec2(0,T*.01)+n+.002);
+  col.b-=fbm(smokeUv*1.004+vec2(0,T*.01)+n+.004);
 
   float luminance = dot(col, vec3(.21,.71,.07));
   col = mix(col, u_color, luminance);
 
-  float glowFactor = smoothstep(0.3, 0.8, luminance) * u_glowIntensity;
-  col += u_glowColor * glowFactor * 0.5;
+  // Subtle moody glow
+  float glowFactor = smoothstep(0.4, 0.9, luminance) * u_glowIntensity;
+  col += u_glowColor * glowFactor * 0.3;
 
-  float pulse = sin(T * 0.5) * 0.5 + 0.5;
-  col += u_glowColor * pulse * 0.05 * luminance;
+  // Cinematic breathing effect (very slow)
+  float pulse = sin(T * 0.2) * 0.5 + 0.5;
+  col += u_glowColor * pulse * 0.03 * luminance;
 
   col *= u_brightness;
 
-  // Mix with base color - u_baseMix controls how much base color remains (0 = fades to black, 1 = stays base color)
-  // Fade in over time, but stop at (1.0 - u_baseMix) so base color is always visible
-  float fadeAmount = min(time * 0.1, 1.0 - u_baseMix);
+  // Mix with base color
+  float fadeAmount = min(time * 0.08, 1.0 - u_baseMix);
   col = mix(u_baseColor, col, fadeAmount);
   
   // === FLICKERING DOTS ON FAR EDGES ONLY ===
@@ -102,6 +104,23 @@ void main(){
   O = vec4(col, 1);
 }`;
 
+interface SmokeProgram extends WebGLProgram {
+  resolution?: WebGLUniformLocation | null;
+  time?: WebGLUniformLocation | null;
+  u_color?: WebGLUniformLocation | null;
+  u_glowColor?: WebGLUniformLocation | null;
+  u_glowIntensity?: WebGLUniformLocation | null;
+  u_brightness?: WebGLUniformLocation | null;
+  u_speed?: WebGLUniformLocation | null;
+  u_baseColor?: WebGLUniformLocation | null;
+  u_baseMix?: WebGLUniformLocation | null;
+  u_dotDensity?: WebGLUniformLocation | null;
+  u_dotBrightness?: WebGLUniformLocation | null;
+  u_dotColor?: WebGLUniformLocation | null;
+  u_dotSize?: WebGLUniformLocation | null;
+  u_dotEdgeWidth?: WebGLUniformLocation | null;
+}
+
 // --- RENDERER CLASS ---
 class Renderer {
   private readonly vertexSrc = "#version 300 es\nprecision highp float;\nin vec4 position;\nvoid main(){gl_Position=position;}";
@@ -109,7 +128,7 @@ class Renderer {
   
   private gl: WebGL2RenderingContext;
   private canvas: HTMLCanvasElement;
-  private program: WebGLProgram | null = null;
+  private program: SmokeProgram | null = null;
   private vs: WebGLShader | null = null;
   private fs: WebGLShader | null = null;
   private buffer: WebGLBuffer | null = null;
@@ -227,20 +246,20 @@ class Renderer {
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(program);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.uniform2f((program as any).resolution, canvas.width, canvas.height);
-    gl.uniform1f((program as any).time, now * 1e-3);
-    gl.uniform3fv((program as any).u_color, this.color);
-    gl.uniform3fv((program as any).u_glowColor, this.glowColor);
-    gl.uniform1f((program as any).u_glowIntensity, this.glowIntensity);
-    gl.uniform1f((program as any).u_brightness, this.brightness);
-    gl.uniform1f((program as any).u_speed, this.speed);
-    gl.uniform3fv((program as any).u_baseColor, this.baseColor);
-    gl.uniform1f((program as any).u_baseMix, this.baseMix);
-    gl.uniform1f((program as any).u_dotDensity, this.dotDensity);
-    gl.uniform1f((program as any).u_dotBrightness, this.dotBrightness);
-    gl.uniform3fv((program as any).u_dotColor, this.dotColor);
-    gl.uniform1f((program as any).u_dotSize, this.dotSize);
-    gl.uniform1f((program as any).u_dotEdgeWidth, this.dotEdgeWidth);
+    if (program.resolution) gl.uniform2f(program.resolution, canvas.width, canvas.height);
+    if (program.time) gl.uniform1f(program.time, now * 1e-3);
+    if (program.u_color) gl.uniform3fv(program.u_color, this.color);
+    if (program.u_glowColor) gl.uniform3fv(program.u_glowColor, this.glowColor);
+    if (program.u_glowIntensity) gl.uniform1f(program.u_glowIntensity, this.glowIntensity);
+    if (program.u_brightness) gl.uniform1f(program.u_brightness, this.brightness);
+    if (program.u_speed) gl.uniform1f(program.u_speed, this.speed);
+    if (program.u_baseColor) gl.uniform3fv(program.u_baseColor, this.baseColor);
+    if (program.u_baseMix) gl.uniform1f(program.u_baseMix, this.baseMix);
+    if (program.u_dotDensity) gl.uniform1f(program.u_dotDensity, this.dotDensity);
+    if (program.u_dotBrightness) gl.uniform1f(program.u_dotBrightness, this.dotBrightness);
+    if (program.u_dotColor) gl.uniform3fv(program.u_dotColor, this.dotColor);
+    if (program.u_dotSize) gl.uniform1f(program.u_dotSize, this.dotSize);
+    if (program.u_dotEdgeWidth) gl.uniform1f(program.u_dotEdgeWidth, this.dotEdgeWidth);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 }
