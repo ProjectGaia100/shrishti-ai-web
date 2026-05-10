@@ -19,7 +19,7 @@ import {
   SpeciesRecommendationResult,
   FOREST_DEPT_CREDIT_COSTS
 } from "@/services/forestDepartment";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 // Result type union (excluding NDVI which is global)
 type ForestDeptResult =
@@ -51,43 +51,43 @@ const FEATURE_INFO: Record<Exclude<ForestDeptFeature, 'ndvi'>, {
     title: 'Crop Classification',
     description: 'Classify crops using K-means clustering on spectral indices',
     icon: <Wheat className="w-5 h-5" />,
-    color: 'text-amber-500'
+    color: 'text-zinc-600'
   },
   soil_moisture: {
     title: 'Soil Moisture Analysis',
     description: 'Analyze moisture status and irrigation distribution',
     icon: <Droplets className="w-5 h-5" />,
-    color: 'text-blue-500'
+    color: 'text-zinc-700'
   },
   fire_risk: {
     title: 'Fire Risk Assessment',
     description: 'Evaluate wildfire risk based on temperature and vegetation',
     icon: <Flame className="w-5 h-5" />,
-    color: 'text-red-500'
+    color: 'text-zinc-900'
   },
   plantation_suitability: {
     title: 'Plantation Suitability',
     description: 'Find suitable areas for tree plantation',
     icon: <TreePine className="w-5 h-5" />,
-    color: 'text-emerald-500'
+    color: 'text-zinc-800'
   },
   compensatory_plantation: {
     title: 'Compensatory Plantation',
     description: 'Plan replacement planting for forest loss',
     icon: <TreeDeciduous className="w-5 h-5" />,
-    color: 'text-teal-500'
+    color: 'text-zinc-500'
   },
   tree_growth: {
     title: 'Vegetation Trend Analysis',
     description: '10-year NDVI trend analysis with historical charts',
     icon: <Clock className="w-5 h-5" />,
-    color: 'text-purple-500'
+    color: 'text-zinc-400'
   },
   species_recommendation: {
     title: 'Species Recommendation',
     description: 'Get suitable species based on environmental conditions',
     icon: <Sprout className="w-5 h-5" />,
-    color: 'text-lime-500'
+    color: 'text-zinc-300'
   }
 };
 
@@ -101,6 +101,7 @@ export const ForestDeptPanel = ({
 }: ForestDeptPanelProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ForestDeptResult | null>(null);
+  const [resultFeature, setResultFeature] = useState<ForestDeptFeature | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -111,6 +112,7 @@ export const ForestDeptPanel = ({
   // Reset when feature changes
   useEffect(() => {
     setResult(null);
+    setResultFeature(null);
     setError(null);
     setSearchAreaCoordinates(null);
     setDrawingSearchArea(false);
@@ -118,16 +120,17 @@ export const ForestDeptPanel = ({
 
   // Listen for search area polygon completion
   useEffect(() => {
-    const handleSearchAreaComplete = (event: CustomEvent) => {
-      if (drawingSearchArea && event.detail?.coordinates) {
-        setSearchAreaCoordinates(event.detail.coordinates);
+    const handleSearchAreaComplete = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (drawingSearchArea && customEvent.detail?.coordinates) {
+        setSearchAreaCoordinates(customEvent.detail.coordinates);
         setDrawingSearchArea(false);
       }
     };
 
-    window.addEventListener('geo:polygon-complete' as any, handleSearchAreaComplete);
+    window.addEventListener('geo:polygon-complete', handleSearchAreaComplete);
     return () => {
-      window.removeEventListener('geo:polygon-complete' as any, handleSearchAreaComplete);
+      window.removeEventListener('geo:polygon-complete', handleSearchAreaComplete);
     };
   }, [drawingSearchArea]);
 
@@ -166,6 +169,7 @@ export const ForestDeptPanel = ({
     setIsLoading(true);
     setError(null);
     setResult(null);
+    setResultFeature(null);
 
     const featureInfo = FEATURE_INFO[activeFeature];
     toast({ title: "Analyzing...", description: `Running ${featureInfo.title}...` });
@@ -204,14 +208,16 @@ export const ForestDeptPanel = ({
 
       if (response.success && response.data) {
         setResult(response.data);
+        setResultFeature(activeFeature);
         toast({ title: "Analysis Complete", description: `${featureInfo.title} finished successfully` });
       } else {
         setError(response.error || "Analysis failed");
         toast({ title: "Analysis Failed", description: response.error, variant: "destructive" });
       }
-    } catch (err: any) {
-      setError(err.message || "Unexpected error");
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Unexpected error";
+      setError(errorMsg);
+      toast({ title: "Error", description: errorMsg, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -231,29 +237,34 @@ export const ForestDeptPanel = ({
 
   return (
     <Card className={cn(
-      "fixed top-4 right-4 w-[420px] max-w-[90vw] max-h-[90vh] overflow-y-auto z-[1100]",
-      "bg-background border border-border shadow-xl animate-slide-in-from-right"
+      "fixed top-24 right-4 w-[420px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-7rem)] overflow-y-auto z-[1600]",
+      "bg-background/80 dark:bg-zinc-900/80 border border-border shadow-2xl animate-in slide-in-from-right-4 duration-500 backdrop-blur-xl custom-scrollbar"
     )}>
       <div className="p-5">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50">
-          <div className="flex items-center gap-2">
-            <div className={cn("p-2 rounded-lg bg-opacity-10", featureInfo.color, featureInfo.color.replace('text-', 'bg-') + '/10')}>
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/40">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm ring-1 ring-border/20">
               {featureInfo.icon}
             </div>
             <div>
-              <h3 className="font-bold text-lg">{featureInfo.title}</h3>
-              <p className="text-xs text-muted-foreground">{featureInfo.description}</p>
+              <h3 className="font-bold text-sm tracking-tight uppercase leading-none">{featureInfo.title}</h3>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-1">Forestry Intelligence</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose} className="p-2 hover:bg-red-500/10 hover:text-red-500">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
             <X className="w-4 h-4" />
           </Button>
         </div>
 
         <div className="space-y-4">
           {/* Drawing Instructions */}
-          <div className="rounded-lg p-4 space-y-3 bg-muted/30 border border-border">
+          <div className="rounded-xl p-4 space-y-3 bg-background/50 border border-border/70">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground/80">
               <MapPin className="w-4 h-4" />
               <span>{activeFeature === 'compensatory_plantation' ? 'Define Areas' : 'Draw Area on Map'}</span>
@@ -263,10 +274,10 @@ export const ForestDeptPanel = ({
             {activeFeature === 'compensatory_plantation' ? (
               <div className="space-y-3">
                 {/* Removal Area (Primary Polygon) */}
-                <div className="p-2 rounded bg-red-500/10 border border-red-500/20">
-                  <div className="text-xs font-semibold text-red-500 mb-1">1. Removal Area (Required)</div>
+                <div className="p-2 rounded bg-muted/30 border border-border/60">
+                  <div className="text-xs font-semibold text-foreground mb-1">1. Removal Area (Required)</div>
                   {drawnCoordinates && drawnCoordinates.length >= 3 ? (
-                    <div className="flex items-center gap-2 text-xs text-green-600">
+                    <div className="flex items-center gap-2 text-xs text-foreground">
                       <CheckCircle className="w-3 h-3" />
                       <span>Polygon with {drawnCoordinates.length} vertices</span>
                     </div>
@@ -284,11 +295,11 @@ export const ForestDeptPanel = ({
                 </div>
 
                 {/* Search Area (Optional Second Polygon) */}
-                <div className="p-2 rounded bg-teal-500/10 border border-teal-500/20">
-                  <div className="text-xs font-semibold text-teal-500 mb-1">2. Search Area (Optional)</div>
+                <div className="p-2 rounded bg-muted/30 border border-border/60">
+                  <div className="text-xs font-semibold text-foreground mb-1">2. Search Area (Optional)</div>
                   {searchAreaCoordinates && searchAreaCoordinates.length >= 3 ? (
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs text-green-600">
+                      <div className="flex items-center gap-2 text-xs text-foreground">
                         <CheckCircle className="w-3 h-3" />
                         <span>Polygon with {searchAreaCoordinates.length} vertices</span>
                       </div>
@@ -323,7 +334,7 @@ export const ForestDeptPanel = ({
             ) : (
               // Standard single polygon UI for other features
               drawnCoordinates && drawnCoordinates.length >= 3 ? (
-                <div className="flex items-center gap-2 text-sm text-green-600">
+                <div className="flex items-center gap-2 text-sm text-foreground">
                   <CheckCircle className="w-4 h-4" />
                   <span>Polygon with {drawnCoordinates.length} vertices</span>
                 </div>
@@ -354,7 +365,7 @@ export const ForestDeptPanel = ({
             <Button
               onClick={handleAnalyze}
               disabled={isLoading || !drawnCoordinates || drawnCoordinates.length < 3}
-              className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="flex-1 bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
             >
               {isLoading ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Analyzing...</>
@@ -364,7 +375,7 @@ export const ForestDeptPanel = ({
             </Button>
             <Button
               variant="outline"
-              onClick={() => { setResult(null); setError(null); setSearchAreaCoordinates(null); }}
+              onClick={() => { setResult(null); setResultFeature(null); setError(null); setSearchAreaCoordinates(null); }}
               className="border-border/50"
             >
               Reset
@@ -372,7 +383,7 @@ export const ForestDeptPanel = ({
           </div>
 
           {/* Results */}
-          {result && <ResultsDisplay feature={activeFeature} result={result} />}
+          {result && resultFeature === activeFeature && <ResultsDisplay feature={activeFeature} result={result} />}
         </div>
       </div>
     </Card>

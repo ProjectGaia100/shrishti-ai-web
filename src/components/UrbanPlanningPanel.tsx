@@ -16,7 +16,7 @@ import {
   SuitabilityResult,
   URBAN_PLANNING_CREDIT_COSTS
 } from "@/services/urbanPlanning";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 // Result type union
 type UrbanPlanningResult =
@@ -47,28 +47,28 @@ const FEATURE_INFO: Record<UrbanPlanningFeature, {
     description: 'Calculate area of a polygon in m², hectares, acres',
     icon: <Ruler className="w-5 h-5" />,
     drawType: 'polygon',
-    color: 'text-blue-500'
+    color: 'text-zinc-600 dark:text-zinc-400'
   },
   road_length: {
     title: 'Road/Line Measurement',
     description: 'Calculate length of a line in meters, km, miles',
     icon: <Route className="w-5 h-5" />,
     drawType: 'polyline',
-    color: 'text-orange-500'
+    color: 'text-zinc-700 dark:text-zinc-300'
   },
   built_up: {
     title: 'NDBI Analysis',
     description: 'View NDBI (Normalized Difference Built-up Index) values',
     icon: <Building2 className="w-5 h-5" />,
     drawType: 'polygon',
-    color: 'text-gray-500'
+    color: 'text-zinc-500'
   },
   suitability: {
     title: 'Suitability Analysis',
     description: 'Score locations for building suitability (slope, vegetation, flood risk)',
     icon: <Target className="w-5 h-5" />,
     drawType: 'polygon',
-    color: 'text-emerald-500'
+    color: 'text-zinc-900 dark:text-zinc-100'
   }
 };
 
@@ -82,12 +82,14 @@ export const UrbanPlanningPanel = ({
 }: UrbanPlanningPanelProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<UrbanPlanningResult | null>(null);
+  const [resultFeature, setResultFeature] = useState<UrbanPlanningFeature | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Reset when feature changes
   useEffect(() => {
     setResult(null);
+    setResultFeature(null);
     setError(null);
   }, [activeFeature]);
 
@@ -116,6 +118,7 @@ export const UrbanPlanningPanel = ({
     setIsLoading(true);
     setError(null);
     setResult(null);
+    setResultFeature(null);
 
     toast({ title: "Analyzing...", description: `Running ${FEATURE_INFO[activeFeature].title}...` });
 
@@ -141,14 +144,16 @@ export const UrbanPlanningPanel = ({
 
       if (response.success && response.data) {
         setResult(response.data);
+        setResultFeature(activeFeature);
         toast({ title: "Analysis Complete", description: `${FEATURE_INFO[activeFeature].title} finished successfully` });
       } else {
         setError(response.error || "Analysis failed");
         toast({ title: "Analysis Failed", description: response.error, variant: "destructive" });
       }
-    } catch (err: any) {
-      setError(err.message || "Unexpected error");
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Unexpected error";
+      setError(errorMsg);
+      toast({ title: "Error", description: errorMsg, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -167,36 +172,41 @@ export const UrbanPlanningPanel = ({
 
   return (
     <Card className={cn(
-      "fixed top-4 right-4 w-[420px] max-w-[90vw] max-h-[90vh] overflow-y-auto z-[1100]",
-      "bg-background border border-border shadow-xl animate-slide-in-from-right"
+      "fixed top-24 right-4 w-[420px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-7rem)] overflow-y-auto z-[1600]",
+      "bg-background/80 dark:bg-zinc-900/80 border border-border shadow-2xl animate-in slide-in-from-right-4 duration-500 backdrop-blur-xl custom-scrollbar"
     )}>
       <div className="p-5">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50">
-          <div className="flex items-center gap-2">
-            <div className={cn("p-2 rounded-lg bg-opacity-10", featureInfo.color, featureInfo.color.replace('text-', 'bg-') + '/10')}>
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/40">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm ring-1 ring-border/20">
               {featureInfo.icon}
             </div>
             <div>
-              <h3 className="font-bold text-lg">{featureInfo.title}</h3>
-              <p className="text-xs text-muted-foreground">{featureInfo.description}</p>
+              <h3 className="font-bold text-sm tracking-tight uppercase leading-none">{featureInfo.title}</h3>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-1">Urban Analysis</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose} className="p-2 hover:bg-red-500/10 hover:text-red-500">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
             <X className="w-4 h-4" />
           </Button>
         </div>
 
         <div className="space-y-4">
           {/* Drawing Instructions */}
-          <div className="rounded-lg p-4 space-y-3 bg-muted/30 border border-border">
+          <div className="rounded-xl p-4 space-y-3 bg-background/50 border border-border/70">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground/80">
               <MapPin className="w-4 h-4" />
               <span>Draw Area on Map</span>
             </div>
 
             {drawnCoordinates && drawnCoordinates.length >= 2 ? (
-              <div className="flex items-center gap-2 text-sm text-green-600">
+              <div className="flex items-center gap-2 text-sm text-foreground">
                 <CheckCircle className="w-4 h-4" />
                 <span>
                   {featureInfo.drawType === 'polygon'
@@ -232,7 +242,7 @@ export const UrbanPlanningPanel = ({
             <Button
               onClick={handleAnalyze}
               disabled={isLoading || !drawnCoordinates || drawnCoordinates.length < 2}
-              className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="flex-1 bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
             >
               {isLoading ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Analyzing...</>
@@ -242,7 +252,7 @@ export const UrbanPlanningPanel = ({
             </Button>
             <Button
               variant="outline"
-              onClick={() => { setResult(null); setError(null); }}
+              onClick={() => { setResult(null); setResultFeature(null); setError(null); }}
               className="border-border/50"
             >
               Reset
@@ -250,7 +260,7 @@ export const UrbanPlanningPanel = ({
           </div>
 
           {/* Results */}
-          {result && <ResultsDisplay feature={activeFeature} result={result} />}
+          {result && resultFeature === activeFeature && <ResultsDisplay feature={activeFeature} result={result} />}
         </div>
       </div>
     </Card>
