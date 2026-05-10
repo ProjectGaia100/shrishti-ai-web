@@ -35,6 +35,17 @@ const SMOKE_CONFIG = {
 };
 // =============================================================================
 
+const staggerContainer = {
+  initial: { opacity: 0 },
+  animate: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.15,
+      delayChildren: 0.1,
+    },
+  },
+};
+
 export function LandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, logout } = useAuth();
@@ -78,6 +89,9 @@ export function LandingPage() {
       
       {/* Content Layer */}
       <motion.div 
+        variants={staggerContainer}
+        initial="initial"
+        animate="animate"
         className="relative z-10"
         style={{ filter: `brightness(${contentBrightness})` }}
       >

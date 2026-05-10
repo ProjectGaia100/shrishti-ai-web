@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useRef } from 'react';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { AnimatedGlobe } from './AnimatedGlobe';
 import { HardwarePanel } from './HardwarePanel';
 import { Activity, Cpu, ShieldCheck, Database, ChartLineUp } from 'phosphor-react';
@@ -24,17 +24,56 @@ const dataLogs = [
 export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSectionProps) {
   const springTransition = {
     type: "spring",
-    stiffness: 100,
-    damping: 20
+    stiffness: 120,
+    damping: 25
+  };
+
+  // Magnetic Button Physics
+  const magneticRef = useRef<HTMLDivElement>(null);
+  const mX = useMotionValue(0);
+  const mY = useMotionValue(0);
+  const springMX = useSpring(mX, { stiffness: 150, damping: 15 });
+  const springMY = useSpring(mY, { stiffness: 150, damping: 15 });
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!magneticRef.current) return;
+    const { clientX, clientY } = e;
+    const { left, top, width, height } = magneticRef.current.getBoundingClientRect();
+    const centerX = left + width / 2;
+    const centerY = top + height / 2;
+    const dx = clientX - centerX;
+    const dy = clientY - centerY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance < 120) {
+      mX.set(dx * 0.4);
+      mY.set(dy * 0.4);
+    } else {
+      mX.set(0);
+      mY.set(0);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    mX.set(0);
+    mY.set(0);
+  };
+
+  const fadeUpVariants = {
+    initial: { opacity: 0, y: 40 },
+    animate: { opacity: 1, y: 0, transition: springTransition },
   };
 
   return (
-    <section className="relative min-h-[100svh] flex items-center overflow-hidden py-20">
+    <section className="relative min-h-[100svh] flex items-center overflow-hidden py-24">
       {/* Background is now transparent to show smoke animation */}
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center">
         {/* Left: Text Content (Occupies 7 columns) */}
-        <div className="lg:col-span-7 text-left space-y-8">
+        <motion.div 
+          variants={fadeUpVariants}
+          className="lg:col-span-7 text-left space-y-8"
+        >
           <div className="space-y-4">
             <motion.h1 
               initial={{ opacity: 0, y: 30 }}
@@ -59,9 +98,7 @@ export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSect
             </motion.h1>
             
             <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...springTransition, delay: 0.2 }}
+              variants={fadeUpVariants}
               className="text-2xl sm:text-3xl font-light text-emerald-100/90 tracking-wide max-w-xl"
             >
               Precision Satellite Intelligence for Global Disaster Resilience
@@ -69,9 +106,7 @@ export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSect
           </div>
 
           <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ ...springTransition, delay: 0.3 }}
+            variants={fadeUpVariants}
             className="text-lg sm:text-xl text-[oklch(var(--slate-text))] max-w-[65ch] leading-relaxed"
           >
             Harnessing hyper-spectral imagery and deep LSTM architectures to predict 
@@ -80,23 +115,29 @@ export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSect
           </motion.p>
 
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ ...springTransition, delay: 0.4 }}
+            variants={fadeUpVariants}
             className="flex flex-col sm:flex-row items-center gap-6 pt-6"
           >
-            {/* Double-Bezel Initialize Button */}
-            <div className="p-1.5 rounded-full bg-white/5 ring-1 ring-white/10 group">
+            {/* Magnetic Initialize Button Wrapper */}
+            <motion.div 
+              ref={magneticRef}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+              style={{ x: springMX, y: springMY }}
+              className="p-1.5 rounded-full bg-white/5 ring-1 ring-white/10 group transition-shadow hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]"
+            >
               <button
                 onClick={isAuthenticated ? onDashboard : onSignIn}
-                className="px-8 py-4 rounded-full bg-white text-black font-bold shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] hover:bg-zinc-200 transition-colors flex items-center gap-3"
+                className="px-8 py-4 rounded-full bg-white text-black font-bold shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] hover:bg-zinc-200 transition-colors flex items-center gap-3 relative overflow-hidden"
               >
                 {isAuthenticated ? 'Enter Control Center' : 'Initialize Platform'}
-                <svg className="w-5 h-5 transition-transform duration-500 group-hover:translate-x-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
-                </svg>
+                <div className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center transition-transform duration-500 group-hover:translate-x-1 group-hover:-translate-y-[1px]">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
+                  </svg>
+                </div>
               </button>
-            </div>
+            </motion.div>
             
             <div className="flex -space-x-3">
               {[1, 2, 3, 4].map((i) => (
@@ -112,9 +153,10 @@ export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSect
 
           {/* Metrics Bento Row */}
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ ...springTransition, delay: 0.5 }}
+            variants={fadeUpVariants}
+            whileInView="animate"
+            initial="initial"
+            viewport={{ once: true, margin: "-100px" }}
             className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-12"
           >
             <HardwarePanel className="p-4 flex flex-col gap-2">
@@ -141,13 +183,15 @@ export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSect
               <div className="text-2xl font-bold text-white font-mono tracking-tight">REAL-TIME</div>
             </HardwarePanel>
           </motion.div>
-        </div>
+        </motion.div>
 
         {/* Right: Globe (Occupies 5 columns) */}
         <motion.div 
+          variants={fadeUpVariants}
           initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ ...springTransition, delay: 0.6 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ ...springTransition, delay: 0.2 }}
           className="lg:col-span-5 relative flex justify-center lg:justify-end"
         >
           <div className="relative lg:scale-125 translate-x-10">

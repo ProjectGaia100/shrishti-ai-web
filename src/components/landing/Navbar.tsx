@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useScroll, useMotionValueEvent, motion } from 'framer-motion';
 
 interface NavbarProps {
   isAuthenticated?: boolean;
@@ -9,19 +10,24 @@ interface NavbarProps {
 
 export function Navbar({ isAuthenticated, onSignIn, onDashboard, onLogout }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
+  const { scrollY } = useScroll();
 
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    setScrolled(latest > 50);
+  });
+
+  const navbarVariants = {
+    initial: { y: -20, opacity: 0 },
+    animate: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 120, damping: 25 } }
+  };
 
   return (
-    <nav
+    <motion.nav
+      variants={navbarVariants}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled
-          ? 'bg-background/95 backdrop-blur-md border-b border-border shadow-sm'
-          : 'bg-transparent'
+          ? 'bg-background/95 backdrop-blur-md border-b border-border shadow-sm py-2'
+          : 'bg-transparent py-4'
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
