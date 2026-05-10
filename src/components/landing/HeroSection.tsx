@@ -1,12 +1,25 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { AnimatedGlobe } from './AnimatedGlobe';
+import { HardwarePanel } from './HardwarePanel';
+import { Activity, Cpu, ShieldCheck, Database, ChartLineUp } from 'phosphor-react';
 
 interface HeroSectionProps {
   isAuthenticated?: boolean;
   onSignIn: () => void;
   onDashboard?: () => void;
 }
+
+const dataLogs = [
+  "LAT: 28.6139 LON: 77.2090 PROB: 0.982",
+  "LAT: 19.0760 LON: 72.8777 PROB: 0.124",
+  "LAT: 13.0827 LON: 80.2707 PROB: 0.856",
+  "LAT: 22.5726 LON: 88.3639 PROB: 0.431",
+  "LAT: 12.9716 LON: 77.5946 PROB: 0.098",
+  "LAT: 17.3850 LON: 78.4867 PROB: 0.672",
+  "LAT: 23.0225 LON: 72.5714 PROB: 0.315",
+  "LAT: 15.2993 LON: 74.1240 PROB: 0.991",
+];
 
 export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSectionProps) {
   const springTransition = {
@@ -97,23 +110,36 @@ export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSect
             </div>
           </motion.div>
 
-          {/* Metrics row */}
+          {/* Metrics Bento Row */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...springTransition, delay: 0.5 }}
-            className="grid grid-cols-3 gap-8 pt-12 border-t border-white/5 max-w-lg"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-12"
           >
-            {[
-              { value: '60D', label: 'Forecast' },
-              { value: '97.3%', label: 'Accuracy' },
-              { value: 'REAL', label: 'Latency' },
-            ].map((stat, i) => (
-              <div key={i} className="space-y-1">
-                <div className="text-2xl font-bold text-white font-mono tracking-tight">{stat.value}</div>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-emerald-500/60 font-semibold">{stat.label}</div>
+            <HardwarePanel className="p-4 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-emerald-500">
+                <ChartLineUp size={18} weight="bold" />
+                <span className="text-[10px] uppercase tracking-[0.2em] font-bold">Accuracy</span>
               </div>
-            ))}
+              <div className="text-2xl font-bold text-white font-mono tracking-tight">97.3%</div>
+            </HardwarePanel>
+
+            <HardwarePanel className="p-4 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-blue-500">
+                <Database size={18} weight="bold" />
+                <span className="text-[10px] uppercase tracking-[0.2em] font-bold">Processed</span>
+              </div>
+              <div className="text-2xl font-bold text-white font-mono tracking-tight">2.4 PB</div>
+            </HardwarePanel>
+
+            <HardwarePanel className="p-4 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-amber-500">
+                <Cpu size={18} weight="bold" />
+                <span className="text-[10px] uppercase tracking-[0.2em] font-bold">Latency</span>
+              </div>
+              <div className="text-2xl font-bold text-white font-mono tracking-tight">REAL-TIME</div>
+            </HardwarePanel>
           </motion.div>
         </div>
 
@@ -127,26 +153,55 @@ export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSect
           <div className="relative lg:scale-125 translate-x-10">
             <AnimatedGlobe />
 
-            {/* Tactical Status Cards */}
-            <div className="absolute -top-10 -left-10 bg-[#0F172A]/80 backdrop-blur-xl border border-emerald-500/20 rounded-2xl p-4 shadow-2xl animate-float">
+            {/* Hardware-styled Status Panel */}
+            <HardwarePanel 
+              containerClassName="absolute -top-10 -left-10 animate-float"
+              className="p-4 min-w-[180px]"
+            >
               <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]" />
+                <div className="relative">
+                  <Activity size={24} className="text-emerald-500" weight="bold" />
+                  <div className="absolute inset-0 bg-emerald-500/20 blur-md rounded-full" />
+                </div>
                 <div className="space-y-0.5">
                   <div className="text-[10px] uppercase tracking-widest text-emerald-500/60 font-bold">System Status</div>
-                  <div className="text-xs text-white font-mono">NOMINAL_OPS</div>
+                  <div className="text-xs text-white font-mono font-bold">NOMINAL_OPS</div>
                 </div>
               </div>
-            </div>
+            </HardwarePanel>
 
-            <div className="absolute bottom-10 -right-5 bg-[#0F172A]/80 backdrop-blur-xl border border-emerald-500/20 rounded-2xl p-4 shadow-2xl animate-float-delayed">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse shadow-[0_0_12px_rgba(59,130,246,0.5)]" />
-                <div className="space-y-0.5">
+            {/* Live Inference Feed Hardware Panel */}
+            <HardwarePanel 
+              containerClassName="absolute bottom-10 -right-5 animate-float-delayed"
+              className="p-4 min-w-[220px]"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 pb-2 border-b border-white/5">
+                  <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                   <div className="text-[10px] uppercase tracking-widest text-blue-500/60 font-bold">Inference Feed</div>
-                  <div className="text-xs text-white font-mono">STREAMING_PROBS</div>
+                </div>
+                
+                <div className="h-24 overflow-hidden relative">
+                  <motion.div
+                    animate={{ y: ["0%", "-50%"] }}
+                    transition={{ 
+                      duration: 15, 
+                      repeat: Infinity, 
+                      ease: "linear" 
+                    }}
+                    className="space-y-2"
+                  >
+                    {[...dataLogs, ...dataLogs].map((log, i) => (
+                      <div key={i} className="text-[9px] font-mono text-blue-400/70 whitespace-nowrap tracking-tighter">
+                        {log}
+                      </div>
+                    ))}
+                  </motion.div>
+                  {/* Fade mask */}
+                  <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-zinc-900/50 via-transparent to-zinc-900/50" />
                 </div>
               </div>
-            </div>
+            </HardwarePanel>
           </div>
         </motion.div>
       </div>
