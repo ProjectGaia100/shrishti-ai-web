@@ -1,88 +1,89 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useRef, useEffect } from 'react'
 
 export function AboutSection() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setVisible(true);
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view')
+            observer.unobserve(entry.target)
+          }
+        })
       },
-      { threshold: 0.1 }
-    );
-    if (sectionRef.current) observer.observe(sectionRef.current);
-    return () => observer.disconnect();
-  }, []);
+      { threshold: 0.15 }
+    )
+    sectionRef.current?.querySelectorAll('.reveal-left, .reveal-right').forEach((el) => observer.observe(el))
+    return () => observer.disconnect()
+  }, [])
 
   return (
-    <section id="about" ref={sectionRef} className="relative py-28 overflow-hidden">
-      {/* Separator */}
-      <div className="absolute top-0 left-0 right-0 separator-gradient" />
+    <section id="about" ref={sectionRef} className="relative pt-16 pb-10 px-6 overflow-hidden">
+      <div className="absolute top-1/2 right-0 w-[400px] h-[400px] bg-violet-600/8 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="max-w-3xl mx-auto px-6">
-        <div
-          className={`text-center space-y-4 mb-16 transition-all duration-1000 ${
-            visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border bg-background text-xs text-muted-foreground font-medium">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+        <div className="reveal-left space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 text-[10px] uppercase tracking-[0.2em] text-white/50 font-medium">
             About the Project
           </div>
-          <h2 className="text-4xl sm:text-5xl font-bold tracking-tight">
-            <span className="text-foreground">Built for </span>
-            <span className="text-gradient">Research</span>
+          <h2 className="text-5xl sm:text-6xl font-black text-white leading-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            Built for
+            <br />
+            <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Research</span>
           </h2>
-          <p className="text-muted-foreground text-base leading-relaxed max-w-2xl mx-auto">
-            Shrishti AI is a research-grade geospatial intelligence platform developed
-            as part of an advanced exploration into the intersection of artificial
-            intelligence, remote sensing, and climate science.
+          <p className="text-white/50 text-lg leading-relaxed">
+            Shrishti AI is a research-grade geospatial intelligence platform at the intersection of
+            artificial intelligence, remote sensing, and climate science.
+          </p>
+          <p className="text-white/30 text-sm leading-relaxed">
+            Designed to make earth observation practical — transforming raw satellite and weather
+            streams into operational intelligence for climate and disaster use cases.
           </p>
         </div>
 
-        {/* Vision & Innovation side by side */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Mission */}
-          <div
-            className={`surface rounded-xl p-8 space-y-4 transition-all duration-1000 delay-200 ${
-              visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-            }`}
-          >
-            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 text-primary" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              Our Vision
-            </h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              To democratize geospatial intelligence by making satellite data analysis and 
-              AI-powered prediction accessible through intuitive visualization tools — 
-              enabling researchers, disaster response teams, and environmental agencies to 
-              make data-driven decisions faster than ever before.
-            </p>
-          </div>
-
-          {/* Innovation */}
-          <div
-            className={`surface rounded-xl p-8 space-y-4 transition-all duration-1000 delay-[400ms] ${
-              visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-            }`}
-          >
-            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 text-primary" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-              </svg>
-              Research Innovation
-            </h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              This platform represents a novel approach to combining multi-source satellite 
-              data with deep learning architectures for predictive environmental analysis, 
-              pushing the boundaries of what's possible in computational geoscience.
-            </p>
-          </div>
+        <div className="reveal-right space-y-4">
+          {[
+            {
+              icon: (
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              ),
+              title: 'Our Vision',
+              text: 'Democratize geospatial intelligence by making satellite data analysis and AI-powered prediction accessible through intuitive visualization tools.',
+              color: '#4fc3f7',
+            },
+            {
+              icon: (
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                </svg>
+              ),
+              title: 'Research Innovation',
+              text: 'A novel approach combining multi-source satellite data with deep learning architectures for predictive environmental analysis.',
+              color: '#a78bfa',
+            },
+          ].map((card) => (
+            <div key={card.title} className="p-1.5 rounded-[1.5rem] border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-500">
+              <div className="rounded-[calc(1.5rem-6px)] p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: `${card.color}15`, color: card.color }}>
+                    {card.icon}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white mb-2">{card.title}</h3>
+                    <p className="text-sm text-white/40 leading-relaxed">{card.text}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
-  );
+  )
 }
