@@ -4,6 +4,7 @@ import { Points, PointMaterial } from '@react-three/drei'
 import * as THREE from 'three'
 import { motion } from 'motion/react'
 import { gsap, useGSAP } from '@/lib/gsap'
+import { EarthScene } from './EarthGlobe'
 
 // Particle field
 function ParticleField() {
@@ -127,90 +128,94 @@ export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSect
   ]
 
   return (
-    <section ref={sectionRef} className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden">
-      {/* Three.js canvas */}
+    <section ref={sectionRef} className="relative min-h-[100dvh] flex items-center overflow-hidden">
+      {/* Particle field full background */}
       <div className="absolute inset-0 z-0">
-        <Canvas camera={{ position: [0, 0, 4], fov: 60 }} gl={{ antialias: true, alpha: true }}>
+        <Canvas camera={{ position: [0, 0, 5], fov: 60 }} gl={{ antialias: true, alpha: true }}>
           <Suspense fallback={null}>
             <ParticleField />
-            <OrbitRing radius={1.8} speed={0.3} color="#4fc3f7" />
-            <OrbitRing radius={2.4} speed={-0.2} color="#7c3aed" />
-            <OrbitRing radius={3.0} speed={0.15} color="#06b6d4" />
           </Suspense>
         </Canvas>
       </div>
 
-      {/* Radial gradient overlay */}
-      <div className="absolute inset-0 z-[1] bg-[radial-gradient(ellipse_80%_60%_at_50%_50%,transparent_30%,#050510_100%)]" />
+      {/* Dark fade on left so text is readable */}
+      <div className="absolute inset-0 z-[1] bg-gradient-to-r from-[#050510] via-[#050510]/80 to-transparent" />
 
-      {/* Content */}
-      <div className="hero-content relative z-[2] max-w-6xl mx-auto px-6 text-center">
-        {/* Eyebrow */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.6 }}
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-medium mb-8"
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-          Satellite Intelligence Platform
-        </motion.div>
+      {/* Split layout */}
+      <div className="hero-content relative z-[2] w-full max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center min-h-[100dvh] py-24">
 
-        {/* Main title */}
-        <h1 ref={titleRef} className="overflow-hidden mb-6" style={{ perspective: '1000px' }}>
-          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-            {WORDS.map((word, i) => (
-              <span
-                key={word}
-                className={`hero-word inline-block font-black leading-none tracking-tight ${
-                  i === 0
-                    ? 'text-[clamp(4rem,12vw,10rem)] text-white'
-                    : 'text-[clamp(4rem,12vw,10rem)] bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-500 bg-clip-text text-transparent'
-                }`}
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-              >
-                {word}
-              </span>
+        {/* LEFT — text */}
+        <div className="flex flex-col items-start text-left">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.6 }}
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-medium mb-8"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            Satellite Intelligence Platform
+          </motion.div>
+
+          <h1 ref={titleRef} className="overflow-hidden mb-6" style={{ perspective: '1000px' }}>
+            <div className="flex flex-row flex-wrap gap-x-4 gap-y-1 items-end">
+              {WORDS.map((word, i) => (
+                <span
+                  key={word}
+                  className={`hero-word inline-block font-black leading-none tracking-tight ${
+                    i === 0
+                      ? 'text-[clamp(3rem,7vw,6rem)] text-white'
+                      : 'text-[clamp(3rem,7vw,6rem)] bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-500 bg-clip-text text-transparent'
+                  }`}
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                >
+                  {word}
+                </span>
+              ))}
+            </div>
+          </h1>
+
+          <p ref={subtitleRef} className="text-white/50 text-lg max-w-lg leading-relaxed mb-10">
+            Harness satellite imagery, deep learning, and real-time climate data to predict
+            natural disasters and generate actionable geospatial intelligence.
+          </p>
+
+          <div ref={ctaRef} className="flex flex-col sm:flex-row items-center gap-4 mb-16">
+            <MagneticButton onClick={isAuthenticated ? onDashboard! : onSignIn} primary>
+              {isAuthenticated ? 'Open Dashboard' : 'Explore Platform'}
+            </MagneticButton>
+            <button
+              onClick={() => document.querySelector('#features')?.scrollIntoView({ behavior: 'smooth' })}
+              className="flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition-colors duration-300"
+            >
+              See how it works
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+
+          <div ref={statsRef} className="flex flex-wrap items-center gap-8 sm:gap-12">
+            {stats.map((s, i) => (
+              <div key={i} className="text-left">
+                <div className="text-2xl sm:text-3xl font-bold text-white tabular-nums">{s.value}</div>
+                <div className="text-xs text-white/40 mt-1 uppercase tracking-widest">{s.label}</div>
+              </div>
             ))}
           </div>
-        </h1>
-
-        {/* Subtitle */}
-        <p ref={subtitleRef} className="text-white/50 text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed mb-10">
-          Harness satellite imagery, deep learning, and real-time climate data to predict
-          natural disasters and generate actionable geospatial intelligence.
-        </p>
-
-        {/* CTA */}
-        <div ref={ctaRef} className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
-          {/* Primary magnetic button */}
-          <MagneticButton onClick={isAuthenticated ? onDashboard! : onSignIn} primary>
-            {isAuthenticated ? 'Open Dashboard' : 'Explore Platform'}
-          </MagneticButton>
-          <button
-            onClick={() => document.querySelector('#features')?.scrollIntoView({ behavior: 'smooth' })}
-            className="flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition-colors duration-300"
-          >
-            See how it works
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
         </div>
 
-        {/* Stats */}
-        <div ref={statsRef} className="flex flex-wrap items-center justify-center gap-8 sm:gap-16">
-          {stats.map((s, i) => (
-            <div key={i} className="text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-white tabular-nums">{s.value}</div>
-              <div className="text-xs text-white/40 mt-1 uppercase tracking-widest">{s.label}</div>
-            </div>
-          ))}
+        {/* RIGHT — Earth globe */}
+        <div className="hidden lg:flex items-center justify-center h-[580px] mt-4">
+          <Canvas camera={{ position: [0, 0, 3.2], fov: 45 }} gl={{ antialias: true, alpha: true }}>
+            <Suspense fallback={null}>
+              <EarthScene />
+            </Suspense>
+          </Canvas>
         </div>
       </div>
 
       {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[2] flex flex-col items-center gap-2">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[2]">
         <div className="w-px h-16 bg-gradient-to-b from-transparent via-white/30 to-transparent animate-pulse" />
       </div>
     </section>
