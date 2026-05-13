@@ -17,7 +17,7 @@ import { X, CloudRain, TrendingUp, MapPin, Calendar, Sparkles, Loader2, AlertCir
 import { cn } from "@/lib/utils";
 import { weatherWiseService } from "@/services/weatherWise";
 import { useToast } from "@/hooks/use-toast";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from "date-fns";
 
 interface WeatherForecast {
@@ -226,7 +226,6 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
     const formatYAxisTick = (value: number) => {
       if (!Number.isFinite(value)) return '';
       const abs = Math.abs(value);
-
       if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}B`;
       if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
       if (abs >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
@@ -244,7 +243,6 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
     if (values.length > 0) {
       const minVal = Math.min(...values);
       const maxVal = Math.max(...values);
-
       if (minVal === maxVal) {
         const base = Math.abs(minVal) || 1;
         const pad = Math.max(base * 0.1, 0.1);
@@ -256,27 +254,62 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
       }
     }
 
+    const gradientId = `grad-${dataKey.replace(/[^a-zA-Z0-9]/g, '')}`;
+
     return (
-      <div className="rounded-lg p-4 border border-border bg-muted/30">
+      <div className="rounded-xl p-4 border border-border/60 bg-muted/20">
         <div className="flex items-center gap-2 mb-3">
           {icon}
-          <h3 className="text-sm font-semibold">{title}</h3>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{title}</h3>
         </div>
-        <ResponsiveContainer width="100%" height={180}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
-            <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+        <ResponsiveContainer width="100%" height={160}>
+          <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={color} stopOpacity={0.25} />
+                <stop offset="95%" stopColor={color} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} vertical={false} />
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
+              stroke="transparent"
+              tickLine={false}
+              interval="preserveStartEnd"
+            />
             <YAxis
               domain={yDomain}
-              width={72}
-              tick={{ fontSize: 10 }}
-              tickCount={6}
+              width={56}
+              tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
+              tickCount={5}
               tickFormatter={formatYAxisTick}
-              stroke="hsl(var(--muted-foreground))"
+              stroke="transparent"
+              tickLine={false}
+              axisLine={false}
             />
-            <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} />
-            <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={false} connectNulls={true} />
-          </LineChart>
+            <Tooltip
+              contentStyle={{
+                backgroundColor: 'hsl(var(--background))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '10px',
+                fontSize: '11px',
+                color: 'hsl(var(--foreground))',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+              }}
+              cursor={{ stroke: color, strokeWidth: 1, strokeDasharray: '4 2' }}
+            />
+            <Area
+              type="monotone"
+              dataKey={dataKey}
+              stroke={color}
+              strokeWidth={2}
+              fill={`url(#${gradientId})`}
+              dot={false}
+              connectNulls={true}
+              activeDot={{ r: 4, fill: color, strokeWidth: 0 }}
+            />
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     );
@@ -516,18 +549,18 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
 
                 {/* Core Weather Variables */}
                 <TabsContent value="core" className="space-y-3 mt-3">
-                  {renderChart("Temperature (°C)", "temperature_C", "#09090b", <Thermometer className="w-4 h-4 text-zinc-900 dark:text-zinc-100" />)}
-                  {renderChart("Precipitation (mm)", "precipitation_mm", "#27272a", <Droplets className="w-4 h-4 text-zinc-800 dark:text-zinc-200" />)}
-                  {renderChart("Humidity (%)", "humidity_%", "#3f3f46", <CloudRain className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />)}
-                  {renderChart("Wind Speed (m/s)", "wind_speed_mps", "#52525b", <Wind className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />)}
-                  {renderChart("Surface Pressure (hPa)", "surface_pressure_hPa", "#71717a", <Gauge className="w-4 h-4 text-zinc-500 dark:text-zinc-500" />)}
-                  {renderChart("Solar Radiation (W/m²)", "solar_radiation_wm2", "#a1a1aa", <Sun className="w-4 h-4 text-zinc-400 dark:text-zinc-600" />)}
+                  {renderChart("Temperature (°C)", "temperature_C", "#f97316", <Thermometer className="w-4 h-4 text-orange-500" />)}
+                  {renderChart("Precipitation (mm)", "precipitation_mm", "#3b82f6", <Droplets className="w-4 h-4 text-blue-500" />)}
+                  {renderChart("Humidity (%)", "humidity_%", "#06b6d4", <CloudRain className="w-4 h-4 text-cyan-500" />)}
+                  {renderChart("Wind Speed (m/s)", "wind_speed_mps", "#8b5cf6", <Wind className="w-4 h-4 text-violet-500" />)}
+                  {renderChart("Surface Pressure (hPa)", "surface_pressure_hPa", "#10b981", <Gauge className="w-4 h-4 text-emerald-500" />)}
+                  {renderChart("Solar Radiation (W/m²)", "solar_radiation_wm2", "#fbbf24", <Sun className="w-4 h-4 text-amber-400" />)}
                 </TabsContent>
 
                 {/* Temperature Details */}
                 <TabsContent value="temp" className="space-y-3 mt-3">
-                  {renderChart("Max Temperature (°C)", "temperature_max_C", "#09090b", <Thermometer className="w-4 h-4 text-zinc-950 dark:text-zinc-50" />)}
-                  {renderChart("Min Temperature (°C)", "temperature_min_C", "#27272a", <Thermometer className="w-4 h-4 text-zinc-900 dark:text-zinc-100" />)}
+                  {renderChart("Max Temperature (°C)", "temperature_max_C", "#ef4444", <Thermometer className="w-4 h-4 text-red-500" />)}
+                  {renderChart("Min Temperature (°C)", "temperature_min_C", "#60a5fa", <Thermometer className="w-4 h-4 text-blue-400" />)}
                   {/* Engineered variables hidden for now:
                   {renderChart("Temperature Range (°C)", "temp_range", "#f59e0b", <Activity className="w-4 h-4 text-amber-500" />)}
                   {renderChart("Normalized Temperature", "temp_normalized", "#8b5cf6", <Activity className="w-4 h-4 text-violet-500" />)}
@@ -539,12 +572,12 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
 
                 {/* Moisture & Water */}
                 <TabsContent value="moisture" className="space-y-3 mt-3">
-                  {renderChart("Specific Humidity (g/kg)", "specific_humidity_g_kg", "#09090b", <Droplets className="w-4 h-4 text-zinc-950 dark:text-zinc-50" />)}
-                  {renderChart("Dew Point (°C)", "dew_point_C", "#27272a", <Droplets className="w-4 h-4 text-zinc-900 dark:text-zinc-100" />)}
-                  {renderChart("Cloud Amount (%)", "cloud_amount_%", "#3f3f46", <CloudDrizzle className="w-4 h-4 text-zinc-800 dark:text-zinc-200" />)}
-                  {renderChart("Surface Soil Wetness (%)", "surface_soil_wetness_%", "#52525b", <Activity className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />)}
-                  {renderChart("Root Zone Soil Moisture (%)", "root_zone_soil_moisture_%", "#71717a", <Activity className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />)}
-                  {renderChart("Evapotranspiration (W/m²)", "evapotranspiration_wm2", "#a1a1aa", <Activity className="w-4 h-4 text-zinc-500 dark:text-zinc-500" />)}
+                  {renderChart("Specific Humidity (g/kg)", "specific_humidity_g_kg", "#06b6d4", <Droplets className="w-4 h-4 text-cyan-500" />)}
+                  {renderChart("Dew Point (°C)", "dew_point_C", "#3b82f6", <Droplets className="w-4 h-4 text-blue-500" />)}
+                  {renderChart("Cloud Amount (%)", "cloud_amount_%", "#94a3b8", <CloudDrizzle className="w-4 h-4 text-slate-400" />)}
+                  {renderChart("Surface Soil Wetness (%)", "surface_soil_wetness_%", "#10b981", <Activity className="w-4 h-4 text-emerald-500" />)}
+                  {renderChart("Root Zone Soil Moisture (%)", "root_zone_soil_moisture_%", "#059669", <Activity className="w-4 h-4 text-emerald-600" />)}
+                  {renderChart("Evapotranspiration (W/m²)", "evapotranspiration_wm2", "#f59e0b", <Activity className="w-4 h-4 text-amber-500" />)}
                   {/* Engineered variables hidden for now:
                   {renderChart("Evaporation Deficit", "evaporation_deficit", "#f59e0b", <Activity className="w-4 h-4 text-amber-500" />)}
                   {renderChart("Soil Saturation Index", "soil_saturation_index", "#0891b2", <Activity className="w-4 h-4 text-cyan-600" />)}
@@ -554,9 +587,9 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
 
                 {/* Atmospheric & Risk */}
                 <TabsContent value="risk" className="space-y-3 mt-3">
-                  {renderChart("Wind Speed 10m (m/s)", "wind_speed_10m_mps", "#09090b", <Wind className="w-4 h-4 text-zinc-950 dark:text-zinc-50" />)}
-                  {renderChart("Wind Direction 10m (°)", "wind_direction_10m_degrees", "#27272a", <Wind className="w-4 h-4 text-zinc-900 dark:text-zinc-100" />)}
-                  {renderChart("Sea Level Pressure (hPa)", "sea_level_pressure_hPa", "#3f3f46", <Gauge className="w-4 h-4 text-zinc-800 dark:text-zinc-200" />)}
+                  {renderChart("Wind Speed 10m (m/s)", "wind_speed_10m_mps", "#8b5cf6", <Wind className="w-4 h-4 text-violet-500" />)}
+                  {renderChart("Wind Direction 10m (°)", "wind_direction_10m_degrees", "#a78bfa", <Wind className="w-4 h-4 text-violet-400" />)}
+                  {renderChart("Sea Level Pressure (hPa)", "sea_level_pressure_hPa", "#10b981", <Gauge className="w-4 h-4 text-emerald-500" />)}
                   {/* Engineered variables hidden for now:
                   {renderChart("Wind-Precip Interaction", "wind_precip_interaction", "#0891b2", <Activity className="w-4 h-4 text-cyan-600" />)}
                   {renderChart("Pressure Anomaly", "pressure_anomaly", "#6366f1", <Activity className="w-4 h-4 text-indigo-500" />)}

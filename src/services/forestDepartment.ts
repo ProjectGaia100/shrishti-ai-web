@@ -342,7 +342,7 @@ class ForestDepartmentService {
    * Plan compensatory plantation
    */
   async planCompensatoryPlantation(
-    removalCoordinates: number[][],
+    removalCoordinates?: number[][],
     searchCoordinates?: number[][]
   ): Promise<ForestDeptResponse<CompensatoryPlantationResult>> {
     if (!await this.ensureCredits('compensatory_plantation')) {

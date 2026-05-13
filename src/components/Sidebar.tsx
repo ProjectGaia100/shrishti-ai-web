@@ -15,7 +15,13 @@ import type { ForestDeptFeature } from "@/services/forestDepartment";
 import { ThemeToggle } from "./ThemeToggle";
 import {
   indiaService,
+  karnatakaService,
+  keralaService,
+  maharashtraService,
+  tamilnaduService,
+  andhrapradeshService,
 } from "@/services/stateData";
+import { goaService } from "@/services/goa";
 import { 
   HelpCircle,
   Layers, 
@@ -92,6 +98,12 @@ export const Sidebar = ({
     dataLayers: true,
     forestDept: true,
     india: true,
+    goa: false,
+    karnataka: false,
+    kerala: false,
+    maharashtra: false,
+    tamilnadu: false,
+    andhrapradesh: false,
   });
 
   const allExpanded = Object.values(sectionsExpanded).every(Boolean);
@@ -155,7 +167,8 @@ export const Sidebar = ({
 
     setAddingLayerId(id);
     try {
-      const data = await fetchDataset(id, { timeoutMs: 120000, retries: 1 });
+      const aoiBbox = (window as any).__GEO_AOI_ACTIVE ? ((window as any).__GEO_AOI_BBOX ?? undefined) : undefined;
+      const data = await fetchDataset(id, { timeoutMs: 120000, retries: 1, ...(aoiBbox ? { aoiBbox } : {}) });
       const tileUrl = data?.tile_url;
       if (!tileUrl) return;
 
@@ -503,6 +516,66 @@ export const Sidebar = ({
                     onToggle={toggleSection('india')}
                   >
                     <StateCards stateName="India" stateSlug="india" service={indiaService} />
+                  </CollapsibleSection>
+
+                  <CollapsibleSection
+                    title="Goa"
+                    icon={Globe}
+                    badge="7"
+                    expanded={sectionsExpanded.goa}
+                    onToggle={toggleSection('goa')}
+                  >
+                    <StateCards stateName="Goa" stateSlug="goa" service={goaService} attribution="Data from AMCHE.IN & IndianOpenMaps" />
+                  </CollapsibleSection>
+
+                  <CollapsibleSection
+                    title="Karnataka"
+                    icon={Globe}
+                    badge="1"
+                    expanded={sectionsExpanded.karnataka}
+                    onToggle={toggleSection('karnataka')}
+                  >
+                    <StateCards stateName="Karnataka" stateSlug="karnataka" service={karnatakaService} attribution="Data from KGISMAPS" />
+                  </CollapsibleSection>
+
+                  <CollapsibleSection
+                    title="Kerala"
+                    icon={Globe}
+                    badge="1"
+                    expanded={sectionsExpanded.kerala}
+                    onToggle={toggleSection('kerala')}
+                  >
+                    <StateCards stateName="Kerala" stateSlug="kerala" service={keralaService} attribution="Data from NCSCM" />
+                  </CollapsibleSection>
+
+                  <CollapsibleSection
+                    title="Maharashtra"
+                    icon={Globe}
+                    badge="1"
+                    expanded={sectionsExpanded.maharashtra}
+                    onToggle={toggleSection('maharashtra')}
+                  >
+                    <StateCards stateName="Maharashtra" stateSlug="maharashtra" service={maharashtraService} attribution="Data from NCSCM" />
+                  </CollapsibleSection>
+
+                  <CollapsibleSection
+                    title="Tamil Nadu"
+                    icon={Globe}
+                    badge="1"
+                    expanded={sectionsExpanded.tamilnadu}
+                    onToggle={toggleSection('tamilnadu')}
+                  >
+                    <StateCards stateName="Tamil Nadu" stateSlug="tamilnadu" service={tamilnaduService} attribution="Data from TNGIS" />
+                  </CollapsibleSection>
+
+                  <CollapsibleSection
+                    title="Andhra Pradesh"
+                    icon={Globe}
+                    badge="1"
+                    expanded={sectionsExpanded.andhrapradesh}
+                    onToggle={toggleSection('andhrapradesh')}
+                  >
+                    <StateCards stateName="Andhra Pradesh" stateSlug="andhrapradesh" service={andhrapradeshService} attribution="Data from APSAC" />
                   </CollapsibleSection>
                 </div>
               </div>

@@ -1245,6 +1245,21 @@ const Index = () => {
         )}
 
         <div className="flex-1 relative">
+          {isAoiDrawing && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[2000] pointer-events-auto">
+              <div className="flex items-center gap-3 rounded-xl bg-amber-500 text-white px-4 py-2.5 shadow-2xl">
+                <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                <span className="text-xs font-bold tracking-wide">Draw a rectangle on the map</span>
+                <button
+                  type="button"
+                  onClick={handleToggleAoiDraw}
+                  className="ml-1 rounded-lg bg-white/20 hover:bg-white/30 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
           <MapView 
             hazardGuardActive={hazardGuardActive}
             hazardGuardMode={hazardGuardMode}

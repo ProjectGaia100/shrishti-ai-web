@@ -67,7 +67,8 @@ export const DatasetCard = ({ id, name, title, description, icon: Icon, theme, l
   const handleLoad = async () => {
     setIsLoading(true);
     try {
-      const data = await fetchDataset(id);
+      const aoiBbox = (window as any).__GEO_AOI_ACTIVE ? ((window as any).__GEO_AOI_BBOX ?? undefined) : undefined;
+      const data = await fetchDataset(id, aoiBbox ? { aoiBbox } : undefined);
       const tileUrl = data?.tile_url;
 
       if (tileUrl) {

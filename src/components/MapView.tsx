@@ -165,7 +165,7 @@ export const MapView = ({
     'hybrid': null,
   });
 
-  const [selectedBasemap, setSelectedBasemap] = useState<BasemapStyle>('map');
+  const [selectedBasemap, setSelectedBasemap] = useState<BasemapStyle>('hybrid');
   const [basemapExpanded, setBasemapExpanded] = useState(false);
   
   // keep refs updated
@@ -183,6 +183,7 @@ export const MapView = ({
   const riskZonesRef = useRef<L.LayerGroup | null>(null);
   const heatMarkersRef = useRef<L.LayerGroup | null>(null);
   const drawnItemsRef = useRef<L.FeatureGroup | null>(null);
+  const geojsonLayersRef = useRef<Record<string, L.GeoJSON>>({}); 
   const activeDrawHandlerRef = useRef<any>(null);
   const activeDrawTypeRef = useRef<string | null>(null);
   const aoiEditHandlerRef = useRef<any>(null);
@@ -201,8 +202,8 @@ export const MapView = ({
     const map = L.map(mapRef.current, {
       zoomControl: false,
       attributionControl: false,
-      center: [15.4989, 73.8278],
-      zoom: 11,
+      center: [20.5937, 78.9629],
+      zoom: 5,
       minZoom: 2,
       maxZoom: 18,
       worldCopyJump: true,
@@ -220,7 +221,7 @@ export const MapView = ({
       'hybrid': googleHybrid,
     };
 
-    cartoLight.addTo(map);
+    googleHybrid.addTo(map);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     L.control.attribution({ position: 'bottomright' }).addTo(map);
 
@@ -405,6 +406,11 @@ export const MapView = ({
     }
 
     function removeLayer({ id }: { id: string }) {
+      // Remove GeoJSON layer if present
+      if (geojsonLayersRef.current[id]) {
+        map.removeLayer(geojsonLayersRef.current[id]);
+        delete geojsonLayersRef.current[id];
+      }
       map.eachLayer((l) => {
         if (l instanceof L.TileLayer && (l as any)._url === window.GEO_LAYERS[id]?.url) {
           map.removeLayer(l);
@@ -439,6 +445,37 @@ export const MapView = ({
         }
       });
       window.GEO_LAYERS[id].opacity = opacity;
+    }
+
+    function addGeoJsonLayer({ id, name, data, color, opacity, category }: {
+      id: string; name: string; data: object; color?: string; opacity?: number; category?: string;
+    }) {
+      // Remove existing layer with same id
+      if (geojsonLayersRef.current[id]) {
+        map.removeLayer(geojsonLayersRef.current[id]);
+        delete geojsonLayersRef.current[id];
+      }
+      const fillColor = color || '#3B82F6';
+      const lLayer = L.geoJSON(data as any, {
+        style: { color: fillColor, fillColor, weight: 1.5, opacity: opacity ?? 0.8, fillOpacity: (opacity ?? 0.8) * 0.3 },
+        pointToLayer: (_feature, latlng) => L.circleMarker(latlng, {
+          radius: 5, color: fillColor, fillColor, weight: 1, opacity: opacity ?? 0.8, fillOpacity: (opacity ?? 0.8) * 0.6,
+        }),
+        onEachFeature: (feature, layer) => {
+          if (feature.properties) {
+            const props = Object.entries(feature.properties)
+              .filter(([, v]) => v != null && v !== '')
+              .slice(0, 8)
+              .map(([k, v]) => `<b>${k}:</b> ${v}`)
+              .join('<br>');
+            if (props) layer.bindPopup(props);
+          }
+        },
+      });
+      lLayer.addTo(map);
+      geojsonLayersRef.current[id] = lLayer;
+      window.GEO_LAYERS[id] = { id, name, type: 'geojson', visible: true, opacity: opacity ?? 0.8, category } as any;
+      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: window.GEO_LAYERS }));
     }
 
     function onStartDraw(event: Event) {
@@ -486,42 +523,50 @@ export const MapView = ({
       if (activeDrawHandlerRef.current && typeof activeDrawHandlerRef.current.disable === 'function') {
         activeDrawHandlerRef.current.disable();
       }
-      restoreAoiDoubleClickZoom();
-      const lastType = activeDrawTypeRef.current;
       activeDrawHandlerRef.current = null;
       activeDrawTypeRef.current = null;
-      if (lastType === 'rectangle') {
-        const hasDrawnAoi = Boolean(drawnItemsRef.current && drawnItemsRef.current.getLayers().length > 0);
-        if (!hasDrawnAoi) {
-          clearAoiState();
-        }
-      }
-      emitDrawState(false, lastType);
+      disableAoiEditMode();
+      restoreAoiDoubleClickZoom();
+      if (drawnItemsRef.current) drawnItemsRef.current.clearLayers();
+      clearAoiState();
+      emitDrawState(false, 'rectangle');
     }
 
     const onAddEvt = (e: Event) => addLayer((e as CustomEvent).detail);
+    const onAddGeoJsonEvt = (e: Event) => addGeoJsonLayer((e as CustomEvent).detail);
     const onRemoveEvt = (e: Event) => removeLayer((e as CustomEvent).detail);
     const onToggleEvt = (e: Event) => toggleLayer((e as CustomEvent).detail);
     const onOpacityEvt = (e: Event) => updateOpacity((e as CustomEvent).detail);
     const onStartDrawEvt = (e: Event) => onStartDraw(e);
     const onCancelDrawEvt = () => onCancelDraw();
 
+    const onJumpToEvt = (e: Event) => {
+      const { lat, lon, zoom } = (e as CustomEvent).detail || {};
+      if (lat != null && lon != null && mapInstanceRef.current) {
+        mapInstanceRef.current.flyTo([lat, lon], zoom ?? 12, { animate: true, duration: 1.2 });
+      }
+    };
+
     window.addEventListener('geo:add-layer', onAddEvt);
+    window.addEventListener('geo:add-geojson-layer', onAddGeoJsonEvt);
     window.addEventListener('geo:remove-layer', onRemoveEvt);
     window.addEventListener('geo:toggle-layer', onToggleEvt);
     window.addEventListener('geo:update-opacity', onOpacityEvt);
     window.addEventListener('geo:start-draw', onStartDrawEvt);
     window.addEventListener('geo:cancel-draw', onCancelDrawEvt);
+    window.addEventListener('geo:jump-to', onJumpToEvt);
 
     mapInstanceRef.current = map;
 
     return () => {
       window.removeEventListener('geo:add-layer', onAddEvt);
+      window.removeEventListener('geo:add-geojson-layer', onAddGeoJsonEvt);
       window.removeEventListener('geo:remove-layer', onRemoveEvt);
       window.removeEventListener('geo:toggle-layer', onToggleEvt);
       window.removeEventListener('geo:update-opacity', onOpacityEvt);
       window.removeEventListener('geo:start-draw', onStartDrawEvt);
       window.removeEventListener('geo:cancel-draw', onCancelDrawEvt);
+      window.removeEventListener('geo:jump-to', onJumpToEvt);
       map.remove();
     };
   }, []);

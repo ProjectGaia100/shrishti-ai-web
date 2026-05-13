@@ -108,6 +108,7 @@ export const ForestDeptPanel = ({
   // State for compensatory plantation's second polygon (search area)
   const [searchAreaCoordinates, setSearchAreaCoordinates] = useState<number[][] | null>(null);
   const [drawingSearchArea, setDrawingSearchArea] = useState(false);
+  const [compMode, setCompMode] = useState<'removal' | 'search' | 'both'>('removal');
 
   // Reset when feature changes
   useEffect(() => {
@@ -116,6 +117,7 @@ export const ForestDeptPanel = ({
     setError(null);
     setSearchAreaCoordinates(null);
     setDrawingSearchArea(false);
+    setCompMode('removal');
   }, [activeFeature]);
 
   // Listen for search area polygon completion
@@ -144,8 +146,20 @@ export const ForestDeptPanel = ({
 
   const handleAnalyze = async () => {
     if (!activeFeature || activeFeature === 'ndvi') return;
-    
-    if (!drawnCoordinates || drawnCoordinates.length < 3) {
+
+    // Compensatory plantation: validate based on mode
+    if (activeFeature === 'compensatory_plantation') {
+      const needsRemoval = compMode === 'removal' || compMode === 'both';
+      const needsSearch = compMode === 'search' || compMode === 'both';
+      if (needsRemoval && (!drawnCoordinates || drawnCoordinates.length < 3)) {
+        setError("Please draw the removal area on the map first");
+        return;
+      }
+      if (needsSearch && (!searchAreaCoordinates || searchAreaCoordinates.length < 3)) {
+        setError("Please draw the search area on the map first");
+        return;
+      }
+    } else if (!drawnCoordinates || drawnCoordinates.length < 3) {
       setError("Please draw a polygon on the map first (at least 3 points)");
       return;
     }
@@ -192,8 +206,8 @@ export const ForestDeptPanel = ({
           break;
         case 'compensatory_plantation':
           response = await forestDeptService.planCompensatoryPlantation(
-            drawnCoordinates,
-            searchAreaCoordinates || undefined  // Pass search area if provided
+            (compMode === 'removal' || compMode === 'both') ? drawnCoordinates! : undefined,
+            (compMode === 'search' || compMode === 'both') ? searchAreaCoordinates! : undefined
           );
           break;
         case 'tree_growth':
@@ -270,66 +284,82 @@ export const ForestDeptPanel = ({
               <span>{activeFeature === 'compensatory_plantation' ? 'Define Areas' : 'Draw Area on Map'}</span>
             </div>
 
-            {/* Special UI for Compensatory Plantation - Two polygons */}
+            {/* Special UI for Compensatory Plantation - Mode selector */}
             {activeFeature === 'compensatory_plantation' ? (
               <div className="space-y-3">
-                {/* Removal Area (Primary Polygon) */}
-                <div className="p-2 rounded bg-muted/30 border border-border/60">
-                  <div className="text-xs font-semibold text-foreground mb-1">1. Removal Area (Required)</div>
-                  {drawnCoordinates && drawnCoordinates.length >= 3 ? (
-                    <div className="flex items-center gap-2 text-xs text-foreground">
-                      <CheckCircle className="w-3 h-3" />
-                      <span>Polygon with {drawnCoordinates.length} vertices</span>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <p className="text-[10px] text-muted-foreground">
-                        Draw the area where trees will be removed
-                      </p>
-                      <Button variant="outline" size="sm" onClick={handleDrawClick} className="w-full h-7 text-xs">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        Draw Removal Area
-                      </Button>
-                    </div>
-                  )}
+                {/* Mode selector */}
+                <div className="grid grid-cols-3 gap-1 p-1 rounded-lg bg-muted/40 border border-border/50">
+                  {(['removal', 'search', 'both'] as const).map(mode => (
+                    <button
+                      type="button"
+                      key={mode}
+                      onClick={() => { setCompMode(mode); setSearchAreaCoordinates(null); }}
+                      className={`py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${
+                        compMode === mode
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {mode === 'removal' ? 'Removal' : mode === 'search' ? 'Search' : 'Both'}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Search Area (Optional Second Polygon) */}
-                <div className="p-2 rounded bg-muted/30 border border-border/60">
-                  <div className="text-xs font-semibold text-foreground mb-1">2. Search Area (Optional)</div>
-                  {searchAreaCoordinates && searchAreaCoordinates.length >= 3 ? (
-                    <div className="flex items-center justify-between">
+                {/* Removal Area */}
+                {(compMode === 'removal' || compMode === 'both') && (
+                  <div className="p-2 rounded bg-muted/30 border border-border/60">
+                    <div className="text-xs font-semibold text-foreground mb-1">
+                      Removal Area {compMode === 'both' ? '(Required)' : ''}
+                    </div>
+                    {drawnCoordinates && drawnCoordinates.length >= 3 ? (
                       <div className="flex items-center gap-2 text-xs text-foreground">
                         <CheckCircle className="w-3 h-3" />
-                        <span>Polygon with {searchAreaCoordinates.length} vertices</span>
+                        <span>Polygon with {drawnCoordinates.length} vertices</span>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setSearchAreaCoordinates(null)}
-                        className="h-6 text-[10px] text-red-500 hover:text-red-600"
-                      >
-                        Clear
-                      </Button>
+                    ) : (
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-muted-foreground">Area where trees will be removed</p>
+                        <Button type="button" variant="outline" size="sm" onClick={handleDrawClick} className="w-full h-7 text-xs">
+                          <MapPin className="w-3 h-3 mr-1" />Draw Removal Area
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Search Area */}
+                {(compMode === 'search' || compMode === 'both') && (
+                  <div className="p-2 rounded bg-muted/30 border border-border/60">
+                    <div className="text-xs font-semibold text-foreground mb-1">
+                      Search Area {compMode === 'both' ? '(Optional)' : ''}
                     </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <p className="text-[10px] text-muted-foreground">
-                        Draw where to search for plantation sites (or skip to use 5km buffer)
-                      </p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleDrawSearchArea} 
-                        disabled={!drawnCoordinates || drawnCoordinates.length < 3}
-                        className="w-full h-7 text-xs"
-                      >
-                        <MapPin className="w-3 h-3 mr-1" />
-                        Draw Search Area
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                    {searchAreaCoordinates && searchAreaCoordinates.length >= 3 ? (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs text-foreground">
+                          <CheckCircle className="w-3 h-3" />
+                          <span>Polygon with {searchAreaCoordinates.length} vertices</span>
+                        </div>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setSearchAreaCoordinates(null)} className="h-6 text-[10px] text-red-500 hover:text-red-600">Clear</Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-muted-foreground">
+                          {compMode === 'both' ? 'Where to search for sites (or skip for 5km buffer)' : 'Area to search for plantation sites'}
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDrawSearchArea}
+                          disabled={compMode === 'both' && (!drawnCoordinates || drawnCoordinates.length < 3)}
+                          className="w-full h-7 text-xs"
+                        >
+                          <MapPin className="w-3 h-3 mr-1" />Draw Search Area
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               // Standard single polygon UI for other features

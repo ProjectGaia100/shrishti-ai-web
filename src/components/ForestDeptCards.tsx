@@ -60,26 +60,6 @@ const FEATURES: Array<{
   },
   // === POLYGON-BASED FEATURES ===
   {
-    id: 'crop_classification',
-    title: 'Crop Classification',
-    description: 'Classify crops (rice, wheat, etc.)',
-    icon: <Wheat className="w-4 h-4" />,
-    color: 'text-zinc-700 dark:text-zinc-300',
-    bgColor: 'bg-zinc-100/70 dark:bg-zinc-800/70',
-    borderColor: 'border-zinc-300/70 dark:border-zinc-700/70',
-    type: 'polygon'
-  },
-  {
-    id: 'plantation_suitability',
-    title: 'Plantation Suitability',
-    description: 'Best areas for tree plantation',
-    icon: <TreePine className="w-4 h-4" />,
-    color: 'text-zinc-700 dark:text-zinc-300',
-    bgColor: 'bg-zinc-100/70 dark:bg-zinc-800/70',
-    borderColor: 'border-zinc-300/70 dark:border-zinc-700/70',
-    type: 'polygon'
-  },
-  {
     id: 'compensatory_plantation',
     title: 'Compensatory Plantation',
     description: 'Plan replacement planting areas',
@@ -263,7 +243,7 @@ export const ForestDeptCards = ({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <button className="text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+                          <button type="button" className="text-muted-foreground/40 hover:text-muted-foreground transition-colors">
                             <HelpCircle className="w-3 h-3" />
                           </button>
                         </TooltipTrigger>
@@ -309,6 +289,7 @@ export const ForestDeptCards = ({
               {isLoaded && legend && (
                 <div className="mt-2 pt-2 border-t border-border/20">
                     <button
+                      type="button"
                       onClick={() => setShowLegend(prev => ({ ...prev, [layerId]: !legendVisible }))}
                       className="w-full flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors px-1"
                     >
@@ -357,7 +338,7 @@ export const ForestDeptCards = ({
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button className="text-muted-foreground/40 hover:text-muted-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
+                        <button type="button" className="text-muted-foreground/40 hover:text-muted-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
                           <HelpCircle className="w-3 h-3" />
                         </button>
                       </TooltipTrigger>
@@ -433,7 +414,7 @@ export const ForestDeptCards = ({
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <button className="text-muted-foreground/40 hover:text-muted-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
+                            <button type="button" className="text-muted-foreground/40 hover:text-muted-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
                               <HelpCircle className="w-3 h-3" />
                             </button>
                           </TooltipTrigger>
