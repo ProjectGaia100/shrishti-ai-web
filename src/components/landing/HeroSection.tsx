@@ -124,7 +124,7 @@ export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSect
     { value: '5+', label: 'Data Layers' },
     { value: '3', label: 'AI Models' },
     { value: '60-day', label: 'Forecasts' },
-    { value: '99.9%', label: 'Uptime' },
+    { value: '36', label: 'Weather Variables' },
   ]
 
   return (
@@ -150,9 +150,8 @@ export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSect
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.6 }}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-medium mb-8"
+            className="text-[10px] uppercase tracking-[0.25em] text-white/30 font-medium mb-8"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
             Satellite Intelligence Platform
           </motion.div>
 
@@ -164,9 +163,12 @@ export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSect
                   className={`hero-word inline-block font-black leading-none tracking-tight ${
                     i === 0
                       ? 'text-[clamp(3rem,7vw,6rem)] text-white'
-                      : 'text-[clamp(3rem,7vw,6rem)] bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-500 bg-clip-text text-transparent'
+                      : 'text-[clamp(3rem,7vw,6rem)]'
                   }`}
-                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                  style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    ...(i === 1 ? { color: 'oklch(68% 0.2 240)' } : {}),
+                  }}
                 >
                   {word}
                 </span>
