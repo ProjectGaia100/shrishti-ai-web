@@ -119,7 +119,7 @@ export function FeaturesSection() {
               <div className="absolute inset-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] rounded-[1.5rem]" />
 
               <div className="relative z-10 h-full flex flex-col p-6 gap-3">
-                <div>
+                <div className="flex flex-col">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-widest font-medium mb-4"
                     style={{ background: `${f.accent}20`, color: f.accent }}>
                     <span className="w-1 h-1 rounded-full" style={{ background: f.accent }} />
@@ -133,7 +133,7 @@ export function FeaturesSection() {
                   <p className="text-xs text-white/40 mb-3">{f.subtitle}</p>
                   <p className={`text-white/50 leading-relaxed ${f.id === 'hazard' ? 'text-sm' : 'text-xs'}`}>{f.description}</p>
                   {f.id === 'hazard' && (
-                    <div className="mt-6 grid grid-cols-2 gap-3">
+                    <div className="mt-auto pt-6 grid grid-cols-2 gap-3">
                       {['Flood Risk', 'Earthquake', 'Wildfire', 'Cyclone'].map((risk) => (
                         <div key={risk} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/15">
                           <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />

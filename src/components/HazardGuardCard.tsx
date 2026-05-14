@@ -109,7 +109,7 @@ export const HazardGuardCard = ({ onModeChange }: HazardGuardCardProps) => {
       <div className="space-y-2">
 
         {isActive && (
-          <div className="space-y-2.5 pt-1 animate-in slide-in-from-top-2 duration-300">
+          <div className="space-y-2.5 pt-1 animate-in slide-in-from-top-2 duration-300 max-h-[52vh] overflow-y-auto">
             <div className="rounded-xl p-1 bg-muted/30 border border-border/40">
               <div className="flex gap-1">
                 <button
@@ -189,16 +189,6 @@ export const HazardGuardCard = ({ onModeChange }: HazardGuardCardProps) => {
                 <div className="w-2.5 h-2.5 bg-zinc-950 dark:bg-zinc-50 rounded-sm"></div>
                 <span className="font-bold uppercase tracking-widest">Disaster - Critical Risk</span>
               </div>
-            </div>
-
-            <div className="text-xs text-muted-foreground">
-              <p className="font-medium mb-1">Prediction Features:</p>
-              <ul className="space-y-0.5 text-[10px]">
-                <li>• Weather & Climate Data</li>
-                <li>• Soil & Elevation Analysis</li>
-                <li>• Population Density</li>
-                <li>• Historical Patterns</li>
-              </ul>
             </div>
           </div>
         )}

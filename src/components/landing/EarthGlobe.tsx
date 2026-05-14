@@ -5,25 +5,29 @@ import * as THREE from 'three'
 import { shaderMaterial } from '@react-three/drei'
 
 // Atmosphere glow shader
+// Atmosphere glow shader — proper fresnel falloff
 const AtmosphereMaterial = shaderMaterial(
-  { color: new THREE.Color('#1a6fa8'), intensity: 0.5 },
-  // vertex
+  { color: new THREE.Color('#4fa8d8'), intensity: 0.6 },
   `
     varying vec3 vNormal;
+    varying vec3 vViewDir;
     void main() {
       vNormal = normalize(normalMatrix * normal);
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      vec4 worldPos = modelViewMatrix * vec4(position, 1.0);
+      vViewDir = normalize(-worldPos.xyz);
+      gl_Position = projectionMatrix * worldPos;
     }
   `,
-  // fragment
   `
     uniform vec3 color;
     uniform float intensity;
     varying vec3 vNormal;
+    varying vec3 vViewDir;
     void main() {
-      float rim = 1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0));
-      rim = pow(rim, 3.0);
-      gl_FragColor = vec4(color, rim * intensity * 0.6);
+      float fresnel = dot(vNormal, vViewDir);
+      fresnel = clamp(1.0 - fresnel, 0.0, 1.0);
+      fresnel = pow(fresnel, 6.0);
+      gl_FragColor = vec4(color, fresnel * intensity);
     }
   `
 )
@@ -44,28 +48,32 @@ declare module '@react-three/fiber' {
 
 function Earth() {
   const earthRef = useRef<THREE.Mesh>(null!)
+  const cloudsRef = useRef<THREE.Mesh>(null!)
   const groupRef = useRef<THREE.Group>(null!)
   const drag = useRef({ active: false, lastX: 0, lastY: 0, velX: 0, velY: 0 })
 
-  const [dayMap] = useTexture([
+  const [dayMap, specularMap] = useTexture([
     'https://unpkg.com/three-globe/example/img/earth-day.jpg',
+    'https://unpkg.com/three-globe/example/img/earth-water.png',
   ])
+
+  const [cloudsMap] = useTexture(['/earth-clouds.png'])
 
   useFrame(({ clock }) => {
     if (!groupRef.current) return
     const d = drag.current
-    if (d.active) {
-      // dampen velocity while dragging
-      d.velX *= 0.9
-      d.velY *= 0.9
-    } else {
-      // auto-rotate + apply drag inertia
+    if (!d.active) {
       groupRef.current.rotation.y += 0.001 + d.velX
       groupRef.current.rotation.x += d.velY
-      // clamp x tilt
       groupRef.current.rotation.x = Math.max(-0.5, Math.min(0.5, groupRef.current.rotation.x))
       d.velX *= 0.95
       d.velY *= 0.95
+    } else {
+      d.velX *= 0.9
+      d.velY *= 0.9
+    }
+    if (cloudsRef.current) {
+      cloudsRef.current.rotation.y = groupRef.current.rotation.y * 1.02 + clock.getElapsedTime() * 0.0003
     }
   })
 
@@ -75,7 +83,6 @@ function Earth() {
     drag.current.lastY = e.clientY
     e.target.setPointerCapture(e.pointerId)
   }
-
   const onPointerMove = (e: any) => {
     if (!drag.current.active) return
     const dx = (e.clientX - drag.current.lastX) * 0.005
@@ -90,15 +97,14 @@ function Earth() {
     drag.current.lastX = e.clientX
     drag.current.lastY = e.clientY
   }
-
   const onPointerUp = () => { drag.current.active = false }
 
   return (
-    <group ref={groupRef} rotation={[0.2, 0, 0.05]} position={[0, 0, 0]}>
-      {/* Earth — grab cursor on hover */}
+    <group ref={groupRef} rotation={[0.2, 0, 0.05]}>
+      {/* Earth surface */}
       <Sphere
         ref={earthRef}
-        args={[1, 64, 64]}
+        args={[1, 96, 96]}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -106,20 +112,25 @@ function Earth() {
       >
         <meshPhongMaterial
           map={dayMap}
-          specular={new THREE.Color('#0a1a2e')}
-          shininess={6}
+          specularMap={specularMap}
+          specular={new THREE.Color('#2266aa')}
+          shininess={12}
         />
       </Sphere>
 
-      {/* Atmosphere glow */}
-      <Sphere args={[1.08, 64, 64]}>
-        {/* @ts-ignore */}
-        <atmosphereMaterial
-          transparent
-          side={THREE.BackSide}
-          depthWrite={false}
-        />
-      </Sphere>
+      {/* Cloud layer */}
+      {cloudsMap && (
+        <Sphere ref={cloudsRef} args={[1.012, 96, 96]}>
+          <meshPhongMaterial
+            map={cloudsMap}
+            transparent
+            opacity={0.65}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+          />
+        </Sphere>
+      )}
+
     </group>
   )
 }
@@ -127,9 +138,10 @@ function Earth() {
 export function EarthScene() {
   return (
     <>
-      <directionalLight position={[4, 2, 3]} intensity={5} color="#fff5e0" />
-      <directionalLight position={[-1, 0, 2]} intensity={0.6} color="#4fc3f7" />
-      <ambientLight intensity={0.35} />
+      {/* Strong sun from upper-right — creates realistic day/night terminator */}
+      <directionalLight position={[4, 2, 2]} intensity={3.5} color="#fff5e0" />
+      {/* Very dim fill so night side shows faint city lights effect */}
+      <ambientLight intensity={0.12} />
       <Earth />
     </>
   )
