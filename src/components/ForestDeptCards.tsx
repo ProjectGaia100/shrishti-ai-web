@@ -385,75 +385,7 @@ export const ForestDeptCards = ({
         );
       })}
 
-      {/* Urban tools moved from Urban Planning section */}
-      <div className="pt-1">
-        <p className="px-1 text-[10px] uppercase font-black tracking-widest text-muted-foreground/70 mb-2">Planning Tools</p>
-        <div className="space-y-2">
-          {URBAN_TOOLS.map((tool) => {
-            const isActive = activeUrbanFeature === tool.id;
-            const creditCost = URBAN_PLANNING_CREDIT_COSTS[tool.id];
-
-            return (
-              <div
-                key={tool.id}
-                className={cn(
-                  "rounded-xl p-3 transition-all duration-200 border cursor-pointer",
-                  isActive
-                    ? "border-zinc-500/50 bg-zinc-100/70 dark:bg-zinc-800/70 ring-1 ring-zinc-500/20"
-                    : "border-border bg-background hover:bg-muted/50"
-                )}
-                onClick={() => onOpenUrbanFeature?.(isActive ? null : tool.id)}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg shrink-0 text-zinc-700 dark:text-zinc-300 bg-zinc-100/70 dark:bg-zinc-800/70">
-                    {tool.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <h4 className="font-semibold text-sm leading-tight truncate">{tool.title}</h4>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button type="button" className="text-muted-foreground/40 hover:text-muted-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
-                              <HelpCircle className="w-3 h-3" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="right" className="max-w-[200px] text-[11px] leading-relaxed">
-                            {tool.description}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded ml-auto shrink-0">{creditCost} cr</span>
-                    </div>
-                    <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/60 mt-0.5">{tool.drawType === 'polyline' ? 'Polyline Task' : 'Polygon Task'}</p>
-                  </div>
-
-                  <div className={cn(
-                    "h-7 px-3 flex items-center justify-center rounded-lg text-[9px] uppercase font-black tracking-widest transition-all shrink-0",
-                    isActive ? "bg-foreground text-background" : "bg-muted text-muted-foreground"
-                  )}>
-                    {isActive ? "Active" : "Select"}
-                  </div>
-                </div>
-
-                {isActive && (
-                  <div className="mt-3 pt-3 border-t border-border/50 animate-fade-in">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 bg-zinc-500 rounded-full"></div>
-                      <span className="text-xs font-medium text-foreground">Draw {tool.drawType === 'polyline' ? 'Line' : 'Polygon'} Mode</span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mb-2">Draw on map, then click Analyze in panel.</p>
-                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                      <MapPin className="w-3 h-3" />
-                      <span>Use panel to start drawing</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* Planning Tools removed — lives in Urban Planning section */}
     </div>
   );
 };

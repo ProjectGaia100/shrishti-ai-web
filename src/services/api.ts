@@ -90,11 +90,12 @@ export async function fetchTimelapse(
   return resp.data;
 }
 
-export async function sendChatMessage(message: string, history: any[] = []) {
+export async function sendChatMessage(message: string, history: any[] = [], stream: boolean = false) {
   // Call the Flask backend directly for full GEE functionality
   const resp = await API.post('/api/chat', { 
     message, 
-    history 
+    history,
+    stream 
   });
   return resp.data;
 }

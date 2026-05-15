@@ -8,6 +8,7 @@ import { GeoVisionCard } from "./GeoVisionCard";
 import { SatelliteTimelapseCard } from "./SatelliteTimelapseCard";
 import { ForestDeptCards } from "./ForestDeptCards";
 import { StateCards } from "./StateCards";
+import { UrbanPlanningCards } from "./UrbanPlanningCards";
 import { CollapsibleSection } from "./CollapsibleSection";
 import type { TimelapseFrame } from "@/services/api";
 import type { UrbanPlanningFeature } from "@/services/urbanPlanning";
@@ -36,6 +37,7 @@ import {
   ChevronDown,
   ChevronsUpDown,
   Globe,
+  Building2,
   Plus,
   RefreshCw
 } from "lucide-react";
@@ -96,6 +98,7 @@ export const Sidebar = ({
     models: true,
     timelapse: true,
     dataLayers: true,
+    urbanPlanning: true,
     forestDept: true,
     india: true,
     goa: false,
@@ -114,6 +117,7 @@ export const Sidebar = ({
       models: newState,
       timelapse: newState,
       dataLayers: newState,
+      urbanPlanning: newState,
       forestDept: newState,
       india: newState,
     });
@@ -494,6 +498,19 @@ export const Sidebar = ({
                 </div>
                 
                 <div className="space-y-1">
+                  <CollapsibleSection
+                    title="Urban Planning"
+                    icon={Building2}
+                    badge="4"
+                    expanded={sectionsExpanded.urbanPlanning}
+                    onToggle={toggleSection('urbanPlanning')}
+                  >
+                    <UrbanPlanningCards
+                      activeFeature={activeUrbanPlanningFeature ?? null}
+                      onSelectFeature={onUrbanPlanningFeatureChange ?? (() => {})}
+                    />
+                  </CollapsibleSection>
+
                   <CollapsibleSection
                     title="Forest Dept"
                     icon={Trees}

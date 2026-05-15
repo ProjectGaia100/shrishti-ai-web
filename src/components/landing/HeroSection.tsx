@@ -6,39 +6,50 @@ import { motion } from 'motion/react'
 import { gsap, useGSAP } from '@/lib/gsap'
 import { EarthScene } from './EarthGlobe'
 
-// Particle field
-function ParticleField() {
-  const ref = useRef<THREE.Points>(null!)
-  const count = 3000
+// Star field — 3 layers + milky way glow
+function StarField() {
+  const tinyRef   = useRef<THREE.Points>(null!)
+  const smallRef  = useRef<THREE.Points>(null!)
+  const brightRef = useRef<THREE.Points>(null!)
 
-  const positions = useMemo(() => {
-    const arr = new Float32Array(count * 3)
-    for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 10
-      arr[i * 3 + 1] = (Math.random() - 0.5) * 10
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 10
+  const { tiny, small, bright } = useMemo(() => {
+    const onSphere = (count: number, r: number) => {
+      const arr = new Float32Array(count * 3)
+      for (let i = 0; i < count; i++) {
+        const theta = Math.random() * Math.PI * 2
+        const phi   = Math.acos(2 * Math.random() - 1)
+        arr[i*3]   = r * Math.sin(phi) * Math.cos(theta)
+        arr[i*3+1] = r * Math.sin(phi) * Math.sin(theta)
+        arr[i*3+2] = r * Math.cos(phi)
+      }
+      return arr
     }
-    return arr
+    return {
+      tiny:   onSphere(12000, 22),
+      small:  onSphere(4000,  20),
+      bright: onSphere(600,   18),
+    }
   }, [])
 
   useFrame(({ clock }) => {
-    if (ref.current) {
-      ref.current.rotation.y = clock.getElapsedTime() * 0.04
-      ref.current.rotation.x = clock.getElapsedTime() * 0.02
-    }
+    const t = clock.getElapsedTime() * 0.005
+    if (tinyRef.current)   tinyRef.current.rotation.y   = t
+    if (smallRef.current)  smallRef.current.rotation.y  = t
+    if (brightRef.current) brightRef.current.rotation.y = t
   })
 
   return (
-    <Points ref={ref} positions={positions} stride={3} frustumCulled={false}>
-      <PointMaterial
-        transparent
-        color="#4fc3f7"
-        size={0.015}
-        sizeAttenuation
-        depthWrite={false}
-        opacity={0.6}
-      />
-    </Points>
+    <>
+      <Points ref={tinyRef}   positions={tiny}   stride={3} frustumCulled={false}>
+        <PointMaterial transparent color="#aabcff" size={0.025} sizeAttenuation depthWrite={false} opacity={0.7} />
+      </Points>
+      <Points ref={smallRef}  positions={small}  stride={3} frustumCulled={false}>
+        <PointMaterial transparent color="#d0e0ff" size={0.045} sizeAttenuation depthWrite={false} opacity={0.85} />
+      </Points>
+      <Points ref={brightRef} positions={bright} stride={3} frustumCulled={false}>
+        <PointMaterial transparent color="#ffffff" size={0.08} sizeAttenuation depthWrite={false} opacity={1.0} />
+      </Points>
+    </>
   )
 }
 
@@ -129,17 +140,24 @@ export function HeroSection({ isAuthenticated, onSignIn, onDashboard }: HeroSect
 
   return (
     <section ref={sectionRef} className="relative min-h-[100dvh] flex items-center overflow-hidden">
-      {/* Particle field full background */}
-      <div className="absolute inset-0 z-0">
-        <Canvas camera={{ position: [0, 0, 5], fov: 60 }} gl={{ antialias: true, alpha: true }}>
+      {/* True space background */}
+      <div className="absolute inset-0 z-0 bg-[#020408]">
+        <div className="absolute inset-0 opacity-[0.35]" style={{
+          background: 'radial-gradient(ellipse 160% 30% at 65% 45%, #2a3a6a, transparent)',
+        }} />
+        <div className="absolute inset-0 opacity-[0.15]" style={{
+          background: 'radial-gradient(ellipse 80% 60% at 30% 70%, #1a0a3a, transparent)',
+        }} />
+        <Canvas className="absolute inset-0" camera={{ position: [0, 0, 5], fov: 60 }} gl={{ antialias: true, alpha: false }}>
+          <color attach="background" args={['#050a14']} />
           <Suspense fallback={null}>
-            <ParticleField />
+            <StarField />
           </Suspense>
         </Canvas>
       </div>
 
-      {/* Dark fade on left so text is readable */}
-      <div className="absolute inset-0 z-[1] bg-gradient-to-r from-[#050510] via-[#050510]/80 to-transparent" />
+      {/* Subtle left fade for text readability — keep stars visible */}
+      <div className="absolute inset-0 z-[1] bg-gradient-to-r from-[#050a14]/70 via-[#050a14]/20 to-transparent" />
 
       {/* Split layout */}
       <div className="hero-content relative z-[2] w-full max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center min-h-[100dvh] py-24">

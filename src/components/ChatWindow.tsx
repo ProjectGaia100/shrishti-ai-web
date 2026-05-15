@@ -1,12 +1,41 @@
-import { useState } from "react";
-import { X, Minimize2, Send, Sparkles } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { X, Minimize2, Send, Sparkles, Loader2, ChevronDown, MapPin, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { sendChatMessage } from "@/services/api";
+import { useState as useLocalState } from "react";
+
+function ThinkingBubble({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
+  const [open, setOpen] = useLocalState(false);
+  return (
+    <div className="max-w-[85%] rounded-2xl border border-amber-500/20 bg-amber-500/5 overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2 px-4 py-2.5 text-left"
+      >
+        {isStreaming
+          ? <Loader2 className="w-3 h-3 animate-spin text-amber-500/70 shrink-0" />
+          : <ChevronDown className={`w-3 h-3 text-amber-500/70 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+        }
+        <span className="text-[10px] uppercase tracking-widest font-bold text-amber-500/70">
+          {isStreaming ? "Thinking…" : "Thought process"}
+        </span>
+        {!isStreaming && <span className="text-[9px] text-amber-500/40 ml-auto">{open ? 'hide' : 'show'}</span>}
+      </button>
+      {(open || isStreaming) && (
+        <div className="px-4 pb-3 border-t border-amber-500/10">
+          <p className="text-[11px] text-muted-foreground/60 italic whitespace-pre-wrap leading-relaxed mt-2">
+            {content || "…"}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface Message {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "thinking";
   content: string;
 }
 
@@ -18,64 +47,171 @@ export const ChatWindow = ({ onClose }: ChatWindowProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hello! I'm your GEE AI Assistant. I can help you with satellite imagery analysis, data interpretation, and geospatial insights. What would you like to explore?",
+      content: "Hello! I'm the ShrishtiAI Earth Engine Agent. Ask me to load any layer — NDVI, NDWI, elevation, temperature, land cover, nightlights, rainfall, and more. Try: \"Show NDWI for Goa\"",
     },
   ]);
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const suggestions = ["Analyze vegetation", "Show temperature trends", "Compare land cover"];
+  const suggestions = [
+    "Show NDVI of Kerala",
+    "Show elevation of India",
+    "NDWI for Goa",
+    "Land cover of Karnataka",
+    "Temperature map of Rajasthan",
+    "Nighttime lights of India",
+  ];
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+    const history = messages
+      .filter(m => m.role !== "thinking")
+      .map(m => ({ role: m.role, content: m.content }));
+
+    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
     setInput("");
+    setIsLoading(true);
 
-    // call backend chat endpoint
-    (async () => {
-      try {
-        // Send current history to maintain context
-        const response = await sendChatMessage(userMessage, messages.map(m => ({ 
-          role: m.role, 
-          content: m.content 
-        })));
-        
-        // The backend should return response_text and optionally tile_url
-        if (response?.response_text) {
-          setMessages((prev) => [...prev, { role: "assistant", content: response.response_text }]);
-        }
+    // Use unique IDs to track placeholder messages
+    const thinkingId = `thinking-${Date.now()}`;
+    const responseId = `response-${Date.now() + 1}`;
+    setMessages(prev => [
+      ...prev,
+      { role: "thinking", content: "", _id: thinkingId } as any,
+      { role: "assistant", content: "", _id: responseId } as any,
+    ]);
 
-        if (response?.tile_url) {
-          // add layer to map with better metadata
-          const layerName = response.metadata?.title || response.metadata?.name || `AI Query: ${userMessage}`;
-          const layerDescription = response.metadata?.description || `Generated from: "${userMessage}"`;
-          
-          window.dispatchEvent(new CustomEvent('geo:add-layer', {
-            detail: {
-              id: `ai-${Date.now()}`,
-              name: layerName,
-              url: response.tile_url,
-              metadata: {
-                ...response.metadata,
-                description: layerDescription,
-                source: 'AI Generated',
-                query: userMessage
-              },
-              opacity: 0.8,
+    try {
+      const apiUrl = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000') + '/api/chat';
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(() => {
+          try { const t = localStorage.getItem('auth_token'); return t ? { Authorization: `Bearer ${t}` } : {}; } catch { return {}; }
+        })() },
+        body: JSON.stringify({ message: userMessage, history, stream: true }),
+      });
+
+      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let thinkingText = "";
+      let responseText = "";
+      let buf = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        // Split on SSE event boundaries (\n\n), then parse each event's data line
+        const events = buf.split("\n\n");
+        buf = events.pop() ?? "";  // last incomplete event stays in buffer
+
+        for (const event of events) {
+          const dataLine = event.split("\n").find(l => l.startsWith("data: "));
+          if (!dataLine) continue;
+          const line = dataLine;
+          try {
+            const evt = JSON.parse(line.slice(6));
+            if (evt.type === "thinking") {
+              thinkingText += evt.content;
+              setMessages(prev => prev.map((m: any) =>
+                m._id === thinkingId ? { ...m, content: thinkingText } : m
+              ));
+            } else if (evt.type === "content") {
+              responseText += evt.content;
+              setMessages(prev => prev.map((m: any) =>
+                m._id === responseId ? { ...m, content: responseText } : m
+              ));
+            } else if (evt.type === "done") {
+              // Update response text if provided
+              if (evt.response_text && !responseText) {
+                responseText = evt.response_text;
+                setMessages(prev => prev.map((m: any) =>
+                  m._id === responseId ? { ...m, content: responseText } : m
+                ));
+              }
+
+              // Fly to region if center is provided
+              if (evt.center && evt.center.lat && evt.center.lon) {
+                window.dispatchEvent(new CustomEvent('geo:jump-to', {
+                  detail: {
+                    lat: evt.center.lat,
+                    lon: evt.center.lon,
+                    zoom: evt.center.zoom || 8,
+                  },
+                }));
+              }
+
+              // Add tile layer to map if URL is provided
+              if (evt.tile_url) {
+                const layerId = `ai-${Date.now()}`;
+                const layerName = userMessage.length > 50
+                  ? userMessage.slice(0, 47) + '...'
+                  : userMessage;
+
+                window.dispatchEvent(new CustomEvent('geo:add-layer', {
+                  detail: {
+                    id: layerId,
+                    name: `AI: ${layerName}`,
+                    url: evt.tile_url,
+                    opacity: 0.85,
+                    zIndex: 450,
+                  },
+                }));
+
+                // Update the assistant message to show success
+                const successMsg = `✅ ${responseText || evt.response_text || 'Layer loaded.'}\n\n🗺️ Layer added to map.`;
+                setMessages(prev => prev.map((m: any) =>
+                  m._id === responseId ? { ...m, content: successMsg, _id: undefined } : m
+                ));
+              } else if (!evt.tile_url && responseText) {
+                // No tile URL — just show the response text
+                setMessages(prev => prev.map((m: any) =>
+                  m._id === responseId ? { ...m, content: responseText, _id: undefined } : m
+                ));
+              }
+            } else if (evt.type === "error") {
+              throw new Error(evt.message);
             }
-          }));
-          setMessages((prev) => [...prev, { role: 'assistant', content: '✅ Layer added to map. The data is now visualized on the globe.' }]);
+          } catch (parseErr) {
+            console.warn('SSE parse error on line:', line.slice(0, 100), parseErr);
+          }
         }
-      } catch (err) {
-        console.error('Chat API error', err);
-        setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry — failed to get a response from the AI service.' }]);
       }
-    })();
+
+      if (!responseText) {
+        // Stream ended without done — show whatever thinking we got as the response
+        setMessages(prev => prev.filter((m: any) => m._id !== responseId));
+        if (thinkingText) {
+          // Keep thinking visible, add error note
+          setMessages(prev => [...prev, { role: "assistant", content: "The model thought but didn't return a map. Check backend logs." }]);
+        } else {
+          setMessages(prev => prev.filter((m: any) => m._id !== thinkingId));
+          setMessages(prev => [...prev, { role: "assistant", content: "Sorry — no response received." }]);
+        }
+      }
+    } catch (err) {
+      console.error('Chat SSE error', err);
+      setMessages(prev => prev.filter(m => m.role !== "thinking" && m.content !== ""));
+      setMessages(prev => [...prev, { role: "assistant", content: "Sorry — failed to connect to the AI service." }]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="fixed bottom-10 right-10 z-[1001] w-96 h-[500px] bg-background rounded-2xl shadow-2xl border border-border flex flex-col overflow-hidden animate-fade-in">
+    <div className="fixed bottom-10 right-10 z-[1001] w-96 h-[560px] bg-background rounded-2xl shadow-2xl border border-border flex flex-col overflow-hidden animate-fade-in">
       {/* Header */}
       <div className="bg-zinc-900 dark:bg-zinc-100 p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -83,25 +219,17 @@ export const ChatWindow = ({ onClose }: ChatWindowProps) => {
             <Sparkles className="w-5 h-5 text-white dark:text-black" />
           </div>
           <div>
-            <h3 className="font-bold text-white dark:text-black">GEE AI Assistant</h3>
-            <p className="text-xs text-white/70 dark:text-black/70 font-medium tracking-wide">Online</p>
+            <h3 className="font-bold text-white dark:text-black">SHRISHTI AI Agent</h3>
+            <p className="text-xs text-white/70 dark:text-black/70 font-medium tracking-wide">
+              {isLoading ? "Thinking..." : "Earth Engine Agent • Online"}
+            </p>
           </div>
         </div>
         <div className="flex gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onClose}
-            className="h-8 w-8 p-0 hover:bg-background/20"
-          >
+          <Button size="sm" variant="ghost" onClick={onClose} className="h-8 w-8 p-0 text-white/70 dark:text-black/70 hover:text-white dark:hover:text-black hover:bg-white/10 dark:hover:bg-black/10">
             <Minimize2 className="w-4 h-4" />
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onClose}
-            className="h-8 w-8 p-0 hover:bg-background/20"
-          >
+          <Button size="sm" variant="ghost" onClick={onClose} className="h-8 w-8 p-0 text-white/70 dark:text-black/70 hover:text-white dark:hover:text-black hover:bg-white/10 dark:hover:bg-black/10">
             <X className="w-4 h-4" />
           </Button>
         </div>
@@ -115,34 +243,41 @@ export const ChatWindow = ({ onClose }: ChatWindowProps) => {
               key={i}
               className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                  message.role === "user"
-                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 font-medium"
-                    : "bg-muted/50 border border-border"
-                }`}
-              >
-                <p className="text-sm">{message.content}</p>
-              </div>
+              {message.role === "thinking" ? (
+                <ThinkingBubble content={message.content} isStreaming={isLoading} />
+              ) : (
+                <div
+                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
+                    message.role === "user"
+                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 font-medium"
+                      : "bg-muted/50 border border-border"
+                  }`}
+                >
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                </div>
+              )}
             </div>
           ))}
+          <div ref={scrollRef} />
         </div>
       </ScrollArea>
 
       {/* Quick suggestions */}
-      <div className="px-4 pb-2 flex gap-2 flex-wrap">
-        {suggestions.map((suggestion, i) => (
-          <Button
-            key={i}
-            size="sm"
-            variant="outline"
-            onClick={() => setInput(suggestion)}
-            className="text-xs bg-muted/50 hover:bg-muted border-border/50"
-          >
-            {suggestion}
-          </Button>
-        ))}
-      </div>
+      {!isLoading && messages.length <= 3 && (
+        <div className="px-4 pb-2 flex gap-2 flex-wrap">
+          {suggestions.slice(0, 3).map((suggestion, i) => (
+            <Button
+              key={i}
+              size="sm"
+              variant="outline"
+              onClick={() => setInput(suggestion)}
+              className="text-xs bg-muted/50 hover:bg-muted border-border/50"
+            >
+              {suggestion}
+            </Button>
+          ))}
+        </div>
+      )}
 
       {/* Input */}
       <div className="p-4 border-t border-border bg-muted/30">
@@ -150,16 +285,22 @@ export const ChatWindow = ({ onClose }: ChatWindowProps) => {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Ask about Earth Engine data..."
+            onKeyDown={(e) => e.key === "Enter" && !isLoading && handleSend()}
+            placeholder="Show NDVI for Kerala..."
             className="flex-1 bg-background border-border"
+            disabled={isLoading}
           />
           <Button
             onClick={handleSend}
             size="sm"
-            className="bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all"
+            disabled={isLoading || !input.trim()}
+            className="bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all disabled:opacity-50"
           >
-            <Send className="w-4 h-4" />
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
           </Button>
         </div>
       </div>
