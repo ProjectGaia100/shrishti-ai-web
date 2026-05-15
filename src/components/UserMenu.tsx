@@ -33,22 +33,30 @@ export function UserMenu() {
       {/* Trigger */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-background/90 backdrop-blur-sm border border-border shadow-sm hover:border-primary/20 hover:bg-muted/50 transition-all group"
+        className="flex items-center justify-center sm:px-3 sm:py-1.5 h-10 w-10 sm:h-auto sm:w-auto rounded-xl sm:rounded-lg bg-background/80 sm:bg-background/90 backdrop-blur-xl sm:backdrop-blur-sm border border-border/40 sm:border-border shadow-2xl sm:shadow-sm hover:border-primary/20 hover:bg-muted/50 transition-all active:scale-95 sm:active:scale-100 group"
       >
-        <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shadow-sm group-hover:scale-105 transition-transform">
-          {user.name.charAt(0).toUpperCase()}
+        {/* Desktop View */}
+        <div className="hidden sm:flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shadow-sm group-hover:scale-105 transition-transform">
+            {user.name.charAt(0).toUpperCase()}
+          </div>
+          <div className="flex flex-col items-start">
+            <span className="text-xs font-bold text-foreground leading-tight">
+              {user.name}
+            </span>
+            <span className="text-[10px] text-muted-foreground leading-tight uppercase tracking-wider">
+              {theme === 'light' ? 'Light' : 'Dark'} Mode
+            </span>
+          </div>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          />
         </div>
-        <div className="flex flex-col items-start hidden sm:flex">
-          <span className="text-xs font-bold text-foreground leading-tight">
-            {user.name}
-          </span>
-          <span className="text-[10px] text-muted-foreground leading-tight uppercase tracking-wider">
-            {theme === 'light' ? 'Light' : 'Dark'} Mode
-          </span>
+        
+        {/* Mobile View */}
+        <div className="sm:hidden flex items-center justify-center">
+          <Settings className="w-5 h-5 text-foreground/80" />
         </div>
-        <ChevronDown
-          className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        />
       </button>
 
       {/* Dropdown */}

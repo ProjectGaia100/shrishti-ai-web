@@ -129,7 +129,7 @@ export const GeoVisionPanel = ({ isVisible, onClose, mapCoords, availableCredits
 
   return (
     <Card className={cn(
-      "fixed top-4 right-4 w-[400px] max-w-[90vw] max-h-[90vh] overflow-y-auto z-[1600]",
+      "fixed top-4 right-4 w-[calc(100vw-32px)] md:w-[400px] max-h-[90vh] overflow-y-auto z-[1600]",
       "bg-background/80 dark:bg-zinc-900/80 border border-border shadow-2xl animate-in slide-in-from-right-4 duration-500 backdrop-blur-xl custom-scrollbar"
     )}>
       <div className="p-5">

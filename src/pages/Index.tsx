@@ -24,7 +24,8 @@ import { creditsService, CreditBundle } from "@/services/credits";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { ChevronDown, GripVertical, Layers, Square, Trash2, X } from "lucide-react";
+import { ChevronDown, GripVertical, Layers, Square, Trash2, X, Menu } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn, normalizeLongitude } from "@/lib/utils";
 import { GLOBAL_DATASETS } from "@/services/datasetService";
 
@@ -159,7 +160,12 @@ const Index = () => {
   const [isDatasetExplorerOpen, setIsDatasetExplorerOpen] = useState(false);
   
   // Layout state
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const isMobile = useIsMobile();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(isMobile);
+
+  useEffect(() => {
+    setSidebarCollapsed(isMobile);
+  }, [isMobile]);
 
   const isRightPanelVisible =
     showPanel ||
@@ -981,7 +987,20 @@ const Index = () => {
       />
       <main className="flex-1 relative flex flex-col overflow-hidden">
         {/* Unified Dashboard Header / Control Bar */}
-        <header className="absolute top-0 left-0 right-0 z-[1600] pointer-events-none p-4 flex items-start justify-between">
+        <header className="absolute top-0 left-0 right-0 z-[1600] pointer-events-none p-4 flex items-center justify-between">
+          {/* Mobile Menu Button */}
+          {isMobile && sidebarCollapsed && (
+            <div className="pointer-events-auto">
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed(false)}
+                className="flex items-center justify-center bg-background/80 dark:bg-zinc-900/80 border border-border/40 shadow-2xl rounded-xl h-10 w-10 backdrop-blur-xl transition-all active:scale-95"
+              >
+                <Menu className="h-5 w-5 text-foreground/80" />
+              </button>
+            </div>
+          )}
+
           {/* Top-Left: Credits (now more integrated) */}
           <div className="pointer-events-auto hidden sm:block">
             <div className="flex flex-col gap-2 min-w-[176px]">
@@ -1121,18 +1140,20 @@ const Index = () => {
           </div>
 
           {/* Top-Center: Smart Search */}
-          <div className={cn(
-            "pointer-events-auto w-full mx-4 transition-all duration-300",
-            isRightPanelVisible
-              ? "max-w-[420px] md:mr-[26rem]"
-              : "max-w-[500px]"
-          )}>
+          {(!isMobile || sidebarCollapsed) && (
+            <div className={cn(
+              "pointer-events-auto transition-all duration-300 mx-2 sm:mx-4",
+              isMobile ? "flex-1" : "w-full",
+              !isMobile && (isRightPanelVisible
+                  ? "max-w-[420px] md:mr-[26rem]"
+                  : "max-w-[500px]")
+            )}>
             <form
               onSubmit={handleLocationSearch}
               className="flex items-center gap-2 rounded-2xl border border-border/40 bg-background shadow-2xl p-1.5 backdrop-blur-xl transition-all focus-within:ring-2 focus-within:ring-primary/20"
             >
-              <div className="flex items-center gap-2 flex-1 pl-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/50">
+              <div className="flex items-center gap-2 flex-1 pl-3 min-w-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/50 shrink-0">
                   <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
                 </svg>
                 <Input
@@ -1140,7 +1161,7 @@ const Index = () => {
                   onChange={(e) => setLocationQuery(e.target.value)}
                   placeholder="Analyze coords or search places..."
                   aria-label="Search location"
-                  className="h-9 border-none bg-transparent shadow-none focus-visible:ring-0 px-0 placeholder:text-muted-foreground/40 text-sm font-medium"
+                  className="h-9 border-none bg-transparent shadow-none focus-visible:ring-0 px-0 placeholder:text-muted-foreground/40 text-sm font-medium min-w-0 w-full truncate"
                 />
               </div>
               <Button
@@ -1159,11 +1180,14 @@ const Index = () => {
               </Button>
             </form>
           </div>
+          )}
 
           {/* Top-Right: User Profile & Settings */}
-          <div className="pointer-events-auto">
-            <UserMenu />
-          </div>
+          {(!isMobile || sidebarCollapsed) && (
+            <div className="pointer-events-auto">
+              <UserMenu />
+            </div>
+          )}
         </header>
 
         {showBuyCredits && (

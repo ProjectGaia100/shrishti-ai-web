@@ -172,7 +172,7 @@ export const UrbanPlanningPanel = ({
 
   return (
     <Card className={cn(
-      "fixed top-24 right-4 w-[420px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-7rem)] overflow-y-auto z-[1600]",
+      "fixed top-24 right-4 w-[calc(100vw-32px)] md:w-[420px] max-h-[calc(100vh-7rem)] overflow-y-auto z-[1600]",
       "bg-background/80 dark:bg-zinc-900/80 border border-border shadow-2xl animate-in slide-in-from-right-4 duration-500 backdrop-blur-xl custom-scrollbar"
     )}>
       <div className="p-5">

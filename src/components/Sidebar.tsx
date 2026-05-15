@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { HazardGuardCard } from "./HazardGuardCard";
 import type { HazardGuardMode } from "./HazardGuardCard";
 import { WeatherWiseCard } from "./WeatherWiseCard";
@@ -14,6 +15,7 @@ import type { TimelapseFrame } from "@/services/api";
 import type { UrbanPlanningFeature } from "@/services/urbanPlanning";
 import type { ForestDeptFeature } from "@/services/forestDepartment";
 import { ThemeToggle } from "./ThemeToggle";
+import { UserMenu } from "./UserMenu";
 import {
   indiaService,
   karnatakaService,
@@ -37,9 +39,9 @@ import {
   ChevronDown,
   ChevronsUpDown,
   Globe,
-  Building2,
   Plus,
-  RefreshCw
+  RefreshCw,
+  Menu
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -108,6 +110,8 @@ export const Sidebar = ({
     tamilnadu: false,
     andhrapradesh: false,
   });
+
+  const isMobile = useIsMobile();
 
   const allExpanded = Object.values(sectionsExpanded).every(Boolean);
 
@@ -211,15 +215,28 @@ export const Sidebar = ({
   }, []);
 
   return (
-    <motion.aside 
-      initial={false}
-      animate={{ width: isCollapsed ? 80 : 420 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      className="h-full bg-background border-r border-border flex flex-col z-[1500] relative overflow-hidden group/sidebar"
-    >
+    <>
+      {isMobile && !isCollapsed && (
+        <div 
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[1400]" 
+          onClick={onToggleCollapse}
+        />
+      )}
+      <motion.aside 
+        initial={false}
+        animate={{ 
+          width: isMobile ? (isCollapsed ? 0 : '100vw') : (isCollapsed ? 80 : 420),
+          maxWidth: isMobile ? '100vw' : 420
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className={cn(
+          "h-full bg-background border-r border-border flex flex-col z-[1500] relative overflow-hidden group/sidebar",
+          isMobile ? "fixed top-0 left-0 bottom-0" : ""
+        )}
+      >
       {/* Brand Header */}
       <div className={cn(
-        "flex items-center gap-3 py-4 border-b border-border/60 bg-muted/5 transition-all",
+        "flex items-center justify-between py-4 border-b border-border/60 bg-muted/5 transition-all",
         isCollapsed ? "px-0 justify-center" : "px-6"
       )}>
           <div className="flex items-center gap-3 cursor-pointer shrink-0" onClick={() => navigate('/')}>
@@ -238,15 +255,28 @@ export const Sidebar = ({
               </motion.div>
             )}
           </div>
+          {isMobile && !isCollapsed && (
+            <div className="flex items-center gap-2">
+              <UserMenu />
+              <button
+                onClick={onToggleCollapse}
+                className="flex items-center justify-center p-2 h-10 w-10 rounded-xl bg-background border border-border/40 shadow-sm transition-all active:scale-95 text-foreground/80 hover:bg-muted"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            </div>
+          )}
       </div>
 
-      {/* Toggle Button */}
-      <button
-        onClick={onToggleCollapse}
-        className="absolute -right-3 top-20 bg-background border border-border rounded-full p-1 z-50 shadow-md hover:bg-muted transition-colors"
-      >
-        {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
-      </button>
+      {/* Toggle Button - Hidden on Mobile, since we'll use a hamburger menu in Index.tsx */}
+      {!isMobile && (
+        <button
+          onClick={onToggleCollapse}
+          className="absolute -right-3 top-20 bg-background border border-border rounded-full p-1 z-50 shadow-md hover:bg-muted transition-colors"
+        >
+          {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        </button>
+      )}
 
       {/* Primary Category Switcher (Professional Tab Interface) */}
       <div className={cn(
@@ -610,6 +640,7 @@ export const Sidebar = ({
 )}
 
     </motion.aside>
+    </>
   );
 };
 

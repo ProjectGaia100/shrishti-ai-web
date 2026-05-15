@@ -319,7 +319,7 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
 
   return (
     <Card className={cn(
-      "fixed top-4 right-4 w-[420px] max-w-[92vw] max-h-[90vh] z-[1600]",
+      "fixed top-4 right-4 w-[calc(100vw-32px)] md:w-[420px] max-h-[90vh] z-[1600]",
       "bg-background/90 dark:bg-zinc-900/90 border border-border shadow-2xl animate-in slide-in-from-right-4 duration-500 backdrop-blur-xl overflow-hidden flex flex-col"
     )}>
       <div className="p-5 overflow-y-auto custom-scrollbar">

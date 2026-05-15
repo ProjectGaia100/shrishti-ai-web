@@ -117,7 +117,7 @@ export const HazardGuardPanel = ({
 
   return (
     <Card className={cn(
-      "fixed top-4 right-4 w-[380px] max-w-[90vw] max-h-[90vh] z-[1600] bg-background border border-border shadow-2xl overflow-hidden flex flex-col",
+      "fixed top-4 right-4 w-[calc(100vw-32px)] md:w-[380px] max-h-[90vh] z-[1600] bg-background border border-border shadow-2xl overflow-hidden flex flex-col",
       "animate-in slide-in-from-right-4 duration-500 backdrop-blur-xl"
     )}>
       <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
