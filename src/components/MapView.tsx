@@ -544,7 +544,25 @@ export const MapView = ({
       const { lat, lon, zoom } = (e as CustomEvent).detail || {};
       if (lat != null && lon != null && mapInstanceRef.current) {
         mapInstanceRef.current.flyTo([lat, lon], zoom ?? 12, { animate: true, duration: 1.2 });
+        const marker = L.circleMarker([lat, lon], {
+          radius: 10, color: '#ffffff', fillColor: '#6366f1', weight: 2, opacity: 1, fillOpacity: 0.9,
+        }).addTo(mapInstanceRef.current);
+        setTimeout(() => { mapInstanceRef.current?.removeLayer(marker); }, 5000);
       }
+    };
+
+    const onAddPredictionMarkerEvt = (e: Event) => {
+      const { lat, lon, disasterClass } = (e as CustomEvent).detail || {};
+      if (lat == null || lon == null || !riskZonesRef.current) return;
+      riskZonesRef.current.clearLayers();
+      const DISASTER_COLORS: Record<string, string> = {
+        Drought: '#f59e0b', Flood: '#3b82f6', Landslide: '#a16207', Normal: '#22c55e', Storm: '#8b5cf6',
+      };
+      const color = DISASTER_COLORS[disasterClass] || '#8b5cf6';
+      L.circle([lat, lon], { radius: 8000, color, fillColor: color, weight: 2, opacity: 0.8, fillOpacity: 0.15 })
+        .addTo(riskZonesRef.current);
+      L.circleMarker([lat, lon], { radius: 7, fillColor: color, color: '#ffffff', weight: 2, opacity: 1, fillOpacity: 1 })
+        .addTo(riskZonesRef.current);
     };
 
     window.addEventListener('geo:add-layer', onAddEvt);
@@ -555,6 +573,7 @@ export const MapView = ({
     window.addEventListener('geo:start-draw', onStartDrawEvt);
     window.addEventListener('geo:cancel-draw', onCancelDrawEvt);
     window.addEventListener('geo:jump-to', onJumpToEvt);
+    window.addEventListener('geo:add-prediction-marker', onAddPredictionMarkerEvt);
 
     mapInstanceRef.current = map;
 
@@ -567,6 +586,7 @@ export const MapView = ({
       window.removeEventListener('geo:start-draw', onStartDrawEvt);
       window.removeEventListener('geo:cancel-draw', onCancelDrawEvt);
       window.removeEventListener('geo:jump-to', onJumpToEvt);
+      window.removeEventListener('geo:add-prediction-marker', onAddPredictionMarkerEvt);
       map.remove();
     };
   }, []);

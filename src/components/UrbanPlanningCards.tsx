@@ -269,7 +269,9 @@ export const UrbanPlanningCards = ({ activeFeature, onSelectFeature }: UrbanPlan
                     {creditCost} cr
                   </span>
                 </div>
-                <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/60 mt-0.5">Measurement Tool</p>
+                <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/60 mt-0.5">
+                  {feature.drawType === 'polygon' ? 'Polygon Task' : 'Polyline Task'}
+                </p>
               </div>
               
               <div className={cn(

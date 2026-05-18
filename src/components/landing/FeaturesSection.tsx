@@ -21,8 +21,8 @@ export function FeaturesSection() {
 
   const [risks, setRisks] = useState([
     { label: 'Flood',     pct: 78, color: '#3b82f6' },
-    { label: 'Wildfire',  pct: 43, color: '#f97316' },
-    { label: 'Cyclone',   pct: 61, color: '#8b5cf6' },
+    { label: 'Drought',   pct: 43, color: '#f59e0b' },
+    { label: 'Storm',     pct: 61, color: '#6366f1' },
     { label: 'Landslide', pct: 29, color: '#10b981' },
     { label: 'Normal',    pct: 55, color: '#94a3b8' },
   ])

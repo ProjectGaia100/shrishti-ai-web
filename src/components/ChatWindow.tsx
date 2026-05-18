@@ -41,9 +41,10 @@ interface Message {
 
 interface ChatWindowProps {
   onClose: () => void;
+  onMapUpdate?: (tileUrl: string, layerName: string, center?: { lat: number; lon: number; zoom?: number }) => void;
 }
 
-export const ChatWindow = ({ onClose }: ChatWindowProps) => {
+export const ChatWindow = ({ onClose, onMapUpdate }: ChatWindowProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -92,7 +93,7 @@ export const ChatWindow = ({ onClose }: ChatWindowProps) => {
     ]);
 
     try {
-      const apiUrl = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000') + '/api/chat';
+      const apiUrl = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000') + '/api/chat/message';
       const res = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(() => {
@@ -101,7 +102,79 @@ export const ChatWindow = ({ onClose }: ChatWindowProps) => {
         body: JSON.stringify({ message: userMessage, history, stream: true }),
       });
 
-      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        let errMsg = `HTTP ${res.status}`;
+        try {
+          const errData = await res.json();
+          if (errData.error) errMsg += `: ${errData.error}`;
+          else if (errData.message) errMsg += `: ${errData.message}`;
+        } catch (e) {}
+        throw new Error(errMsg);
+      }
+      
+      if (!res.body) throw new Error(`HTTP ${res.status} (No response body)`);
+
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const data = await res.json();
+
+        // Build display message
+        let displayMsg = data.message || data.response_text || "Done!";
+        if (data.gee_error) {
+          displayMsg += `\n\n⚠️ Map layer couldn't be rendered: ${data.gee_error}`;
+        }
+
+        // Remove thinking bubble, update assistant message
+        setMessages(prev =>
+          prev
+            .filter((m: any) => m._id !== thinkingId)
+            .map((m: any) =>
+              m._id === responseId ? { ...m, content: displayMsg, _id: undefined } : m
+            )
+        );
+
+        // Add tile layer to map if URL is provided
+        if (data.tile_url) {
+          const layerName = userMessage.length > 50 ? userMessage.slice(0, 47) + '...' : userMessage;
+          const layerId = `ai-${Date.now()}`;
+
+          window.dispatchEvent(new CustomEvent('geo:add-layer', {
+            detail: {
+              id: layerId,
+              name: `AI: ${layerName}`,
+              url: data.tile_url,
+              opacity: 0.85,
+              zIndex: 450,
+              legend: data.legend ?? [],
+            },
+          }));
+
+          // Fly to region if center provided
+          if (data.center?.lat && data.center?.lon) {
+            window.dispatchEvent(new CustomEvent('geo:jump-to', {
+              detail: {
+                lat: data.center.lat,
+                lon: data.center.lon,
+                zoom: data.center.zoom || 8,
+              },
+            }));
+          }
+
+          // Update message to confirm layer added
+          setMessages(prev =>
+            prev.map((m: any) =>
+              m.content === displayMsg
+                ? { ...m, content: `✅ ${displayMsg}\n\n🗺️ Layer added to map.` }
+                : m
+            )
+          );
+
+          onMapUpdate?.(data.tile_url, layerName, data.center);
+        }
+
+        setIsLoading(false);
+        return;
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();

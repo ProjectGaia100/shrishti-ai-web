@@ -1148,43 +1148,50 @@ const Index = () => {
                   ? "max-w-[420px] md:mr-[26rem]"
                   : "max-w-[500px]")
             )}>
-            <form
-              onSubmit={handleLocationSearch}
-              className="flex items-center gap-2 rounded-2xl border border-border/40 bg-background shadow-2xl p-1.5 backdrop-blur-xl transition-all focus-within:ring-2 focus-within:ring-primary/20"
-            >
-              <div className="flex items-center gap-2 flex-1 pl-3 min-w-0">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/50 shrink-0">
-                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-                </svg>
-                <Input
-                  value={locationQuery}
-                  onChange={(e) => setLocationQuery(e.target.value)}
-                  placeholder="Analyze coords or search places..."
-                  aria-label="Search location"
-                  className="h-9 border-none bg-transparent shadow-none focus-visible:ring-0 px-0 placeholder:text-muted-foreground/40 text-sm font-medium min-w-0 w-full truncate"
-                />
-              </div>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={locationSearchLoading || !locationQuery.trim()}
-                className="rounded-xl h-9 px-5 font-bold transition-all shadow-md active:scale-95 hover:shadow-primary/20"
-              >
-                {locationSearchLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+              <div className="flex items-center gap-2">
+                <form
+                  onSubmit={handleLocationSearch}
+                  className="flex-1 flex items-center gap-2 rounded-2xl border border-border/40 bg-background shadow-2xl p-1.5 backdrop-blur-xl transition-all focus-within:ring-2 focus-within:ring-primary/20"
+                >
+                  <div className="flex items-center gap-2 flex-1 pl-3 min-w-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/50 shrink-0">
+                      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                    </svg>
+                    <Input
+                      value={locationQuery}
+                      onChange={(e) => setLocationQuery(e.target.value)}
+                      placeholder="Analyze coords or search places..."
+                      aria-label="Search location"
+                      className="h-9 border-none bg-transparent shadow-none focus-visible:ring-0 px-0 placeholder:text-muted-foreground/40 text-sm font-medium min-w-0 w-full truncate"
+                    />
                   </div>
-                ) : (
-                  <span className="text-[11px] font-bold uppercase tracking-wider">Locate</span>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={locationSearchLoading || !locationQuery.trim()}
+                    className="rounded-xl h-9 px-5 font-bold transition-all shadow-md active:scale-95 hover:shadow-primary/20"
+                  >
+                    {locationSearchLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                      </div>
+                    ) : (
+                      <span className="text-[11px] font-bold uppercase tracking-wider">Locate</span>
+                    )}
+                  </Button>
+                </form>
+                {isMobile && (
+                  <div className="flex-shrink-0">
+                    <UserMenu />
+                  </div>
                 )}
-              </Button>
-            </form>
+              </div>
           </div>
           )}
 
           {/* Top-Right: User Profile & Settings */}
           {(!isMobile || sidebarCollapsed) && (
-            <div className="pointer-events-auto">
+            <div className="pointer-events-auto hidden sm:block">
               <UserMenu />
             </div>
           )}

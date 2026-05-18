@@ -90,6 +90,8 @@ export const GeoVisionPanel = ({ isVisible, onClose, mapCoords, availableCredits
       if (result.success && result.data) {
         setPrediction(result.data);
         toast({ title: "Prediction Complete", description: `Disaster: ${result.data.disaster_prediction.predicted_class} | Weather: ${result.data.weather_prediction.predicted_regime}` });
+        window.dispatchEvent(new CustomEvent('geo:jump-to', { detail: { lat, lon, zoom: 11 } }));
+        window.dispatchEvent(new CustomEvent('geo:add-prediction-marker', { detail: { lat, lon, disasterClass: result.data.disaster_prediction.predicted_class } }));
       } else {
         setError(result.error || "Prediction failed");
         toast({ title: "Prediction Failed", description: result.error, variant: "destructive" });

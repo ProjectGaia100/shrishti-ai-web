@@ -416,28 +416,32 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
                     <CalendarDays className="w-4 h-4 opacity-70" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="z-[2600] w-auto p-0" align="start" sideOffset={6}>
+                <PopoverContent className="z-[3000] w-auto p-0 shadow-2xl" align="start" sideOffset={6} avoidCollisions={false}>
                   <DateCalendar
                     mode="single"
                     numberOfMonths={1}
                     selected={selectedDate}
                     onSelect={handleDateSelection}
                     disabled={(day) => day > new Date() || day < new Date("2000-01-01")}
-                    className="rounded-lg border border-border bg-background p-3"
+                    className="rounded-xl border border-border/60 bg-background p-4"
                     classNames={{
                       months: "flex flex-col",
                       month: "space-y-3",
-                      caption: "flex justify-center pt-1 relative items-center",
-                      caption_label: "text-sm font-semibold",
-                      nav: "space-x-1 flex items-center",
-                      head_row: "grid grid-cols-7 gap-1",
-                      head_cell: "h-9 w-9 text-center text-xs text-muted-foreground font-medium",
-                      row: "grid grid-cols-7 gap-1 mt-1",
-                      cell: "h-9 w-9 p-0 text-center text-sm",
-                      day: "h-9 w-9 rounded-md hover:bg-accent hover:text-accent-foreground",
-                      day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
-                      day_today: "bg-accent text-accent-foreground",
-                      day_outside: "text-muted-foreground opacity-40",
+                      caption: "flex justify-center pt-1 relative items-center mb-1",
+                      caption_label: "text-sm font-bold tracking-tight text-foreground",
+                      nav: "flex items-center",
+                      nav_button: "absolute h-8 w-8 bg-muted hover:bg-accent border border-border/60 rounded-lg flex items-center justify-center text-foreground opacity-80 hover:opacity-100 transition-all",
+                      nav_button_previous: "left-0",
+                      nav_button_next: "right-0",
+                      head_row: "grid grid-cols-7 gap-0.5 mb-1",
+                      head_cell: "h-8 w-8 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground",
+                      row: "grid grid-cols-7 gap-0.5",
+                      cell: "h-8 w-8 p-0 text-center text-sm relative",
+                      day: "h-8 w-8 rounded-lg text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer",
+                      day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground font-bold shadow-sm",
+                      day_today: "ring-1 ring-primary/50 text-primary font-semibold",
+                      day_outside: "text-muted-foreground/40",
+                      day_disabled: "text-muted-foreground/30 cursor-not-allowed",
                     }}
                     initialFocus
                   />

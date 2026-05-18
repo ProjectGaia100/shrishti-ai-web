@@ -100,7 +100,7 @@ function Earth() {
   const onPointerUp = () => { drag.current.active = false }
 
   return (
-    <group ref={groupRef} rotation={[0.2, 0, 0.05]}>
+    <group ref={groupRef} rotation={[0.2, -1.4, 0.05]}>
       {/* Earth surface */}
       <Sphere
         ref={earthRef}

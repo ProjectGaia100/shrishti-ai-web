@@ -11,11 +11,11 @@ import { ForestDeptCards } from "./ForestDeptCards";
 import { StateCards } from "./StateCards";
 import { UrbanPlanningCards } from "./UrbanPlanningCards";
 import { CollapsibleSection } from "./CollapsibleSection";
-import type { TimelapseFrame } from "@/services/api";
+import type { TimelapseFrame, AoiBbox } from "@/services/api";
 import type { UrbanPlanningFeature } from "@/services/urbanPlanning";
 import type { ForestDeptFeature } from "@/services/forestDepartment";
+import { DatasetExplorerModal } from './DatasetExplorerModal';
 import { ThemeToggle } from "./ThemeToggle";
-import { UserMenu } from "./UserMenu";
 import {
   indiaService,
   karnatakaService,
@@ -34,6 +34,7 @@ import {
   Brain, 
   Clock, 
   Trees,
+  Building2,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -214,6 +215,11 @@ export const Sidebar = ({
     };
   }, []);
 
+  const goaStateAdapter = {
+    getLayers: () => goaService.getLayers() as any,
+    getLayerData: (layerId: string) => goaService.getLayerData(layerId as import('@/services/goa').GoaLayerId),
+  };
+
   return (
     <>
       {isMobile && !isCollapsed && (
@@ -257,7 +263,6 @@ export const Sidebar = ({
           </div>
           {isMobile && !isCollapsed && (
             <div className="flex items-center gap-2">
-              <UserMenu />
               <button
                 onClick={onToggleCollapse}
                 className="flex items-center justify-center p-2 h-10 w-10 rounded-xl bg-background border border-border/40 shadow-sm transition-all active:scale-95 text-foreground/80 hover:bg-muted"
@@ -572,7 +577,7 @@ export const Sidebar = ({
                     expanded={sectionsExpanded.goa}
                     onToggle={toggleSection('goa')}
                   >
-                    <StateCards stateName="Goa" stateSlug="goa" service={goaService} attribution="Data from AMCHE.IN & IndianOpenMaps" />
+                    <StateCards stateName="Goa" stateSlug="goa" service={goaStateAdapter} attribution="Data from AMCHE.IN & IndianOpenMaps" />
                   </CollapsibleSection>
 
                   <CollapsibleSection
