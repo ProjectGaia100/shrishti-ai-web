@@ -32,6 +32,7 @@ interface UrbanPlanningPanelProps {
   drawnCoordinates: number[][] | null;
   availableCredits?: number | null;
   onRequestDraw?: (type: 'polygon' | 'polyline') => void;
+  onClearDraw?: () => void;
 }
 
 // Feature metadata
@@ -78,7 +79,8 @@ export const UrbanPlanningPanel = ({
   activeFeature,
   drawnCoordinates,
   availableCredits = 0,
-  onRequestDraw
+  onRequestDraw,
+  onClearDraw
 }: UrbanPlanningPanelProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<UrbanPlanningResult | null>(null);
@@ -252,7 +254,7 @@ export const UrbanPlanningPanel = ({
             </Button>
             <Button
               variant="outline"
-              onClick={() => { setResult(null); setResultFeature(null); setError(null); }}
+              onClick={() => { setResult(null); setResultFeature(null); setError(null); if (onClearDraw) onClearDraw(); }}
               className="border-border/50"
             >
               Reset

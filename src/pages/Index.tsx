@@ -850,6 +850,7 @@ const Index = () => {
     setShowUrbanPlanningPanel(false);
     setActiveUrbanPlanningFeature(null);
     setUrbanPlanningCoords(null);
+    window.dispatchEvent(new CustomEvent('geo:cancel-draw'));
   }, []);
 
   // --- Forest Department handlers ---
@@ -876,10 +877,17 @@ const Index = () => {
     setShowForestDeptPanel(false);
     setActiveForestDeptFeature(null);
     setForestDeptCoords(null);
+    window.dispatchEvent(new CustomEvent('geo:cancel-draw'));
   }, []);
 
   const handleRequestMapDraw = useCallback((type: 'polygon' | 'polyline') => {
     window.dispatchEvent(new CustomEvent('geo:start-draw', { detail: { type } }));
+  }, []);
+
+  const handleClearMapDraw = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('geo:cancel-draw'));
+    setUrbanPlanningCoords(null);
+    setForestDeptCoords(null);
   }, []);
 
   if (authLoading) {
@@ -1003,7 +1011,7 @@ const Index = () => {
 
           {/* Top-Left: Credits (now more integrated) */}
           <div className="pointer-events-auto hidden sm:block">
-            <div className="flex flex-col gap-2 min-w-[176px]">
+            <div className="relative flex flex-col gap-2 min-w-[176px]">
               <div className="flex items-center gap-3 rounded-xl bg-background/80 dark:bg-zinc-900/80 border border-border/40 px-3.5 py-2 shadow-2xl animate-fade-in backdrop-blur-xl">
                 <div className="flex items-center gap-2 text-foreground/80">
                   <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
@@ -1055,7 +1063,7 @@ const Index = () => {
               </div>
 
               {layersPanelOpen && (
-                <div className="w-[176px] rounded-xl border border-border/60 bg-background/85 dark:bg-zinc-900/85 shadow-2xl backdrop-blur-xl p-2 max-h-72 overflow-y-auto pointer-events-auto">
+                <div className="absolute top-full left-0 mt-2 z-[1700] w-[176px] rounded-xl border border-border/60 bg-background/85 dark:bg-zinc-900/85 shadow-2xl backdrop-blur-xl p-2 max-h-72 overflow-y-auto pointer-events-auto">
                   {visibleLayerIds.length === 0 ? (
                     <div className="px-2 py-4 text-center text-[11px] font-medium text-muted-foreground">
                       No layers added yet.
@@ -1340,6 +1348,7 @@ const Index = () => {
             drawnCoordinates={urbanPlanningCoords}
             availableCredits={credits}
             onRequestDraw={handleRequestMapDraw}
+            onClearDraw={handleClearMapDraw}
           />
           <ForestDeptPanel
             isVisible={showForestDeptPanel}
@@ -1348,6 +1357,7 @@ const Index = () => {
             drawnCoordinates={forestDeptCoords}
             availableCredits={credits}
             onRequestDraw={handleRequestMapDraw}
+            onClearDraw={handleClearMapDraw}
           />
           {timelapseActive && timelapseFrames.length > 0 && (
             <TimelinePlayer

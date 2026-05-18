@@ -188,6 +188,9 @@ export const MapView = ({
   const activeDrawTypeRef = useRef<string | null>(null);
   const aoiEditHandlerRef = useRef<any>(null);
   const aoiDblClickZoomWasEnabledRef = useRef<boolean | null>(null);
+  // timelapse – one tile-layer per frame, toggled by opacity
+  const timelapseLayersRef = useRef<L.TileLayer[]>([]);
+  const timelapseActiveIdxRef = useRef<number>(-1);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -565,6 +568,49 @@ export const MapView = ({
         .addTo(riskZonesRef.current);
     };
 
+    // ---------------------------------------------------------------
+    // Timelapse handlers
+    // ---------------------------------------------------------------
+    function destroyTimelapseLayers() {
+      timelapseLayersRef.current.forEach(layer => {
+        if (map.hasLayer(layer)) map.removeLayer(layer);
+      });
+      timelapseLayersRef.current = [];
+      timelapseActiveIdxRef.current = -1;
+    }
+
+    const onTimelapseInit = (e: Event) => {
+      const { frames, opacity = 1 } = (e as CustomEvent).detail || {};
+      if (!Array.isArray(frames) || frames.length === 0) return;
+
+      destroyTimelapseLayers();
+
+      console.log(`[MAP] Initializing timelapse with ${frames.length} frames`);
+      const layers = frames.map((frame: { tile_url: string }, idx: number) =>
+        L.tileLayer(frame.tile_url, {
+          opacity: idx === 0 ? opacity : 0,
+          attribution: 'Google Earth Engine',
+          maxZoom: 18,
+          zIndex: 1000, // Ensure it's above base layers
+        })
+      );
+      layers.forEach(l => l.addTo(map));
+      timelapseLayersRef.current = layers;
+      timelapseActiveIdxRef.current = 0;
+    };
+
+    const onTimelapseFrame = (e: Event) => {
+      const { index, opacity = 1 } = (e as CustomEvent).detail || {};
+      const layers = timelapseLayersRef.current;
+      if (!layers.length || index == null) return;
+
+      // hide all then show the requested one
+      layers.forEach((l, i) => l.setOpacity(i === index ? opacity : 0));
+      timelapseActiveIdxRef.current = index;
+    };
+
+    const onTimelapseDestroy = () => destroyTimelapseLayers();
+
     window.addEventListener('geo:add-layer', onAddEvt);
     window.addEventListener('geo:add-geojson-layer', onAddGeoJsonEvt);
     window.addEventListener('geo:remove-layer', onRemoveEvt);
@@ -574,6 +620,9 @@ export const MapView = ({
     window.addEventListener('geo:cancel-draw', onCancelDrawEvt);
     window.addEventListener('geo:jump-to', onJumpToEvt);
     window.addEventListener('geo:add-prediction-marker', onAddPredictionMarkerEvt);
+    window.addEventListener('geo:timelapse-init', onTimelapseInit);
+    window.addEventListener('geo:timelapse-frame', onTimelapseFrame);
+    window.addEventListener('geo:timelapse-destroy', onTimelapseDestroy);
 
     mapInstanceRef.current = map;
 
@@ -587,6 +636,10 @@ export const MapView = ({
       window.removeEventListener('geo:cancel-draw', onCancelDrawEvt);
       window.removeEventListener('geo:jump-to', onJumpToEvt);
       window.removeEventListener('geo:add-prediction-marker', onAddPredictionMarkerEvt);
+      window.removeEventListener('geo:timelapse-init', onTimelapseInit);
+      window.removeEventListener('geo:timelapse-frame', onTimelapseFrame);
+      window.removeEventListener('geo:timelapse-destroy', onTimelapseDestroy);
+      destroyTimelapseLayers();
       map.remove();
     };
   }, []);

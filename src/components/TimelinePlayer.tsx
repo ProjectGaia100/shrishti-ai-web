@@ -94,9 +94,9 @@ export const TimelinePlayer = ({ frames, title, onFrameChange, onClose, defaultO
                   key={i}
                   onClick={() => handleBarClick(i)}
                   className={cn(
-                    "flex-1 relative flex items-center justify-center text-[11px] font-medium transition-all duration-300 rounded-md",
+                    "flex-1 relative flex items-center justify-center text-[11px] font-bold transition-all duration-300 rounded-md",
                     isCurrent
-                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-sm scale-105 z-10"
+                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-md scale-105 z-10"
                       : isPast
                         ? "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                         : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -123,8 +123,8 @@ export const TimelinePlayer = ({ frames, title, onFrameChange, onClose, defaultO
             className={cn(
               "p-2.5 rounded-xl transition-all duration-200",
               isPlaying
-                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 shadow-md"
-                : "bg-muted text-foreground hover:bg-zinc-900 hover:text-white dark:hover:bg-zinc-100 dark:hover:text-zinc-950"
+                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-md"
+                : "bg-muted text-foreground hover:bg-zinc-900 hover:text-white dark:hover:bg-zinc-100 dark:hover:text-zinc-900"
             )}
           >
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
@@ -134,7 +134,7 @@ export const TimelinePlayer = ({ frames, title, onFrameChange, onClose, defaultO
           </button>
 
           <div className="text-xs text-muted-foreground">
-            <span className="text-foreground font-medium">{frames[currentIndex]?.date_label}</span>
+            <span className="text-foreground font-bold">{frames[currentIndex]?.date_label}</span>
             <span className="mx-1.5">|</span>
             <span>{currentIndex + 1} / {frames.length}</span>
           </div>
@@ -150,9 +150,9 @@ export const TimelinePlayer = ({ frames, title, onFrameChange, onClose, defaultO
                 key={opt.ms}
                 onClick={() => setSpeedMs(opt.ms)}
                 className={cn(
-                  "px-2 py-1 rounded text-[11px] font-medium transition-colors",
+                  "px-2 py-1 rounded text-[11px] font-bold transition-colors",
                   speedMs === opt.ms
-                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950"
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 )}
               >
@@ -170,9 +170,9 @@ export const TimelinePlayer = ({ frames, title, onFrameChange, onClose, defaultO
               max={100}
               value={Math.round(opacity * 100)}
               onChange={e => setOpacity(Number(e.target.value) / 100)}
-              className="w-20 h-1.5 accent-zinc-950 dark:accent-zinc-50 cursor-pointer"
+              className="w-20 h-1.5 accent-zinc-900 dark:accent-zinc-100 cursor-pointer"
             />
-            <span className="text-[11px] text-foreground font-medium w-8 text-right">{Math.round(opacity * 100)}%</span>
+            <span className="text-[11px] text-foreground font-bold w-8 text-right">{Math.round(opacity * 100)}%</span>
           </div>
         </div>
       </div>

@@ -18,11 +18,11 @@ interface SatelliteTimelapseCardProps {
   isActive: boolean;
 }
 
-const DATASETS: { id: TimelapseDataset; label: string; desc: string; fast?: boolean }[] = [
-  { id: "temperature",      label: "Temperature",  desc: "MODIS LST",        fast: true },
-  { id: "nightlights",      label: "Night Lights",  desc: "VIIRS DNB",         fast: true },
-  { id: "precipitation",    label: "Rainfall",      desc: "CHIRPS Daily",      fast: true },
-  { id: "vegetation_modis", label: "Vegetation",    desc: "MODIS NDVI",        fast: true },
+const DATASETS: { id: TimelapseDataset; label: string; desc: string }[] = [
+  { id: "temperature",      label: "Temperature",  desc: "MODIS LST" },
+  { id: "nightlights",      label: "Night Lights",  desc: "VIIRS DNB" },
+  { id: "precipitation",    label: "Rainfall",      desc: "CHIRPS Daily" },
+  { id: "vegetation_modis", label: "Vegetation",    desc: "MODIS NDVI" },
   { id: "sentinel2",        label: "True Color",    desc: "Sentinel-2" },
   { id: "ndvi",             label: "NDVI (HD)",     desc: "Sentinel-2" },
 ];
@@ -97,12 +97,15 @@ export const SatelliteTimelapseCard = ({ onTimelapseLoaded, onTimelapseClose, is
   return (
     <div className={cn(
       "rounded-xl p-4 transition-all duration-200 border mx-3",
-      isActive ? "border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10" : "border-border bg-background hover:bg-muted/50"
+      isActive ? "border-zinc-400 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800/50 shadow-sm" : "border-border bg-background hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
     )}>
       {/* Header */}
       <div className="flex items-center gap-3 mb-3">
-        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
-          <Satellite className="w-5 h-5" />
+        <div className={cn(
+          "w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-300 shrink-0",
+          isActive ? "text-foreground bg-zinc-200 dark:bg-zinc-700 shadow-sm" : "text-muted-foreground bg-zinc-100 dark:bg-zinc-800"
+        )}>
+          <Satellite className="w-4.5 h-4.5" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
@@ -128,12 +131,12 @@ export const SatelliteTimelapseCard = ({ onTimelapseLoaded, onTimelapseClose, is
           disabled={loading || (!isActive && !isRangeValid)}
           size="sm"
           className={cn(
-            "h-7 px-3 font-black rounded-lg text-[9px] uppercase tracking-widest transition-all shrink-0",
+            "h-7 px-3 font-black rounded-lg text-[9px] uppercase tracking-widest transition-all shrink-0 shadow-sm",
             isActive
-              ? "bg-green-500/10 text-green-600 border border-green-500/30 hover:bg-red-500/10 hover:text-red-600 hover:border-red-500/30"
-              : "bg-blue-500/10 text-blue-600 border border-blue-500/30 hover:bg-blue-500/20"
+              ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-none"
+              : "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 shadow-sm"
           )}
-          variant="outline"
+          variant="default"
         >
           {loading ? (
             <Loader2 className="w-3 h-3 animate-spin" />
@@ -154,20 +157,16 @@ export const SatelliteTimelapseCard = ({ onTimelapseLoaded, onTimelapseClose, is
             className={cn(
               "py-1.5 px-1.5 rounded-lg text-xs font-medium transition-all duration-200 border relative",
               dataset === ds.id
-                ? "bg-blue-50 dark:bg-blue-500/20 border-blue-300 dark:border-blue-500/40 text-blue-700 dark:text-blue-300"
+                ? "bg-zinc-950 text-white dark:bg-zinc-50 dark:text-zinc-950 shadow-sm"
                 : "bg-muted/50 dark:bg-muted/30 border-border text-muted-foreground hover:bg-muted",
               (loading || isActive) && "opacity-60 pointer-events-none"
             )}
           >
             <div className="font-semibold truncate">{ds.label}</div>
             <div className="text-[10px] opacity-70 truncate">{ds.desc}</div>
-            {ds.fast && (
-              <span className="absolute -top-1 -right-1 text-[8px] px-1 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30 font-bold leading-none">FAST</span>
-            )}
-          </button>
-        ))}
-      </div>
-
+            </button>
+            ))}
+            </div>
       {/* Date range picker */}
       <div className={cn("mb-3 rounded-lg border border-border p-2.5 space-y-2", (loading || isActive) && "opacity-60 pointer-events-none")}>
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Date Range</p>
@@ -188,7 +187,7 @@ export const SatelliteTimelapseCard = ({ onTimelapseLoaded, onTimelapseClose, is
           <select value={endYear} onChange={e => setEndYear(Number(e.target.value))} className={selectCls}>
             {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
-          <span className={cn("ml-auto text-[11px] font-medium", isRangeValid ? "text-green-500" : "text-red-400")}>
+          <span className={cn("ml-auto text-[11px] font-medium", isRangeValid ? "text-foreground" : "text-muted-foreground")}>
             {isRangeValid ? `${frameCount} frame${frameCount !== 1 ? 's' : ''}` : 'Invalid'}
           </span>
         </div>

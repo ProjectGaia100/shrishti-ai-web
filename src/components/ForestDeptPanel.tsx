@@ -38,6 +38,7 @@ interface ForestDeptPanelProps {
   drawnCoordinates: number[][] | null;
   availableCredits?: number | null;
   onRequestDraw?: (type: 'polygon' | 'polyline') => void;
+  onClearDraw?: () => void;
 }
 
 // Feature metadata (excluding NDVI)
@@ -97,7 +98,8 @@ export const ForestDeptPanel = ({
   activeFeature,
   drawnCoordinates,
   availableCredits = 0,
-  onRequestDraw
+  onRequestDraw,
+  onClearDraw
 }: ForestDeptPanelProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ForestDeptResult | null>(null);
@@ -405,7 +407,7 @@ export const ForestDeptPanel = ({
             </Button>
             <Button
               variant="outline"
-              onClick={() => { setResult(null); setResultFeature(null); setError(null); setSearchAreaCoordinates(null); }}
+              onClick={() => { setResult(null); setResultFeature(null); setError(null); setSearchAreaCoordinates(null); if (onClearDraw) onClearDraw(); }}
               className="border-border/50"
             >
               Reset
