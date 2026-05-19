@@ -79,6 +79,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const tryRefresh = useCallback(async (rt: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_URL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: rt }),
+      });
+      if (!res.ok) return false;
+      const json = await res.json();
+      if (json.status !== 'success') return false;
+      const u: User = json.user;
+      setUser(u);
+      setAccessToken(json.access_token);
+      setRefreshToken(json.refresh_token);
+      saveStored({ user: u, access_token: json.access_token, refresh_token: json.refresh_token });
+      return true;
+    } catch { return false; }
+  }, []);
+
   // Restore session from localStorage on mount
   useEffect(() => {
     const stored = loadStored();
@@ -110,26 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       setIsLoading(false);
     }
-  }, []);
-
-  const tryRefresh = async (rt: string): Promise<boolean> => {
-    try {
-      const res = await fetch(`${API_URL}/api/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: rt }),
-      });
-      if (!res.ok) return false;
-      const json = await res.json();
-      if (json.status !== 'success') return false;
-      const u: User = json.user;
-      setUser(u);
-      setAccessToken(json.access_token);
-      setRefreshToken(json.refresh_token);
-      saveStored({ user: u, access_token: json.access_token, refresh_token: json.refresh_token });
-      return true;
-    } catch { return false; }
-  };
+  }, [tryRefresh]);
 
   // ── Login ──────────────────────────────────────────────────────────────
 
@@ -204,6 +204,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setRefreshToken(null);
     clearStored();
   }, [accessToken]);
+
+  // Periodically check token validity & check when returning to tab
+  useEffect(() => {
+    if (!accessToken) return;
+
+    const checkToken = async () => {
+      if (isJwtExpired(accessToken)) {
+        if (refreshToken) {
+          const refreshed = await tryRefresh(refreshToken);
+          if (!refreshed) {
+            logout();
+          }
+        } else {
+          logout();
+        }
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkToken();
+      }
+    };
+
+    const handleFocus = () => {
+      checkToken();
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    
+    // Also check every minute
+    const intervalId = setInterval(checkToken, 60000);
+
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(intervalId);
+    };
+  }, [accessToken, refreshToken, tryRefresh, logout]);
 
   // ── Resend Verification ────────────────────────────────────────────────
 
