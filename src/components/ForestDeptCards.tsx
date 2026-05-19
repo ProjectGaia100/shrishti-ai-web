@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Wheat, Droplets, Flame, TreePine, TreeDeciduous, Clock, Sprout,
+  Wheat, Droplets, Flame, TreePine, Clock, Sprout,
   Ruler, Route, Target,
   Eye, Loader2, ChevronDown, ChevronUp, MapPin, HelpCircle
 } from "lucide-react";
@@ -59,16 +59,6 @@ const FEATURES: Array<{
     layerId: 'soil-moisture'
   },
   // === POLYGON-BASED FEATURES ===
-  {
-    id: 'compensatory_plantation',
-    title: 'Compensatory Plantation',
-    description: 'Plan replacement planting areas',
-    icon: <TreeDeciduous className="w-4 h-4" />,
-    color: 'text-zinc-700 dark:text-zinc-300',
-    bgColor: 'bg-zinc-100/70 dark:bg-zinc-800/70',
-    borderColor: 'border-zinc-300/70 dark:border-zinc-700/70',
-    type: 'polygon'
-  },
   {
     id: 'tree_growth',
     title: 'Vegetation Trend',
