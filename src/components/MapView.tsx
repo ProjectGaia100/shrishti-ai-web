@@ -192,6 +192,79 @@ export const MapView = ({
   const timelapseLayersRef = useRef<L.TileLayer[]>([]);
   const timelapseActiveIdxRef = useRef<number>(-1);
 
+  // Helper function to draw concentric risk zones based on disaster type and confidence
+  const drawConcentricRiskZones = (lat: number, lon: number, isDisaster: boolean, disasterTypes: string[], conf: number, layerGroup: L.LayerGroup, baseColor: string) => {
+    layerGroup.clearLayers();
+    if (!isDisaster) {
+      L.circle([lat, lon], { radius: 2000, color: baseColor, fillColor: baseColor, weight: 2, opacity: 0.8, fillOpacity: 0.15 }).bindTooltip("Normal Zone").addTo(layerGroup);
+      L.circleMarker([lat, lon], { radius: 7, fillColor: baseColor, color: '#ffffff', weight: 2, opacity: 1, fillOpacity: 1 }).addTo(layerGroup);
+      return null;
+    }
+
+    const DISASTER_MAX_RADII: Record<string, number> = {
+      Landslide: 2000, 
+      Flood: 10000,
+      Storm: 20000,
+      'Extreme Storm': 25000,
+      Drought: 50000,
+      Fire: 5000,
+      Wildfire: 5000,
+      Cyclone: 30000,
+      Earthquake: 15000,
+      Tsunami: 20000,
+    };
+
+    let maxRadius = 5000;
+    if (disasterTypes && disasterTypes.length > 0) {
+      const radii = disasterTypes.map(t => DISASTER_MAX_RADII[t] || 5000);
+      maxRadius = Math.max(...radii);
+    }
+
+    const confValue = conf > 1 ? conf / 100 : conf;
+    const baseRadius = maxRadius * confValue;
+
+    // Low Risk
+    const lowZone = L.circle([lat, lon], {
+      radius: baseRadius,
+      color: '#eab308',
+      fillColor: '#eab308',
+      weight: 1,
+      opacity: 0.6,
+      fillOpacity: 0.1
+    }).bindTooltip("Low Risk Zone").addTo(layerGroup);
+
+    // Medium Risk
+    L.circle([lat, lon], {
+      radius: baseRadius * 0.6,
+      color: '#f97316',
+      fillColor: '#f97316',
+      weight: 1,
+      opacity: 0.8,
+      fillOpacity: 0.15
+    }).bindTooltip("Medium Risk Zone").addTo(layerGroup);
+
+    // Critical Risk
+    L.circle([lat, lon], {
+      radius: baseRadius * 0.3,
+      color: '#dc2626',
+      fillColor: '#dc2626',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.25
+    }).bindTooltip("Critical Risk Zone").addTo(layerGroup);
+
+    L.circleMarker([lat, lon], {
+      radius: 8,
+      fillColor: '#1f2937',
+      color: '#ffffff',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 1
+    }).addTo(layerGroup);
+
+    return lowZone; // Return the largest zone for bounding
+  };
+
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -555,17 +628,22 @@ export const MapView = ({
     };
 
     const onAddPredictionMarkerEvt = (e: Event) => {
-      const { lat, lon, disasterClass } = (e as CustomEvent).detail || {};
+      const { lat, lon, disasterClass, disasterType, confidence } = (e as CustomEvent).detail || {};
       if (lat == null || lon == null || !riskZonesRef.current) return;
-      riskZonesRef.current.clearLayers();
+      
       const DISASTER_COLORS: Record<string, string> = {
         Drought: '#f59e0b', Flood: '#3b82f6', Landslide: '#a16207', Normal: '#22c55e', Storm: '#8b5cf6',
       };
       const color = DISASTER_COLORS[disasterClass] || '#8b5cf6';
-      L.circle([lat, lon], { radius: 8000, color, fillColor: color, weight: 2, opacity: 0.8, fillOpacity: 0.15 })
-        .addTo(riskZonesRef.current);
-      L.circleMarker([lat, lon], { radius: 7, fillColor: color, color: '#ffffff', weight: 2, opacity: 1, fillOpacity: 1 })
-        .addTo(riskZonesRef.current);
+      const isDisaster = disasterClass?.toLowerCase() === 'disaster';
+      
+      const boundingZone = drawConcentricRiskZones(
+        lat, lon, isDisaster, [disasterType || 'Default'], confidence || 0.9, riskZonesRef.current, color
+      );
+      
+      if (boundingZone && mapInstanceRef.current) {
+        mapInstanceRef.current.fitBounds(boundingZone.getBounds(), { padding: [50, 50] });
+      }
     };
 
     // ---------------------------------------------------------------
@@ -659,29 +737,18 @@ export const MapView = ({
     riskZonesRef.current.clearLayers();
 
     if (predictionResult && hazardGuardActive) {
-      const { latitude, longitude, prediction, confidence } = predictionResult;
+      // @ts-ignore (Assuming disaster_types is passed, if not fallback)
+      const { latitude, longitude, prediction, confidence, disaster_types } = predictionResult;
       const isDisaster = prediction.toLowerCase() === 'disaster';
       const color = isDisaster ? '#dc2626' : '#f59e0b';
       
-      const zone = L.circle([latitude, longitude], {
-        radius: isDisaster ? 5000 : 2000,
-        fillColor: color,
-        color: color,
-        weight: 2,
-        opacity: 0.8,
-        fillOpacity: 0.15
-      }).addTo(riskZonesRef.current);
+      const boundingZone = drawConcentricRiskZones(
+        latitude, longitude, isDisaster, disaster_types || ['Default'], confidence || 0.9, riskZonesRef.current, color
+      );
 
-      L.circleMarker([latitude, longitude], {
-        radius: 8,
-        fillColor: '#1f2937',
-        color: '#ffffff',
-        weight: 2,
-        opacity: 1,
-        fillOpacity: 1
-      }).addTo(riskZonesRef.current);
-
-      mapInstanceRef.current.fitBounds(zone.getBounds(), { padding: [50, 50] });
+      if (boundingZone) {
+        mapInstanceRef.current.fitBounds(boundingZone.getBounds(), { padding: [50, 50] });
+      }
     }
   }, [predictionResult, hazardGuardActive]);
 
