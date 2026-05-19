@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Shield, MapPin, Target, Hexagon, Minus, Plus, HelpCircle } from "lucide-react";
+import { Shield, Target, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -40,10 +40,6 @@ export const HazardGuardCard = ({ onModeChange }: HazardGuardCardProps) => {
     setIsActive(!isActive);
   };
 
-  const adjustSamplePoints = (delta: number) => {
-    setSamplePoints(prev => Math.max(3, Math.min(25, prev + delta)));
-  };
-
   return (
     <div
       className={cn(
@@ -71,9 +67,7 @@ export const HazardGuardCard = ({ onModeChange }: HazardGuardCardProps) => {
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="max-w-[200px] text-[11px] leading-relaxed">
-                  {mode === 'point' 
-                    ? 'Pinpoint accurate risk assessment using ML analysis of terrain, climate, and historical trends.'
-                    : 'Geospatial heatmap generation for regional disaster vulnerability assessment.'}
+                  Pinpoint accurate risk assessment using ML analysis of terrain, climate, and historical trends.
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -110,73 +104,15 @@ export const HazardGuardCard = ({ onModeChange }: HazardGuardCardProps) => {
 
         {isActive && (
           <div className="space-y-2.5 pt-1 animate-in slide-in-from-top-2 duration-300 max-h-[52vh] overflow-y-auto">
-            <div className="rounded-xl p-1 bg-muted/30 border border-border/40">
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setMode('point')}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg text-[10px] font-black uppercase tracking-tighter transition-all",
-                    mode === 'point'
-                      ? "bg-zinc-950 text-white dark:bg-zinc-50 dark:text-zinc-950 shadow-sm"
-                      : "text-muted-foreground hover:bg-muted/50"
-                  )}
-                >
-                  <MapPin className="w-3 h-3" />
-                  Point
-                </button>
-                <button
-                  onClick={() => setMode('region')}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg text-[10px] font-black uppercase tracking-tighter transition-all",
-                    mode === 'region'
-                      ? "bg-zinc-950 text-white dark:bg-zinc-50 dark:text-zinc-950 shadow-sm"
-                      : "text-muted-foreground hover:bg-muted/50"
-                  )}
-                >
-                  <Hexagon className="w-3 h-3" />
-                  Region
-                </button>
-              </div>
-            </div>
-
-            {/* Region-specific controls */}
-            {mode === 'region' && (
-              <div className="rounded-lg p-3 space-y-2.5 bg-muted/50 dark:bg-muted/30 border border-border">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-muted-foreground">Sample Points</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => adjustSamplePoints(-1)}
-                      className="w-6 h-6 rounded-md bg-muted hover:bg-muted/80 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <span className="text-sm font-bold tabular-nums w-6 text-center">{samplePoints}</span>
-                    <button
-                      onClick={() => adjustSamplePoints(1)}
-                      className="w-6 h-6 rounded-md bg-muted hover:bg-muted/80 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-                <p className="text-[10px] text-muted-foreground">
-                  Points are evenly distributed within the drawn polygon. More points = more accurate heatmap but slower.
-                </p>
-              </div>
-            )}
-
             <div className="rounded-lg p-3 text-center bg-muted/30 border border-border/60">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-foreground rounded-full animate-pulse"></div>
                 <span className="text-sm font-black uppercase tracking-tight text-foreground">
-                  {mode === 'point' ? 'Point Prediction Active' : 'Region Heatmap Active'}
+                  Point Prediction Active
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                {mode === 'point' 
-                  ? 'Click map or enter coordinates in panel, then run analysis'
-                  : 'Draw a polygon on the map to generate a risk heatmap'}
+                Click map or enter coordinates in panel, then run analysis
               </p>
             </div>
 
