@@ -445,7 +445,6 @@ const SuitabilityResults = ({ data }: { data: SuitabilityResult }) => {
         <div className="text-xs text-muted-foreground">Factor Breakdown</div>
         <FactorBar label="Slope" display={data.factors.slope.display} category={data.factors.slope.category} />
         <FactorBar label="Vegetation" display={data.factors.vegetation.display} category={data.factors.vegetation.category} />
-        <FactorBar label="Infrastructure" display={data.factors.infrastructure.display} category={data.factors.infrastructure.category} />
         <FactorBar label="Flood Risk" display={data.factors.flood_risk.display} category={data.factors.flood_risk.category} />
       </div>
 
@@ -482,24 +481,11 @@ const StatCard = ({ label, value }: { label: string; value: string }) => (
 );
 
 const FactorBar = ({ label, display, category }: { label: string; display: number; category: string }) => {
-  // Color based on the factor type and its impact
-  // Slope/Vegetation/Flood Risk: high display = problematic (red/orange)
-  // Infrastructure: high display = good (green)
-  const isPositiveFactor = label === 'Infrastructure';
   const getColor = (val: number) => {
-    if (isPositiveFactor) {
-      // High infrastructure is good
-      if (val >= 70) return '#22c55e'; // green
-      if (val >= 40) return '#84cc16'; // lime
-      if (val >= 20) return '#eab308'; // yellow
-      return '#ef4444'; // red
-    } else {
-      // High slope/vegetation/flood risk is bad
-      if (val >= 70) return '#ef4444'; // red
-      if (val >= 40) return '#eab308'; // yellow
-      if (val >= 20) return '#84cc16'; // lime
-      return '#22c55e'; // green
-    }
+    if (val >= 70) return '#ef4444';
+    if (val >= 40) return '#eab308';
+    if (val >= 20) return '#84cc16';
+    return '#22c55e';
   };
   const color = getColor(display);
   

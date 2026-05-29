@@ -121,7 +121,6 @@ export interface SuitabilityResult {
   factors: {
     slope: SuitabilityFactor;
     vegetation: SuitabilityFactor;
-    infrastructure: SuitabilityFactor;
     flood_risk: SuitabilityFactor;
   };
   terrain: {

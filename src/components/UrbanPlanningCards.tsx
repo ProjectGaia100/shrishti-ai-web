@@ -65,7 +65,7 @@ const FEATURES: Array<{
   {
     id: 'suitability',
     title: 'Suitability Analysis',
-    description: 'Score areas for building suitability',
+    description: 'Score areas by slope, vegetation cover, and flood risk',
     icon: <Target className="w-4 h-4" />,
     color: 'text-zinc-700 dark:text-zinc-300',
     bgColor: 'bg-zinc-100/70 dark:bg-zinc-800/70',
