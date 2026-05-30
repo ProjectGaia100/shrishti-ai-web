@@ -3,7 +3,7 @@ import { X, Minimize2, Send, Sparkles, Loader2, ChevronDown, MapPin, Layers } fr
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { sendChatMessage } from "@/services/api";
+import { deriveChatLayerName } from "@/lib/chatLayerName";
 import { useState as useLocalState } from "react";
 
 function ThinkingBubble({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
@@ -124,24 +124,17 @@ export const ChatWindow = ({ onClose, onMapUpdate }: ChatWindowProps) => {
           displayMsg += `\n\n⚠️ Map layer couldn't be rendered: ${data.gee_error}`;
         }
 
-        // Remove thinking bubble, update assistant message
-        setMessages(prev =>
-          prev
-            .filter((m: any) => m._id !== thinkingId)
-            .map((m: any) =>
-              m._id === responseId ? { ...m, content: displayMsg, _id: undefined } : m
-            )
-        );
+        let displayMsgFinal = displayMsg;
 
         // Add tile layer to map if URL is provided
         if (data.tile_url) {
-          const layerName = userMessage.length > 50 ? userMessage.slice(0, 47) + '...' : userMessage;
+          const layerName = deriveChatLayerName(userMessage, data.message || data.response_text);
           const layerId = `ai-${Date.now()}`;
 
           window.dispatchEvent(new CustomEvent('geo:add-layer', {
             detail: {
               id: layerId,
-              name: `AI: ${layerName}`,
+              name: layerName,
               url: data.tile_url,
               opacity: 0.85,
               zIndex: 450,
@@ -160,17 +153,19 @@ export const ChatWindow = ({ onClose, onMapUpdate }: ChatWindowProps) => {
             }));
           }
 
-          // Update message to confirm layer added
-          setMessages(prev =>
-            prev.map((m: any) =>
-              m.content === displayMsg
-                ? { ...m, content: `✅ ${displayMsg}\n\n🗺️ Layer added to map.` }
-                : m
-            )
-          );
-
+          displayMsgFinal = `✅ ${displayMsg}\n\n🗺️ Layer added to map.`;
           onMapUpdate?.(data.tile_url, layerName, data.center);
+        } else if (data.gee_error) {
+          displayMsgFinal = `⚠️ Map layer could not be loaded: ${data.gee_error}\n\n${displayMsg}`;
         }
+
+        setMessages(prev =>
+          prev
+            .filter((m: any) => m._id !== thinkingId)
+            .map((m: any) =>
+              m._id === responseId ? { ...m, content: displayMsgFinal, _id: undefined } : m
+            )
+        );
 
         setIsLoading(false);
         return;
@@ -207,16 +202,11 @@ export const ChatWindow = ({ onClose, onMapUpdate }: ChatWindowProps) => {
                 m._id === responseId ? { ...m, content: responseText } : m
               ));
             } else if (evt.type === "done") {
-              // Update response text if provided
               if (evt.response_text && !responseText) {
                 responseText = evt.response_text;
-                setMessages(prev => prev.map((m: any) =>
-                  m._id === responseId ? { ...m, content: responseText } : m
-                ));
               }
 
-              // Fly to region if center is provided
-              if (evt.center && evt.center.lat && evt.center.lon) {
+              if (evt.center?.lat != null && evt.center?.lon != null) {
                 window.dispatchEvent(new CustomEvent('geo:jump-to', {
                   detail: {
                     lat: evt.center.lat,
@@ -226,34 +216,45 @@ export const ChatWindow = ({ onClose, onMapUpdate }: ChatWindowProps) => {
                 }));
               }
 
-              // Add tile layer to map if URL is provided
+              let finalMsg = (responseText || evt.response_text || '').trim();
+
               if (evt.tile_url) {
                 const layerId = `ai-${Date.now()}`;
-                const layerName = userMessage.length > 50
-                  ? userMessage.slice(0, 47) + '...'
-                  : userMessage;
+                const layerName = deriveChatLayerName(
+                  userMessage,
+                  responseText || evt.response_text
+                );
 
                 window.dispatchEvent(new CustomEvent('geo:add-layer', {
                   detail: {
                     id: layerId,
-                    name: `AI: ${layerName}`,
+                    name: layerName,
                     url: evt.tile_url,
                     opacity: 0.85,
                     zIndex: 450,
+                    legend: evt.legend ?? [],
                   },
                 }));
 
-                // Update the assistant message to show success
-                const successMsg = `✅ ${responseText || evt.response_text || 'Layer loaded.'}\n\n🗺️ Layer added to map.`;
-                setMessages(prev => prev.map((m: any) =>
-                  m._id === responseId ? { ...m, content: successMsg, _id: undefined } : m
-                ));
-              } else if (!evt.tile_url && responseText) {
-                // No tile URL — just show the response text
-                setMessages(prev => prev.map((m: any) =>
-                  m._id === responseId ? { ...m, content: responseText, _id: undefined } : m
-                ));
+                onMapUpdate?.(evt.tile_url, layerName, evt.center);
+                finalMsg = finalMsg
+                  ? `✅ ${finalMsg}\n\n🗺️ Layer added to map.`
+                  : '🗺️ Layer added to map.';
+              } else if (evt.gee_error) {
+                finalMsg = finalMsg
+                  ? `⚠️ Map layer could not be loaded: ${evt.gee_error}\n\n${finalMsg}`
+                  : `⚠️ Map layer could not be loaded: ${evt.gee_error}`;
               }
+
+              setMessages(prev =>
+                prev
+                  .filter((m: any) => m._id !== thinkingId)
+                  .map((m: any) =>
+                    m._id === responseId
+                      ? { ...m, content: finalMsg || 'Done.', _id: undefined }
+                      : m
+                  )
+              );
             } else if (evt.type === "error") {
               throw new Error(evt.message);
             }
@@ -284,7 +285,7 @@ export const ChatWindow = ({ onClose, onMapUpdate }: ChatWindowProps) => {
   };
 
   return (
-    <div className="fixed bottom-10 right-10 z-[1001] w-96 h-[560px] bg-background rounded-2xl shadow-2xl border border-border flex flex-col overflow-hidden animate-fade-in">
+    <div className="fixed bottom-6 right-6 z-[1001] w-96 h-[560px] bg-background rounded-2xl shadow-2xl border border-border flex flex-col overflow-hidden animate-fade-in">
       {/* Header */}
       <div className="bg-zinc-900 dark:bg-zinc-100 p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">

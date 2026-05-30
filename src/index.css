@@ -391,6 +391,11 @@
   }
 }
 
+/* Hide Leaflet attribution badge (overlaps chat FAB at bottom-right) */
+.leaflet-control-attribution {
+  display: none !important;
+}
+
 /* Map specific overrides */
 .hazard-map .leaflet-top.leaflet-left .leaflet-draw {
   margin-top: 80px;

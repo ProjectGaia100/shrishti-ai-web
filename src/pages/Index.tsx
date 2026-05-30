@@ -1063,7 +1063,7 @@ const Index = () => {
               </div>
 
               {layersPanelOpen && (
-                <div className="absolute top-full left-0 mt-2 z-[1700] w-[176px] rounded-xl border border-border/60 bg-background/85 dark:bg-zinc-900/85 shadow-2xl backdrop-blur-xl p-2 max-h-72 overflow-y-auto pointer-events-auto">
+                <div className="absolute top-full left-0 mt-2 z-[1700] w-[min(280px,calc(100vw-2rem))] min-w-[220px] rounded-xl border border-border/60 bg-background/85 dark:bg-zinc-900/85 shadow-2xl backdrop-blur-xl p-2 max-h-72 overflow-y-auto pointer-events-auto">
                   {visibleLayerIds.length === 0 ? (
                     <div className="px-2 py-4 text-center text-[11px] font-medium text-muted-foreground">
                       No layers added yet.
@@ -1093,15 +1093,24 @@ const Index = () => {
                               draggingLayerId === id && "opacity-60"
                             )}
                           >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-start gap-1.5">
                               <GripVertical className={cn(
-                                "h-3.5 w-3.5 text-muted-foreground cursor-grab active:cursor-grabbing",
+                                "h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground cursor-grab active:cursor-grabbing",
                                 isExpanded && "opacity-40 cursor-default"
                               )} />
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-[11px] font-semibold text-foreground">{layer.name}</p>
-                                <p className="text-[9px] uppercase tracking-wider text-muted-foreground">
-                                  {layer.type === 'geojson' ? 'GeoJSON Layer' : 'Tile Layer'}
+                              <div className="min-w-0 flex-1 pr-0.5">
+                                <p
+                                  className="text-[11px] font-semibold text-foreground leading-snug line-clamp-2 break-words"
+                                  title={layer.name}
+                                >
+                                  {layer.name}
+                                </p>
+                                <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                                  {id.startsWith('ai-')
+                                    ? 'AI · Chat'
+                                    : layer.type === 'geojson'
+                                      ? 'GeoJSON'
+                                      : 'Tile'}
                                 </p>
                               </div>
                               <button

@@ -298,8 +298,7 @@ export const MapView = ({
     };
 
     googleHybrid.addTo(map);
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
-    L.control.attribution({ position: 'bottomright' }).addTo(map);
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
     const aoiPane = map.createPane('aoi-draw-pane');
     aoiPane.style.zIndex = '650';
@@ -496,9 +495,40 @@ export const MapView = ({
       window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: window.GEO_LAYERS }));
     }
 
+    function applyGeoJsonOpacity(geojsonLayer: L.GeoJSON, opacity: number) {
+      geojsonLayer.eachLayer((featureLayer) => {
+        if (featureLayer instanceof L.CircleMarker) {
+          featureLayer.setStyle({
+            opacity,
+            fillOpacity: opacity * 0.6,
+          });
+        } else if (featureLayer instanceof L.Path) {
+          featureLayer.setStyle({
+            opacity,
+            fillOpacity: opacity * 0.3,
+          });
+        }
+      });
+    }
+
     function toggleLayer({ id, visible }: { id: string, visible: boolean }) {
       const layer = window.GEO_LAYERS[id];
       if (!layer) return;
+
+      const geojsonLayer = geojsonLayersRef.current[id];
+      if (geojsonLayer) {
+        if (visible) {
+          if (!map.hasLayer(geojsonLayer)) {
+            geojsonLayer.addTo(map);
+          }
+        } else if (map.hasLayer(geojsonLayer)) {
+          map.removeLayer(geojsonLayer);
+        }
+        window.GEO_LAYERS[id].visible = visible;
+        window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: window.GEO_LAYERS }));
+        return;
+      }
+
       if (visible) {
         addLayer(layer);
       } else {
@@ -513,14 +543,22 @@ export const MapView = ({
     }
 
     function updateOpacity({ id, opacity }: { id: string, opacity: number }) {
-      const layer = window.GEO_LAYERS[id];
-      if (!layer) return;
-      map.eachLayer((l) => {
-        if (l instanceof L.TileLayer && (l as any)._url === layer.url) {
-          l.setOpacity(opacity);
-        }
-      });
+      const layerMeta = window.GEO_LAYERS[id];
+      if (!layerMeta) return;
+
+      const geojsonLayer = geojsonLayersRef.current[id];
+      if (geojsonLayer) {
+        applyGeoJsonOpacity(geojsonLayer, opacity);
+      } else {
+        map.eachLayer((l) => {
+          if (l instanceof L.TileLayer && layerMeta.url && (l as any)._url === layerMeta.url) {
+            l.setOpacity(opacity);
+          }
+        });
+      }
+
       window.GEO_LAYERS[id].opacity = opacity;
+      window.dispatchEvent(new CustomEvent('geo:layers-changed', { detail: window.GEO_LAYERS }));
     }
 
     function addGeoJsonLayer({ id, name, data, color, opacity, category }: {
