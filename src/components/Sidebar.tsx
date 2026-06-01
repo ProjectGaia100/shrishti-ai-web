@@ -7,6 +7,7 @@ import type { HazardGuardMode } from "./HazardGuardCard";
 import { WeatherWiseCard } from "./WeatherWiseCard";
 import { GeoVisionCard } from "./GeoVisionCard";
 import { SatelliteTimelapseCard } from "./SatelliteTimelapseCard";
+import { ChangeDetectionCard } from "./ChangeDetectionCard";
 import { ForestDeptCards } from "./ForestDeptCards";
 import { StateCards } from "./StateCards";
 import { UrbanPlanningCards } from "./UrbanPlanningCards";
@@ -32,7 +33,8 @@ import {
   Lightbulb, 
   Thermometer, 
   Brain, 
-  Clock, 
+  Clock,
+  GitCompare,
   Trees,
   Building2,
   ChevronLeft,
@@ -66,6 +68,8 @@ export const Sidebar = ({
   onTimelapseLoaded, 
   onTimelapseClose, 
   isTimelapseActive,
+  onChangeDetectionToggle,
+  isChangeDetectionActive,
   activeUrbanPlanningFeature,
   onUrbanPlanningFeatureChange,
   activeForestDeptFeature,
@@ -84,6 +88,8 @@ export const Sidebar = ({
   onTimelapseLoaded?: (frames: TimelapseFrame[], title: string, dataset: string) => void;
   onTimelapseClose?: () => void;
   isTimelapseActive?: boolean;
+  onChangeDetectionToggle?: () => void;
+  isChangeDetectionActive?: boolean;
   activeUrbanPlanningFeature?: UrbanPlanningFeature | null;
   onUrbanPlanningFeatureChange?: (feature: UrbanPlanningFeature | null) => void;
   activeForestDeptFeature?: ForestDeptFeature | null;
@@ -100,6 +106,7 @@ export const Sidebar = ({
   const [sectionsExpanded, setSectionsExpanded] = useState<Record<string, boolean>>({
     models: true,
     timelapse: true,
+    changeDetection: true,
     dataLayers: true,
     urbanPlanning: true,
     forestDept: true,
@@ -401,6 +408,20 @@ export const Sidebar = ({
                       />
                     )}
                   </CollapsibleSection>
+
+                  {onChangeDetectionToggle && (
+                    <CollapsibleSection
+                      title="Change Detection"
+                      icon={GitCompare}
+                      expanded={sectionsExpanded.changeDetection}
+                      onToggle={toggleSection('changeDetection')}
+                    >
+                      <ChangeDetectionCard
+                        isActive={isChangeDetectionActive ?? false}
+                        onToggle={onChangeDetectionToggle}
+                      />
+                    </CollapsibleSection>
+                  )}
                 </div>
 
                 <div>

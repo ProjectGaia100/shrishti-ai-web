@@ -10,6 +10,7 @@ import { GeoVisionPanel } from "@/components/GeoVisionPanel";
 import { UrbanPlanningPanel } from "@/components/UrbanPlanningPanel";
 import { ForestDeptPanel } from "@/components/ForestDeptPanel";
 import { TimelinePlayer } from "@/components/TimelinePlayer";
+import { ChangeDetectionOverlay } from "@/components/ChangeDetectionOverlay";
 import { DatasetExplorerModal } from "@/components/DatasetExplorerModal";
 import { UserMenu } from "@/components/UserMenu";
 import { hazardGuardService, PredictionResult, HeatmapSummary } from "@/services/hazardGuard";
@@ -157,6 +158,10 @@ const Index = () => {
   const [timelapseFrames, setTimelapseFrames] = useState<TimelapseFrame[]>([]);
   const [timelapseTitle, setTimelapseTitle] = useState('');
   const [timelapseActive, setTimelapseActive] = useState(false);
+  const [changeDetectionActive, setChangeDetectionActive] = useState(false);
+  const [changeDetectionSplit, setChangeDetectionSplit] = useState(50);
+  const [changeDetectionBeforeDate, setChangeDetectionBeforeDate] = useState<Date | undefined>();
+  const [changeDetectionAfterDate, setChangeDetectionAfterDate] = useState<Date | undefined>();
   const [isDatasetExplorerOpen, setIsDatasetExplorerOpen] = useState(false);
   
   // Layout state
@@ -958,6 +963,8 @@ const Index = () => {
         onTimelapseLoaded={handleTimelapseLoaded}
         onTimelapseClose={handleTimelapseClose}
         isTimelapseActive={timelapseActive}
+        isChangeDetectionActive={changeDetectionActive}
+        onChangeDetectionToggle={() => setChangeDetectionActive((prev) => !prev)}
         onUrbanPlanningFeatureChange={(feature) => {
           if (feature) {
             setShowWeatherWise(false);
@@ -1307,6 +1314,16 @@ const Index = () => {
                 </button>
               </div>
             </div>
+          )}
+          {changeDetectionActive && (
+            <ChangeDetectionOverlay
+              beforeDate={changeDetectionBeforeDate}
+              afterDate={changeDetectionAfterDate}
+              splitPercent={changeDetectionSplit}
+              onBeforeDateChange={setChangeDetectionBeforeDate}
+              onAfterDateChange={setChangeDetectionAfterDate}
+              onSplitChange={setChangeDetectionSplit}
+            />
           )}
           <MapView 
             hazardGuardActive={hazardGuardActive}
