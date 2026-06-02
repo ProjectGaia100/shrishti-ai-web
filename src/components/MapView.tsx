@@ -346,6 +346,7 @@ export const MapView = ({
       window.__GEO_AOI_BBOX = null;
       window.__GEO_AOI_ACTIVE = false;
       window.dispatchEvent(new CustomEvent('geo:aoi-cleared'));
+      window.dispatchEvent(new CustomEvent('geo:aoi-layout', { detail: null }));
     };
 
     const emitAoiFromRectangle = (rectangle: L.Rectangle) => {
@@ -380,6 +381,128 @@ export const MapView = ({
           coordinates: aoiCoords,
         },
       }));
+
+      syncAoiScreenLayout();
+    };
+
+    const syncAoiScreenLayout = () => {
+      const bbox = window.__GEO_AOI_BBOX;
+      if (!bbox) {
+        changeDetectionLayout = null;
+        window.dispatchEvent(new CustomEvent('geo:aoi-layout', { detail: null }));
+        applyChangeDetectionClips(null);
+        return;
+      }
+
+      const sw = L.latLng(bbox.minLat, bbox.minLon);
+      const ne = L.latLng(bbox.maxLat, bbox.maxLon);
+      const swPx = map.latLngToContainerPoint(sw);
+      const nePx = map.latLngToContainerPoint(ne);
+      const left = Math.min(swPx.x, nePx.x);
+      const top = Math.min(swPx.y, nePx.y);
+      const width = Math.abs(nePx.x - swPx.x);
+      const height = Math.abs(nePx.y - swPx.y);
+
+      window.dispatchEvent(new CustomEvent('geo:aoi-layout', {
+        detail: { top, left, width, height },
+      }));
+
+      applyChangeDetectionClips({ top, left, width, height });
+    };
+
+    let changeDetectionBeforeLayer: L.TileLayer | null = null;
+    let changeDetectionAfterLayer: L.TileLayer | null = null;
+    let changeDetectionSplit = 50;
+    let changeDetectionLayout: { top: number; left: number; width: number; height: number } | null = null;
+
+    const ensureChangeDetectionPanes = () => {
+      if (!map.getPane('changeDetectionBefore')) {
+        map.createPane('changeDetectionBefore');
+        map.getPane('changeDetectionBefore')!.style.zIndex = '650';
+      }
+      if (!map.getPane('changeDetectionAfter')) {
+        map.createPane('changeDetectionAfter');
+        map.getPane('changeDetectionAfter')!.style.zIndex = '651';
+      }
+    };
+
+    const applyChangeDetectionClips = (layout?: { top: number; left: number; width: number; height: number } | null) => {
+      if (layout) changeDetectionLayout = layout;
+      if (!changeDetectionLayout) return;
+
+      const { top, left, width, height } = changeDetectionLayout;
+      const splitX = left + (width * changeDetectionSplit) / 100;
+      const right = left + width;
+      const bottom = top + height;
+
+      const beforePane = map.getPane('changeDetectionBefore');
+      const afterPane = map.getPane('changeDetectionAfter');
+      const beforeClip = `polygon(${left}px ${top}px, ${splitX}px ${top}px, ${splitX}px ${bottom}px, ${left}px ${bottom}px)`;
+      const afterClip = `polygon(${splitX}px ${top}px, ${right}px ${top}px, ${right}px ${bottom}px, ${splitX}px ${bottom}px)`;
+
+      if (beforePane) beforePane.style.clipPath = beforeClip;
+      if (afterPane) afterPane.style.clipPath = afterClip;
+    };
+
+    const destroyChangeDetectionLayers = () => {
+      if (changeDetectionBeforeLayer) {
+        map.removeLayer(changeDetectionBeforeLayer);
+        changeDetectionBeforeLayer = null;
+      }
+      if (changeDetectionAfterLayer) {
+        map.removeLayer(changeDetectionAfterLayer);
+        changeDetectionAfterLayer = null;
+      }
+      const beforePane = map.getPane('changeDetectionBefore');
+      const afterPane = map.getPane('changeDetectionAfter');
+      if (beforePane) beforePane.style.clipPath = '';
+      if (afterPane) afterPane.style.clipPath = '';
+    };
+
+    const setChangeDetectionLayer = (side: 'before' | 'after', url: string) => {
+      ensureChangeDetectionPanes();
+      const pane = side === 'before' ? 'changeDetectionBefore' : 'changeDetectionAfter';
+      const existing = side === 'before' ? changeDetectionBeforeLayer : changeDetectionAfterLayer;
+      if (existing) map.removeLayer(existing);
+
+      const layer = L.tileLayer(url, {
+        opacity: 1,
+        maxZoom: 18,
+        pane,
+        attribution: 'Google Earth Engine',
+      });
+      layer.addTo(map);
+
+      if (side === 'before') changeDetectionBeforeLayer = layer;
+      else changeDetectionAfterLayer = layer;
+
+      applyChangeDetectionClips();
+    };
+
+    const onChangeDetectionLayers = (event: Event) => {
+      const detail = (event as CustomEvent<{
+        active?: boolean;
+        beforeUrl?: string | null;
+        afterUrl?: string | null;
+        splitPercent?: number;
+      }>).detail || {};
+
+      if (detail.splitPercent != null) {
+        changeDetectionSplit = detail.splitPercent;
+        applyChangeDetectionClips();
+      }
+
+      if (detail.active === false) {
+        destroyChangeDetectionLayers();
+        return;
+      }
+
+      if (detail.beforeUrl) setChangeDetectionLayer('before', detail.beforeUrl);
+      if (detail.afterUrl) setChangeDetectionLayer('after', detail.afterUrl);
+    };
+
+    const onChangeDetectionDestroy = () => {
+      destroyChangeDetectionLayers();
     };
 
     const enableAoiEditMode = () => {
@@ -727,6 +850,10 @@ export const MapView = ({
 
     const onTimelapseDestroy = () => destroyTimelapseLayers();
 
+    const onRequestAoiLayout = () => syncAoiScreenLayout();
+
+    map.on('move zoom resize', syncAoiScreenLayout);
+
     window.addEventListener('geo:add-layer', onAddEvt);
     window.addEventListener('geo:add-geojson-layer', onAddGeoJsonEvt);
     window.addEventListener('geo:remove-layer', onRemoveEvt);
@@ -739,10 +866,18 @@ export const MapView = ({
     window.addEventListener('geo:timelapse-init', onTimelapseInit);
     window.addEventListener('geo:timelapse-frame', onTimelapseFrame);
     window.addEventListener('geo:timelapse-destroy', onTimelapseDestroy);
+    window.addEventListener('geo:request-aoi-layout', onRequestAoiLayout);
+    window.addEventListener('geo:change-detection-layers', onChangeDetectionLayers);
+    window.addEventListener('geo:change-detection-destroy', onChangeDetectionDestroy);
 
     mapInstanceRef.current = map;
 
     return () => {
+      map.off('move zoom resize', syncAoiScreenLayout);
+      window.removeEventListener('geo:request-aoi-layout', onRequestAoiLayout);
+      window.removeEventListener('geo:change-detection-layers', onChangeDetectionLayers);
+      window.removeEventListener('geo:change-detection-destroy', onChangeDetectionDestroy);
+      destroyChangeDetectionLayers();
       window.removeEventListener('geo:add-layer', onAddEvt);
       window.removeEventListener('geo:add-geojson-layer', onAddGeoJsonEvt);
       window.removeEventListener('geo:remove-layer', onRemoveEvt);

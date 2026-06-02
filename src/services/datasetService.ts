@@ -10,7 +10,8 @@ import {
   Wind,
   Flame,
   Activity,
-  UserGroup
+  UserGroup,
+  Satellite,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -33,6 +34,37 @@ export interface Dataset {
 }
 
 export const GLOBAL_DATASETS: Dataset[] = [
+  {
+    id: "sentinel2",
+    name: "Sentinel-2 True Color",
+    title: "Sentinel-2 Optical",
+    description: "Copernicus Sentinel-2 SR harmonized true-color composite (10 m). Best for visual land-cover change.",
+    icon: Satellite,
+    theme: "vegetation",
+    imageUrl: "https://storage.googleapis.com/earthengine-stac/catalog/COPERNICUS/COPERNICUS_S2_SR_HARMONIZED/COPERNICUS_S2_SR_HARMONIZED.png",
+    category: "Satellite Imagery",
+    legend: [
+      { color: "#1a1a1a", label: "Shadows / water" },
+      { color: "#228B22", label: "Vegetation" },
+      { color: "#c2a86d", label: "Bare soil" },
+      { color: "#b0b0b0", label: "Urban / built-up" },
+    ],
+  },
+  {
+    id: "sentinel1",
+    name: "Sentinel-1 SAR",
+    title: "Sentinel-1 Radar",
+    description: "Copernicus Sentinel-1 GRD VV backscatter. Works through clouds; ideal for flood and surface moisture change.",
+    icon: Satellite,
+    theme: "hydro",
+    imageUrl: "https://storage.googleapis.com/earthengine-stac/catalog/COPERNICUS/COPERNICUS_S1_GRD/COPERNICUS_S1_GRD.png",
+    category: "Satellite Imagery",
+    legend: [
+      { color: "#000080", label: "Low backscatter (smooth water)" },
+      { color: "#808080", label: "Moderate" },
+      { color: "#ffffff", label: "High backscatter (rough / urban)" },
+    ],
+  },
   {
     id: "vegetation",
     name: "Vegetation Index",

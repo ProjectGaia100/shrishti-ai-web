@@ -15,7 +15,7 @@ import { DatasetExplorerModal } from "@/components/DatasetExplorerModal";
 import { UserMenu } from "@/components/UserMenu";
 import { hazardGuardService, PredictionResult, HeatmapSummary } from "@/services/hazardGuard";
 import type { HazardGuardMode } from "@/components/HazardGuardCard";
-import { fetchDataset } from "@/services/api";
+import { fetchDataset, fetchChangeDetectionTile } from "@/services/api";
 import type { AoiBbox, TimelapseFrame } from "@/services/api";
 import type { UrbanPlanningFeature } from "@/services/urbanPlanning";
 import type { ForestDeptFeature } from "@/services/forestDepartment";
@@ -28,7 +28,9 @@ import { Slider } from "@/components/ui/slider";
 import { ChevronDown, GripVertical, Layers, Square, Trash2, X, Menu } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn, normalizeLongitude } from "@/lib/utils";
+import { format } from "date-fns";
 import { GLOBAL_DATASETS } from "@/services/datasetService";
+import { ENABLE_CHANGE_DETECTION } from "@/lib/changeDetection";
 
 const FALLBACK_CREDIT_BUNDLES: CreditBundle[] = [
   { id: 'plus_1000', credits: 1000, price_inr: 999, label: '1000 Credits' },
@@ -162,7 +164,12 @@ const Index = () => {
   const [changeDetectionSplit, setChangeDetectionSplit] = useState(50);
   const [changeDetectionBeforeDate, setChangeDetectionBeforeDate] = useState<Date | undefined>();
   const [changeDetectionAfterDate, setChangeDetectionAfterDate] = useState<Date | undefined>();
+  const [changeDetectionDatasetId, setChangeDetectionDatasetId] = useState<string | null>(null);
+  const [changeDetectionDatasetName, setChangeDetectionDatasetName] = useState<string | null>(null);
+  const [changeDetectionBeforeLoading, setChangeDetectionBeforeLoading] = useState(false);
+  const [changeDetectionAfterLoading, setChangeDetectionAfterLoading] = useState(false);
   const [isDatasetExplorerOpen, setIsDatasetExplorerOpen] = useState(false);
+  const [datasetExplorerMode, setDatasetExplorerMode] = useState<"sidebar" | "changeDetection">("sidebar");
   
   // Layout state
   const isMobile = useIsMobile();
@@ -486,6 +493,159 @@ const Index = () => {
     window.dispatchEvent(new CustomEvent('geo:start-draw', { detail: { type: 'rectangle' } }));
     setIsAoiDrawing(true);
   }, [isAoiDrawing]);
+
+  const handleChangeDetectionToggle = useCallback(() => {
+    if (changeDetectionActive) {
+      if (isAoiDrawing) {
+        window.dispatchEvent(new CustomEvent('geo:cancel-draw'));
+        setIsAoiDrawing(false);
+      }
+      setChangeDetectionBeforeDate(undefined);
+      setChangeDetectionAfterDate(undefined);
+      setChangeDetectionSplit(50);
+      setChangeDetectionDatasetId(null);
+      setChangeDetectionDatasetName(null);
+      window.dispatchEvent(new CustomEvent('geo:change-detection-destroy'));
+      setChangeDetectionActive(false);
+      return;
+    }
+
+    setChangeDetectionActive(true);
+    if (!aoiBbox) {
+      window.dispatchEvent(new CustomEvent('geo:start-draw', { detail: { type: 'rectangle' } }));
+      setIsAoiDrawing(true);
+    }
+  }, [changeDetectionActive, aoiBbox, isAoiDrawing]);
+
+  const handleOpenChangeDetectionLayerPicker = useCallback(() => {
+    setDatasetExplorerMode("changeDetection");
+    setIsDatasetExplorerOpen(true);
+  }, []);
+
+  const handleSelectChangeDetectionLayer = useCallback((id: string, name: string) => {
+    setChangeDetectionDatasetId(id);
+    setChangeDetectionDatasetName(name);
+    setChangeDetectionBeforeDate(undefined);
+    setChangeDetectionAfterDate(undefined);
+    window.dispatchEvent(new CustomEvent('geo:change-detection-destroy'));
+  }, []);
+
+  const handleCancelChangeDetectionDraw = useCallback(() => {
+    if (isAoiDrawing) {
+      window.dispatchEvent(new CustomEvent('geo:cancel-draw'));
+      setIsAoiDrawing(false);
+    }
+    setChangeDetectionActive(false);
+  }, [isAoiDrawing]);
+
+  const changeDetectionAwaitingAoi = changeDetectionActive && !aoiBbox;
+  const changeDetectionReady = changeDetectionActive && Boolean(aoiBbox);
+
+  useEffect(() => {
+    if (!ENABLE_CHANGE_DETECTION) return;
+    if (!changeDetectionActive || aoiBbox || isAoiDrawing) return;
+    window.dispatchEvent(new CustomEvent('geo:start-draw', { detail: { type: 'rectangle' } }));
+    setIsAoiDrawing(true);
+  }, [changeDetectionActive, aoiBbox, isAoiDrawing]);
+
+  useEffect(() => {
+    if (!ENABLE_CHANGE_DETECTION || !changeDetectionReady || !changeDetectionDatasetId || !aoiBbox || !changeDetectionBeforeDate) return;
+
+    let cancelled = false;
+    (async () => {
+      setChangeDetectionBeforeLoading(true);
+      try {
+        const result = await fetchChangeDetectionTile(
+          changeDetectionDatasetId,
+          format(changeDetectionBeforeDate, "yyyy-MM-dd"),
+          aoiBbox
+        );
+        if (cancelled) return;
+        if (result.tile_url) {
+          window.dispatchEvent(new CustomEvent('geo:change-detection-layers', {
+            detail: {
+              active: true,
+              beforeUrl: result.tile_url,
+              splitPercent: changeDetectionSplit,
+            },
+          }));
+        } else {
+          toast({
+            title: "Before date failed",
+            description: result.error ?? "Could not load comparison layer.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          toast({
+            title: "Before date failed",
+            description: "Could not load the selected layer for the before date.",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        if (!cancelled) setChangeDetectionBeforeLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [changeDetectionBeforeDate, changeDetectionDatasetId, aoiBbox, changeDetectionReady, toast]);
+
+  useEffect(() => {
+    if (!ENABLE_CHANGE_DETECTION || !changeDetectionReady || !changeDetectionDatasetId || !aoiBbox || !changeDetectionAfterDate) return;
+
+    let cancelled = false;
+    (async () => {
+      setChangeDetectionAfterLoading(true);
+      try {
+        const result = await fetchChangeDetectionTile(
+          changeDetectionDatasetId,
+          format(changeDetectionAfterDate, "yyyy-MM-dd"),
+          aoiBbox
+        );
+        if (cancelled) return;
+        if (result.tile_url) {
+          window.dispatchEvent(new CustomEvent('geo:change-detection-layers', {
+            detail: {
+              active: true,
+              afterUrl: result.tile_url,
+              splitPercent: changeDetectionSplit,
+            },
+          }));
+        } else {
+          toast({
+            title: "After date failed",
+            description: result.error ?? "Could not load comparison layer.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          toast({
+            title: "After date failed",
+            description: "Could not load the selected layer for the after date.",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        if (!cancelled) setChangeDetectionAfterLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [changeDetectionAfterDate, changeDetectionDatasetId, aoiBbox, changeDetectionReady, toast]);
+
+  useEffect(() => {
+    if (!ENABLE_CHANGE_DETECTION || !changeDetectionReady) return;
+    window.dispatchEvent(new CustomEvent('geo:change-detection-layers', {
+      detail: { active: true, splitPercent: changeDetectionSplit },
+    }));
+  }, [changeDetectionSplit, changeDetectionReady]);
 
   useEffect(() => {
     const onAoiUpdated = (event: Event) => {
@@ -963,8 +1123,16 @@ const Index = () => {
         onTimelapseLoaded={handleTimelapseLoaded}
         onTimelapseClose={handleTimelapseClose}
         isTimelapseActive={timelapseActive}
-        isChangeDetectionActive={changeDetectionActive}
-        onChangeDetectionToggle={() => setChangeDetectionActive((prev) => !prev)}
+        {...(ENABLE_CHANGE_DETECTION
+          ? {
+              isChangeDetectionActive: changeDetectionActive,
+              changeDetectionAwaitingAoi,
+              changeDetectionHasAoi: Boolean(aoiBbox),
+              changeDetectionLayerName: changeDetectionDatasetName,
+              onOpenChangeDetectionLayerPicker: handleOpenChangeDetectionLayerPicker,
+              onChangeDetectionToggle: handleChangeDetectionToggle,
+            }
+          : {})}
         onUrbanPlanningFeatureChange={(feature) => {
           if (feature) {
             setShowWeatherWise(false);
@@ -994,7 +1162,10 @@ const Index = () => {
           }
           handleForestDeptFeatureChange(feature);
         }}
-        onOpenDatasetDiscovery={() => setIsDatasetExplorerOpen(true)}
+        onOpenDatasetDiscovery={() => {
+          setDatasetExplorerMode("sidebar");
+          setIsDatasetExplorerOpen(true);
+        }}
         onRefreshAddedLayers={handleRefreshAddedLayers}
         refreshingAddedLayers={refreshingAddedLayers}
         sidebarLayerCatalog={sidebarLayerCatalog}
@@ -1300,14 +1471,22 @@ const Index = () => {
         )}
 
         <div className="flex-1 relative">
-          {isAoiDrawing && (
+          {(isAoiDrawing || (ENABLE_CHANGE_DETECTION && changeDetectionAwaitingAoi)) && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[2000] pointer-events-auto">
               <div className="flex items-center gap-3 rounded-xl bg-amber-500 text-white px-4 py-2.5 shadow-2xl">
                 <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                <span className="text-xs font-bold tracking-wide">Draw a rectangle on the map</span>
+                <span className="text-xs font-bold tracking-wide">
+                  {ENABLE_CHANGE_DETECTION && changeDetectionAwaitingAoi
+                    ? "Draw a rectangle on the map to compare changes"
+                    : "Draw a rectangle on the map"}
+                </span>
                 <button
                   type="button"
-                  onClick={handleToggleAoiDraw}
+                  onClick={
+                    ENABLE_CHANGE_DETECTION && changeDetectionAwaitingAoi
+                      ? handleCancelChangeDetectionDraw
+                      : handleToggleAoiDraw
+                  }
                   className="ml-1 rounded-lg bg-white/20 hover:bg-white/30 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors"
                 >
                   Cancel
@@ -1315,11 +1494,14 @@ const Index = () => {
               </div>
             </div>
           )}
-          {changeDetectionActive && (
+          {ENABLE_CHANGE_DETECTION && changeDetectionReady && (
             <ChangeDetectionOverlay
               beforeDate={changeDetectionBeforeDate}
               afterDate={changeDetectionAfterDate}
               splitPercent={changeDetectionSplit}
+              hasLayerSelected={Boolean(changeDetectionDatasetId)}
+              beforeLoading={changeDetectionBeforeLoading}
+              afterLoading={changeDetectionAfterLoading}
               onBeforeDateChange={setChangeDetectionBeforeDate}
               onAfterDateChange={setChangeDetectionAfterDate}
               onSplitChange={setChangeDetectionSplit}
@@ -1401,6 +1583,9 @@ const Index = () => {
             activeLayerIds={Object.keys(layersById)}
             sidebarLayerIds={sidebarLayerCatalog.map((item) => item.id)}
             onSyncSidebarSelection={handleSyncSidebarSelection}
+            mode={datasetExplorerMode}
+            changeDetectionDatasetId={changeDetectionDatasetId}
+            onSelectChangeDetectionLayer={handleSelectChangeDetectionLayer}
           />
         </div>
       </main>

@@ -1,13 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+
+export interface AoiScreenLayout {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
 
 export interface ChangeDetectionOverlayProps {
   beforeDate?: Date;
   afterDate?: Date;
   splitPercent: number;
+  hasLayerSelected: boolean;
+  beforeLoading?: boolean;
+  afterLoading?: boolean;
   onBeforeDateChange: (date: Date | undefined) => void;
   onAfterDateChange: (date: Date | undefined) => void;
   onSplitChange: (percent: number) => void;
@@ -19,6 +29,9 @@ export function ChangeDetectionOverlay({
   beforeDate,
   afterDate,
   splitPercent,
+  hasLayerSelected,
+  beforeLoading = false,
+  afterLoading = false,
   onBeforeDateChange,
   onAfterDateChange,
   onSplitChange,
@@ -26,6 +39,19 @@ export function ChangeDetectionOverlay({
   const containerRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const [calendarSide, setCalendarSide] = useState<CalendarSide>(null);
+  const [layout, setLayout] = useState<AoiScreenLayout | null>(null);
+
+  useEffect(() => {
+    const onLayout = (event: Event) => {
+      const detail = (event as CustomEvent<AoiScreenLayout | null>).detail;
+      setLayout(detail ?? null);
+    };
+
+    window.addEventListener("geo:aoi-layout", onLayout as EventListener);
+    window.dispatchEvent(new CustomEvent("geo:request-aoi-layout"));
+
+    return () => window.removeEventListener("geo:aoi-layout", onLayout as EventListener);
+  }, []);
 
   const updateSplitFromPointer = useCallback(
     (clientX: number) => {
@@ -68,7 +94,15 @@ export function ChangeDetectionOverlay({
     if (clientX != null) updateSplitFromPointer(clientX);
   };
 
-  const renderPanelLabel = (side: "before" | "after", date?: Date) => {
+  const renderPanelLabel = (side: "before" | "after", date?: Date, loading?: boolean) => {
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center gap-2 pointer-events-none select-none">
+          <Loader2 className="w-5 h-5 text-white animate-spin" />
+          <p className="text-xs font-medium text-white/90 drop-shadow-md">Loading layer…</p>
+        </div>
+      );
+    }
     if (date) {
       return (
         <div className="text-center pointer-events-none select-none">
@@ -81,46 +115,58 @@ export function ChangeDetectionOverlay({
     }
     return (
       <p className="text-sm font-medium text-white/90 text-center drop-shadow-md pointer-events-none select-none px-4">
-        Select date to compare
+        {!hasLayerSelected ? "Select a layer first" : "Select date to compare"}
       </p>
     );
   };
 
+  const panelSurfaceClass = (hasDate: boolean) =>
+    cn(
+      "absolute inset-y-0 border-2 border-dashed border-white/85 rounded-sm",
+      "flex items-center justify-center cursor-pointer transition-colors",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
+      hasDate ? "bg-black/5 hover:bg-black/10" : "bg-black/15 hover:bg-black/25"
+    );
+
+  if (!layout || layout.width < 24 || layout.height < 24) {
+    return null;
+  }
+
   return (
     <div
-      ref={containerRef}
       className="absolute inset-0 z-[1400] pointer-events-none"
       aria-label="Change detection comparison"
     >
-      <div className="absolute inset-4 sm:inset-6 md:inset-10 pointer-events-auto">
+      <div
+        ref={containerRef}
+        className="absolute pointer-events-auto"
+        style={{
+          top: layout.top,
+          left: layout.left,
+          width: layout.width,
+          height: layout.height,
+        }}
+      >
         {/* Before panel */}
         <button
           type="button"
-          className={cn(
-            "absolute inset-y-0 left-0 border-2 border-dashed border-white/85 rounded-sm",
-            "flex items-center justify-center cursor-pointer",
-            "bg-black/15 hover:bg-black/25 transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-          )}
+          className={cn(panelSurfaceClass(Boolean(beforeDate)), "left-0")}
           style={{ width: `${splitPercent}%` }}
-          onClick={() => setCalendarSide("before")}
+          onClick={() => hasLayerSelected && setCalendarSide("before")}
+          disabled={!hasLayerSelected}
         >
-          {renderPanelLabel("before", beforeDate)}
+          {renderPanelLabel("before", beforeDate, beforeLoading)}
         </button>
 
         {/* After panel */}
         <button
           type="button"
-          className={cn(
-            "absolute inset-y-0 right-0 border-2 border-dashed border-white/85 rounded-sm",
-            "flex items-center justify-center cursor-pointer",
-            "bg-black/15 hover:bg-black/25 transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-          )}
+          className={cn(panelSurfaceClass(Boolean(afterDate)), "right-0")}
           style={{ width: `${100 - splitPercent}%` }}
-          onClick={() => setCalendarSide("after")}
+          onClick={() => hasLayerSelected && setCalendarSide("after")}
+          disabled={!hasLayerSelected}
         >
-          {renderPanelLabel("after", afterDate)}
+          {renderPanelLabel("after", afterDate, afterLoading)}
         </button>
 
         {/* Center divider + drag handle */}

@@ -64,6 +64,28 @@ export async function fetchDataset(
   throw lastError;
 }
 
+export async function fetchChangeDetectionTile(
+  datasetId: string,
+  date: string,
+  aoiBbox: AoiBbox
+): Promise<{
+  success: boolean;
+  tile_url?: string;
+  start_date?: string;
+  end_date?: string;
+  error?: string;
+}> {
+  const resp = await API.get("/api/gee/change-detection", {
+    params: {
+      dataset: datasetId,
+      date,
+      aoi_bbox: `${aoiBbox.minLon},${aoiBbox.minLat},${aoiBbox.maxLon},${aoiBbox.maxLat}`,
+    },
+    timeout: 180000,
+  });
+  return resp.data;
+}
+
 export interface TimelapseFrame {
   date_label: string;
   start_date: string;

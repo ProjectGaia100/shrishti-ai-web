@@ -8,6 +8,7 @@ import { WeatherWiseCard } from "./WeatherWiseCard";
 import { GeoVisionCard } from "./GeoVisionCard";
 import { SatelliteTimelapseCard } from "./SatelliteTimelapseCard";
 import { ChangeDetectionCard } from "./ChangeDetectionCard";
+import { ENABLE_CHANGE_DETECTION } from "@/lib/changeDetection";
 import { ForestDeptCards } from "./ForestDeptCards";
 import { StateCards } from "./StateCards";
 import { UrbanPlanningCards } from "./UrbanPlanningCards";
@@ -70,6 +71,10 @@ export const Sidebar = ({
   isTimelapseActive,
   onChangeDetectionToggle,
   isChangeDetectionActive,
+  changeDetectionAwaitingAoi,
+  changeDetectionHasAoi,
+  changeDetectionLayerName,
+  onOpenChangeDetectionLayerPicker,
   activeUrbanPlanningFeature,
   onUrbanPlanningFeatureChange,
   activeForestDeptFeature,
@@ -90,6 +95,10 @@ export const Sidebar = ({
   isTimelapseActive?: boolean;
   onChangeDetectionToggle?: () => void;
   isChangeDetectionActive?: boolean;
+  changeDetectionAwaitingAoi?: boolean;
+  changeDetectionHasAoi?: boolean;
+  changeDetectionLayerName?: string | null;
+  onOpenChangeDetectionLayerPicker?: () => void;
   activeUrbanPlanningFeature?: UrbanPlanningFeature | null;
   onUrbanPlanningFeatureChange?: (feature: UrbanPlanningFeature | null) => void;
   activeForestDeptFeature?: ForestDeptFeature | null;
@@ -409,7 +418,7 @@ export const Sidebar = ({
                     )}
                   </CollapsibleSection>
 
-                  {onChangeDetectionToggle && (
+                  {ENABLE_CHANGE_DETECTION && onChangeDetectionToggle && (
                     <CollapsibleSection
                       title="Change Detection"
                       icon={GitCompare}
@@ -418,6 +427,10 @@ export const Sidebar = ({
                     >
                       <ChangeDetectionCard
                         isActive={isChangeDetectionActive ?? false}
+                        awaitingAoi={changeDetectionAwaitingAoi ?? false}
+                        hasAoi={changeDetectionHasAoi ?? false}
+                        selectedLayerName={changeDetectionLayerName}
+                        onOpenLayerPicker={onOpenChangeDetectionLayerPicker}
                         onToggle={onChangeDetectionToggle}
                       />
                     </CollapsibleSection>

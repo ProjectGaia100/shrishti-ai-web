@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { GLOBAL_DATASETS } from "@/services/datasetService";
+import { isChangeDetectionDataset } from "@/lib/changeDetection";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -14,6 +15,9 @@ interface DatasetExplorerModalProps {
   activeLayerIds?: string[];
   sidebarLayerIds?: string[];
   onSyncSidebarSelection?: (selectedIds: string[]) => void;
+  mode?: "sidebar" | "changeDetection";
+  changeDetectionDatasetId?: string | null;
+  onSelectChangeDetectionLayer?: (id: string, name: string) => void;
 }
 
 export const DatasetExplorerModal = ({
@@ -22,18 +26,26 @@ export const DatasetExplorerModal = ({
   activeLayerIds = [],
   sidebarLayerIds = [],
   onSyncSidebarSelection,
+  mode = "sidebar",
+  changeDetectionDatasetId = null,
+  onSelectChangeDetectionLayer,
 }: DatasetExplorerModalProps) => {
+  const isChangeDetectionMode = mode === "changeDetection";
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [changeDetectionPick, setChangeDetectionPick] = useState<string | null>(changeDetectionDatasetId);
 
   const activeLayerSet = useMemo(() => new Set(activeLayerIds), [activeLayerIds]);
   const sidebarLayerSet = useMemo(() => new Set(sidebarLayerIds), [sidebarLayerIds]);
 
   useEffect(() => {
-    if (isOpen) {
-      setSelectedIds([...new Set(sidebarLayerIds)]);
+    if (!isOpen) return;
+    if (isChangeDetectionMode) {
+      setChangeDetectionPick(changeDetectionDatasetId);
+      return;
     }
-  }, [isOpen, sidebarLayerIds]);
+    setSelectedIds([...new Set(sidebarLayerIds)]);
+  }, [isOpen, sidebarLayerIds, isChangeDetectionMode, changeDetectionDatasetId]);
 
   const hasSelectionChanges = useMemo(() => {
     if (selectedIds.length !== sidebarLayerSet.size) return true;
@@ -41,27 +53,46 @@ export const DatasetExplorerModal = ({
   }, [selectedIds, sidebarLayerSet]);
 
   const filteredDatasets = useMemo(() => {
-    return GLOBAL_DATASETS.filter(ds => 
-      ds.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ds.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ds.category?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [searchQuery]);
+    return GLOBAL_DATASETS.filter(ds => {
+      if (isChangeDetectionMode && !isChangeDetectionDataset(ds.id)) return false;
+      return (
+        ds.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ds.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ds.category?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
+  }, [searchQuery, isChangeDetectionMode]);
 
   const toggleSelection = (id: string) => {
-    setSelectedIds(prev => 
+    if (isChangeDetectionMode) {
+      setChangeDetectionPick((prev) => (prev === id ? null : id));
+      return;
+    }
+    setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
 
+  const handleAddToProject = () => {
+    if (isChangeDetectionMode) {
+      if (!changeDetectionPick) return;
+      const dataset = GLOBAL_DATASETS.find((item) => item.id === changeDetectionPick);
+      onSelectChangeDetectionLayer?.(changeDetectionPick, dataset?.name ?? changeDetectionPick);
+      onClose();
+      return;
+    }
+    onSyncSidebarSelection?.(selectedIds);
+    onClose();
+  };
+
+  const footerSelectionCount = isChangeDetectionMode ? (changeDetectionPick ? 1 : 0) : selectedIds.length;
+  const footerHasChanges = isChangeDetectionMode
+    ? Boolean(changeDetectionPick) && changeDetectionPick !== changeDetectionDatasetId
+    : hasSelectionChanges;
+
   const handleCatalogInfo = (datasetId: string, datasetName: string) => {
     const query = encodeURIComponent(`${datasetName} ${datasetId} dataset catalog`);
     window.open(`https://www.google.com/search?q=${query}`, "_blank", "noopener,noreferrer");
-  };
-
-  const handleAddToProject = () => {
-    onSyncSidebarSelection?.(selectedIds);
-    onClose();
   };
 
   return (
@@ -89,13 +120,15 @@ export const DatasetExplorerModal = ({
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                   <div className="text-2xl font-black uppercase tracking-tight text-foreground flex items-center gap-3">
-                    Data Explorer
+                    {isChangeDetectionMode ? "Select Comparison Layer" : "Data Explorer"}
                     <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest bg-zinc-100 dark:bg-zinc-800 border-none">
-                      Global Inventory
+                      {isChangeDetectionMode ? "Change Detection" : "Global Inventory"}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1.5 font-medium">
-                    Select planetary-scale datasets to visualize global trends and anomalies.
+                    {isChangeDetectionMode
+                      ? "Pick one time-varying dataset. Static layers (elevation, land cover, etc.) are hidden. Then choose dates on the map."
+                      : "Select planetary-scale datasets to visualize global trends and anomalies."}
                   </p>
                 </div>
                 
@@ -126,7 +159,9 @@ export const DatasetExplorerModal = ({
                 {filteredDatasets.map((ds) => {
                   const isInSidebar = sidebarLayerSet.has(ds.id);
                   const isOnMap = activeLayerSet.has(ds.id);
-                  const isSelected = selectedIds.includes(ds.id);
+                  const isSelected = isChangeDetectionMode
+                    ? changeDetectionPick === ds.id
+                    : selectedIds.includes(ds.id);
                   return (
                     <div 
                       key={ds.id}
@@ -229,12 +264,18 @@ export const DatasetExplorerModal = ({
             <div className="p-6 border-t border-border/40 bg-zinc-50/50 dark:bg-zinc-900/50 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 dark:bg-zinc-100 text-zinc-50 dark:text-zinc-900 text-sm font-black shadow-lg">
-                  {selectedIds.length}
+                  {footerSelectionCount}
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-black uppercase tracking-tight">Layers selected</span>
+                  <span className="text-sm font-black uppercase tracking-tight">
+                    {isChangeDetectionMode ? "Layer selected" : "Layers selected"}
+                  </span>
                   <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-                    {sidebarLayerSet.size} in sidebar • {selectedIds.length} selected now
+                    {isChangeDetectionMode
+                      ? changeDetectionPick
+                        ? GLOBAL_DATASETS.find((item) => item.id === changeDetectionPick)?.name ?? changeDetectionPick
+                        : "Choose one dataset"
+                      : `${sidebarLayerSet.size} in sidebar • ${selectedIds.length} selected now`}
                   </span>
                 </div>
               </div>
@@ -248,11 +289,11 @@ export const DatasetExplorerModal = ({
                   Cancel
                 </Button>
                 <Button 
-                  disabled={!hasSelectionChanges}
+                  disabled={isChangeDetectionMode ? !changeDetectionPick : !footerHasChanges}
                   onClick={handleAddToProject}
                   className="flex-1 sm:flex-none min-w-[160px] h-11 uppercase text-[11px] font-black tracking-[0.2em] bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 shadow-xl shadow-zinc-900/10 dark:shadow-zinc-100/5 disabled:opacity-50 transition-all active:scale-[0.98]"
                 >
-                  Apply Sidebar
+                  {isChangeDetectionMode ? "Use This Layer" : "Apply Sidebar"}
                 </Button>
               </div>
             </div>
