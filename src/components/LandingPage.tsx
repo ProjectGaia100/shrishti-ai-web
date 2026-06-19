@@ -4,10 +4,12 @@ import { SmoothScroll } from './landing/SmoothScroll'
 import { CustomCursor } from './landing/CustomCursor'
 import { Navbar } from './landing/Navbar'
 import { HeroSection } from './landing/HeroSection'
+import { PlatformPreview } from './landing/PlatformPreview'
 import { FeaturesSection } from './landing/FeaturesSection'
 import { HowItWorksSection } from './landing/HowItWorksSection'
 import { StatsSection } from './landing/StatsSection'
 import { AboutSection } from './landing/AboutSection'
+import { ApiSection } from './landing/ApiSection'
 import { CTASection } from './landing/CTASection'
 import { Footer } from './landing/Footer'
 
@@ -49,7 +51,9 @@ export function LandingPage() {
           onSignIn={goToAuth}
           onDashboard={goToDashboard}
         />
+        <PlatformPreview />
         <FeaturesSection />
+        <ApiSection />
         <StatsSection />
         <HowItWorksSection />
         <AboutSection />
