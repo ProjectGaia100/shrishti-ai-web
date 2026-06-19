@@ -87,19 +87,9 @@ class WeatherWiseService {
       return { success: false, error: creditGate.error };
     }
 
+    let predictionSucceeded = false;
     try {
-      console.log('[WEATHERWISE_CLIENT] Starting forecast request...');
-      console.log('[WEATHERWISE_CLIENT] Using baseUrl:', this.baseUrl);
-      console.log('[WEATHERWISE_CLIENT] Parameters:', {
-        latitude,
-        longitude,
-        referenceDate,
-        disasterType,
-        forecastDays
-      });
-      
       const requestUrl = `${this.baseUrl}/api/weatherwise/forecast`;
-      console.log('[WEATHERWISE_CLIENT] Request URL:', requestUrl);
       
       const requestBody = {
         latitude,
@@ -108,19 +98,15 @@ class WeatherWiseService {
         disaster_type: disasterType,
         forecast_days: forecastDays
       };
-      console.log('[WEATHERWISE_CLIENT] Request body:', JSON.stringify(requestBody, null, 2));
       
       const response = await fetch(requestUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Demo-Local-Credits': '1',
           ...getAuthHeaders(),
         },
         body: JSON.stringify(requestBody),
       });
-
-      console.log('[WEATHERWISE_CLIENT] Response status:', response.status);
 
       if (!response.ok) {
         if (response.status === 402) {
@@ -133,13 +119,10 @@ class WeatherWiseService {
           };
         }
         const errorText = await response.text();
-        console.error('[WEATHERWISE_CLIENT] Response not OK:', response.status, response.statusText);
-        console.error('[WEATHERWISE_CLIENT] Error response body:', errorText);
         throw new Error(`WeatherWise service error ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('[WEATHERWISE_CLIENT] Response data:', JSON.stringify(data, null, 2));
 
       if (data.credit_info?.remaining_credits !== undefined) {
         window.dispatchEvent(new CustomEvent('credits:updated', {
@@ -148,30 +131,27 @@ class WeatherWiseService {
       }
       
       if (!data.success) {
-        console.error('[WEATHERWISE_CLIENT] Forecast failed:', data.error || data.message);
         return {
           success: false,
           error: data.error || data.message || 'Forecast generation failed'
         };
       }
 
-      console.log('[WEATHERWISE_CLIENT] Forecast successful');
-      console.log('[WEATHERWISE_CLIENT] Model used:', data.data?.model_context);
-      console.log('[WEATHERWISE_CLIENT] Forecast days:', data.data?.forecast_summary?.horizon_days);
+      predictionSucceeded = true;
       
       return {
         success: true,
         data: data.data
       };
     } catch (error) {
-      console.error('[WEATHERWISE_CLIENT] Forecast error:', error);
-      console.error('[WEATHERWISE_CLIENT] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to connect to WeatherWise service'
       };
     } finally {
-      await this.syncCreditBalanceOrConsumeFallback(this.predictionCost);
+      if (predictionSucceeded) {
+        await this.syncCreditBalanceOrConsumeFallback(this.predictionCost);
+      }
     }
   }
 

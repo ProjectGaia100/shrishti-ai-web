@@ -137,10 +137,17 @@ export const Sidebar = ({
     setSectionsExpanded({
       models: newState,
       timelapse: newState,
+      changeDetection: newState,
       dataLayers: newState,
       urbanPlanning: newState,
       forestDept: newState,
       india: newState,
+      goa: newState,
+      karnataka: newState,
+      kerala: newState,
+      maharashtra: newState,
+      tamilnadu: newState,
+      andhrapradesh: newState,
     });
   };
 

@@ -134,6 +134,8 @@ export const WeatherWisePanel = ({ isVisible, onClose, mapCoords, availableCredi
         setForecastData(result.data);
         setError(null);
         
+        window.dispatchEvent(new CustomEvent('geo:jump-to', { detail: { lat, lon, zoom: 11 } }));
+        
         toast({
           title: "Forecast Generated",
           description: `60-day weather forecast using ${result.data.model_context} model`,

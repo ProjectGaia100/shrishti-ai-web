@@ -596,9 +596,8 @@ const FireRiskResults = ({ data }: { data: FireRiskResult }) => {
     }
   };
 
-  const riskColor = forestDeptService.constructor.prototype.constructor.name === 'ForestDepartmentService' 
-    ? { 'Low': '#4CAF50', 'Moderate': '#FFEB3B', 'High': '#FF9800', 'Extreme': '#F44336' }[data.overall_risk] || '#9E9E9E'
-    : '#9E9E9E';
+  const riskColors: Record<string, string> = { 'Low': '#4CAF50', 'Moderate': '#FFEB3B', 'High': '#FF9800', 'Extreme': '#F44336' };
+  const riskColor = riskColors[data.overall_risk] || '#9E9E9E';
 
   return (
     <div className="space-y-3 pt-3 border-t border-border/50 animate-fade-in">

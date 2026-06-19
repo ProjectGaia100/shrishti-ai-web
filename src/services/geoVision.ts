@@ -95,9 +95,9 @@ class GeoVisionService {
       return { success: false, error: creditGate.error };
     }
 
+    let predictionSucceeded = false;
     try {
       console.log('[GEOVISION_CLIENT] Starting fusion prediction...');
-      console.log('[GEOVISION_CLIENT] Parameters:', { latitude, longitude });
 
       const requestUrl = `${this.baseUrl}/api/geovision/predict`;
       const requestBody = {
@@ -105,19 +105,14 @@ class GeoVisionService {
         longitude,
       };
 
-      console.log('[GEOVISION_CLIENT] POST', requestUrl);
-
       const response = await fetch(requestUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Demo-Local-Credits': '1',
           ...getAuthHeaders(),
         },
         body: JSON.stringify(requestBody),
       });
-
-      console.log('[GEOVISION_CLIENT] Response status:', response.status);
 
       if (!response.ok) {
         if (response.status === 402) {
@@ -130,7 +125,6 @@ class GeoVisionService {
           };
         }
         const errorText = await response.text();
-        console.error('[GEOVISION_CLIENT] Error:', response.status, errorText);
         throw new Error(`GeoVision service error ${response.status}: ${errorText}`);
       }
 
@@ -143,16 +137,14 @@ class GeoVisionService {
       }
 
       if (!data.success) {
-        console.error('[GEOVISION_CLIENT] Prediction failed:', data.error || data.message);
         return {
           success: false,
           error: data.error || data.message || 'Fusion prediction failed',
         };
       }
 
-      console.log('[GEOVISION_CLIENT] Prediction successful');
+      predictionSucceeded = true;
 
-      // Reshape backend flat response into the GeoVisionPrediction interface
       const raw = data.data;
       const pred = raw?.prediction || raw;
       const shaped: GeoVisionPrediction = {
@@ -175,18 +167,16 @@ class GeoVisionService {
         },
       };
 
-      console.log('[GEOVISION_CLIENT] Disaster:', shaped.disaster_prediction.predicted_class);
-      console.log('[GEOVISION_CLIENT] Weather:', shaped.weather_prediction.predicted_regime);
-
       return { success: true, data: shaped };
     } catch (error) {
-      console.error('[GEOVISION_CLIENT] Error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to connect to GeoVision service',
       };
     } finally {
-      await this.syncCreditBalanceOrConsumeFallback(this.predictionCost);
+      if (predictionSucceeded) {
+        await this.syncCreditBalanceOrConsumeFallback(this.predictionCost);
+      }
     }
   }
 

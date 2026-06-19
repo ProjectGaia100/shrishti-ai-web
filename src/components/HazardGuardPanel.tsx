@@ -81,6 +81,15 @@ export const HazardGuardPanel = ({
     }
   }, [mapCoords]);
 
+  // Fly to location when prediction result arrives
+  useEffect(() => {
+    if (result?.latitude && result?.longitude) {
+      window.dispatchEvent(new CustomEvent('geo:jump-to', {
+        detail: { lat: result.latitude, lon: result.longitude, zoom: 11 }
+      }));
+    }
+  }, [result?.latitude, result?.longitude]);
+
   const handleRunAnalysis = async () => {
     if (!onRunAnalysis || loading) return;
 

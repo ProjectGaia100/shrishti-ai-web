@@ -110,7 +110,6 @@ class HazardGuardService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Demo-Local-Credits': '1',
           ...getAuthHeaders(),
         },
         body: JSON.stringify({
@@ -254,7 +253,6 @@ class HazardGuardService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Demo-Local-Credits': '1',
           ...getAuthHeaders(),
         },
         body: JSON.stringify({ locations }),
