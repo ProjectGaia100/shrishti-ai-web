@@ -1,7 +1,9 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 
 export function PlatformPreview() {
   const ref = useRef<HTMLElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [useVideo, setUseVideo] = useState(true)
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -19,6 +21,25 @@ export function PlatformPreview() {
     return () => observer.disconnect()
   }, [])
 
+  // Play/pause based on visibility
+  useEffect(() => {
+    if (!useVideo) return
+    const video = videoRef.current
+    if (!video) return
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          video.play().catch(() => {})
+        } else {
+          video.pause()
+        }
+      },
+      { threshold: 0.3 }
+    )
+    io.observe(video)
+    return () => io.disconnect()
+  }, [useVideo])
+
   return (
     <section ref={ref} className="relative py-12 px-6 overflow-hidden">
       <div className="reveal-up max-w-6xl mx-auto">
@@ -33,12 +54,25 @@ export function PlatformPreview() {
               shrishti-ai · dashboard
             </span>
           </div>
-          {/* Screenshot */}
-          <img
-            src="/platform.png"
-            alt="Shrishti AI Dashboard"
-            className="w-full block"
-          />
+          {/* Video or fallback to image */}
+          {useVideo ? (
+            <video
+              ref={videoRef}
+              src="/shrishti-promo.mp4"
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              onError={() => setUseVideo(false)}
+              className="w-full block"
+            />
+          ) : (
+            <img
+              src="/platform.png"
+              alt="Shrishti AI Dashboard"
+              className="w-full block"
+            />
+          )}
         </div>
       </div>
     </section>
